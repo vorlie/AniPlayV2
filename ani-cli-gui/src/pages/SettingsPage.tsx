@@ -1,0 +1,118 @@
+import { useEffect, useState } from 'react'
+import { Palette, RotateCcw } from 'lucide-react'
+import { argbFromRgb, hexFromArgb, themeFromSourceColor } from '@material/material-color-utilities'
+
+const DEFAULT_PRIMARY = '#D0BCFF'
+
+function clamp(v: number, min = 0, max = 255) {
+  return Math.min(max, Math.max(min, v))
+}
+
+function hexToRgb(hex: string) {
+  const clean = hex.replace('#', '')
+  const normalized = clean.length === 3
+    ? clean.split('').map((c) => c + c).join('')
+    : clean
+  const n = parseInt(normalized, 16)
+  return {
+    r: (n >> 16) & 255,
+    g: (n >> 8) & 255,
+    b: n & 255
+  }
+}
+
+function rgbToHex(r: number, g: number, b: number) {
+  return `#${[r, g, b].map((v) => clamp(v).toString(16).padStart(2, '0')).join('')}`
+}
+
+function applyThemeFromPrimary(primary: string) {
+  const root = document.documentElement
+  const { r, g, b } = hexToRgb(primary)
+  const sourceColor = argbFromRgb(r, g, b)
+  const theme = themeFromSourceColor(sourceColor, [
+    { name: 'custom-primary', value: sourceColor, blend: true }
+  ])
+  const dark = theme.schemes.dark
+
+  const p = hexFromArgb(dark.primary)
+  root.style.setProperty('--color-m3-surface', hexFromArgb(dark.surface))
+  root.style.setProperty('--color-m3-surface-container', hexFromArgb(dark.secondaryContainer))
+  root.style.setProperty('--color-m3-surface-variant', hexFromArgb(dark.surfaceVariant))
+  root.style.setProperty('--color-m3-primary', p)
+  root.style.setProperty('--color-m3-on-primary', hexFromArgb(dark.onPrimary))
+  root.style.setProperty('--color-m3-primary-container', hexFromArgb(dark.primaryContainer))
+  root.style.setProperty('--color-m3-on-primary-container', hexFromArgb(dark.onPrimaryContainer))
+  root.style.setProperty('--color-m3-secondary', hexFromArgb(dark.secondary))
+  root.style.setProperty('--color-m3-on-secondary', hexFromArgb(dark.onSecondary))
+  root.style.setProperty('--color-m3-outline', hexFromArgb(dark.outline))
+  root.style.setProperty('--color-m3-on-surface', hexFromArgb(dark.onSurface))
+  root.style.setProperty('--color-m3-on-surface-variant', hexFromArgb(dark.onSurfaceVariant))
+  root.style.setProperty('--custom-display-name-styles-main-color', p)
+  root.style.setProperty('--custom-display-name-styles-light-1-color', rgbToHex(clamp(r + 28), clamp(g + 28), clamp(b + 28)))
+  root.style.setProperty('--custom-display-name-styles-dark-1-color', rgbToHex(clamp(r - 48), clamp(g - 48), clamp(b - 48)))
+}
+
+export function SettingsPage() {
+  const [primary, setPrimary] = useState(DEFAULT_PRIMARY)
+
+  useEffect(() => {
+    const saved = localStorage.getItem('theme.primary')
+    if (!saved) return
+    setPrimary(saved)
+    applyThemeFromPrimary(saved)
+  }, [])
+
+  const handleColor = (val: string) => {
+    setPrimary(val)
+    applyThemeFromPrimary(val)
+    localStorage.setItem('theme.primary', val)
+  }
+
+  const reset = () => {
+    setPrimary(DEFAULT_PRIMARY)
+    applyThemeFromPrimary(DEFAULT_PRIMARY)
+    localStorage.removeItem('theme.primary')
+  }
+
+  return (
+    <div className="m3-card p-6 md:p-7 flex-1">
+      <h2 className="font-tempo text-2xl mb-5 flex items-center gap-2">
+        <Palette size={22} />
+        Theme
+      </h2>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-5 items-start">
+        <div className="space-y-3">
+          <p className="text-sm text-m3-on-surface-variant">Choose your custom accent color.</p>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={primary}
+              onChange={(e) => handleColor(e.target.value)}
+              className="h-10 w-16 rounded-lg border border-m3-outline/30 bg-transparent cursor-pointer"
+            />
+            <input
+              type="text"
+              value={primary}
+              onChange={(e) => {
+                const v = e.target.value.trim()
+                setPrimary(v)
+                if (/^#[0-9a-fA-F]{6}$/.test(v)) handleColor(v)
+              }}
+              className="bg-m3-on-surface/5 border border-m3-outline/20 rounded-xl px-3 py-2 text-sm w-36"
+            />
+            <button onClick={reset} className="px-3 py-2 rounded-xl text-sm border border-m3-outline/30 hover:bg-m3-on-surface/10 flex items-center gap-2">
+              <RotateCcw size={14} />
+              Reset
+            </button>
+          </div>
+        </div>
+        <div className="w-full lg:w-52 rounded-2xl border border-m3-outline/20 p-3 bg-m3-surface-container/40">
+          <p className="text-xs text-m3-on-surface-variant mb-2">Preview</p>
+          <button className="w-full rounded-xl px-3 py-2 font-bold" style={{ backgroundColor: 'var(--color-m3-primary)', color: 'var(--color-m3-on-primary)' }}>
+            Primary Button
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
