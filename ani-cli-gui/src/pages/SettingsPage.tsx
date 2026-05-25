@@ -54,12 +54,19 @@ function applyThemeFromPrimary(primary: string) {
 
 export function SettingsPage() {
   const [primary, setPrimary] = useState(DEFAULT_PRIMARY)
+  const [useNativeControls, setUseNativeControls] = useState(true)
 
   useEffect(() => {
     const saved = localStorage.getItem('theme.primary')
     if (!saved) return
     setPrimary(saved)
     applyThemeFromPrimary(saved)
+  }, [])
+
+  useEffect(() => {
+    const saved = localStorage.getItem('player.useNativeControls')
+    if (saved == null) return
+    setUseNativeControls(saved !== 'false')
   }, [])
 
   const handleColor = (val: string) => {
@@ -72,6 +79,14 @@ export function SettingsPage() {
     setPrimary(DEFAULT_PRIMARY)
     applyThemeFromPrimary(DEFAULT_PRIMARY)
     localStorage.removeItem('theme.primary')
+  }
+
+  const toggleNativeControls = () => {
+    setUseNativeControls((prev) => {
+      const next = !prev
+      localStorage.setItem('player.useNativeControls', String(next))
+      return next
+    })
   }
 
   return (
@@ -110,6 +125,22 @@ export function SettingsPage() {
           <p className="text-xs text-m3-on-surface-variant mb-2">Preview</p>
           <button className="w-full rounded-xl px-3 py-2 font-bold" style={{ backgroundColor: 'var(--color-m3-primary)', color: 'var(--color-m3-on-primary)' }}>
             Primary Button
+          </button>
+        </div>
+      </div>
+      <div className="mt-8 pt-6 border-t border-m3-outline/20">
+        <h3 className="font-tempo text-xl mb-3">Player</h3>
+        <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex items-center justify-between">
+          <div>
+            <p className="font-bold text-sm">Use native video controls</p>
+            <p className="text-xs text-m3-on-surface-variant">Recommended for maximum codec and browser compatibility.</p>
+          </div>
+          <button
+            onClick={toggleNativeControls}
+            className={`w-14 h-8 rounded-full p-1 transition-colors ${useNativeControls ? 'bg-m3-primary' : 'bg-m3-surface-variant/60'}`}
+            aria-pressed={useNativeControls}
+          >
+            <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${useNativeControls ? 'translate-x-6' : 'translate-x-0'}`} />
           </button>
         </div>
       </div>

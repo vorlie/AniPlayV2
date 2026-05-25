@@ -29,3 +29,4 @@ ignore/
 test*.ts
 tmp*.ts
 dist*/
+out/

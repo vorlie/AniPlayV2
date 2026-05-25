@@ -49,10 +49,26 @@ npm run pack:dir
 npm run build:release
 ```
 
+## Alternative: Electron Forge
+
+AniPlayV2 also supports Electron Forge as an optional packaging flow.
+
+```powershell
+cd ani-cli-gui
+npm run forge:start
+npm run forge:package
+npm run forge:make
+```
+
+- `forge:start` runs the packaged app locally (after building renderer/main assets).
+- `forge:package` creates packaged output (without installer).
+- `forge:make` runs Forge makers (zip maker is configured for Windows).
+
 ## Output Paths
 
 - Unpacked app: `ani-cli-gui/dist/win-unpacked/`
 - Portable exe: `ani-cli-gui/dist/` (when using `build:release`)
+- Forge packaged app: `ani-cli-gui/out/`
 
 ## Common Packaging Notes
 
@@ -73,4 +89,3 @@ npm run pack:dir
 ```
 
 - Check terminal logs from Electron main process for renderer load errors.
-
