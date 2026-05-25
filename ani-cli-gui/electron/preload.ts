@@ -18,4 +18,7 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
     const [channel, ...omit] = args
     return ipcRenderer.invoke(channel, ...omit)
   },
+  openExternal(url: string) {
+    return ipcRenderer.invoke('open-external', url)
+  },
 })

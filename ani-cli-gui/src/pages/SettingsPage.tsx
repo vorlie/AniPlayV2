@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Palette, RotateCcw } from 'lucide-react'
+import { Bug, Github, GitPullRequest, Palette, RotateCcw } from 'lucide-react'
 import { argbFromRgb, hexFromArgb, themeFromSourceColor } from '@material/material-color-utilities'
 
 const DEFAULT_PRIMARY = '#D0BCFF'
@@ -89,6 +89,16 @@ export function SettingsPage() {
     })
   }
 
+  const openExternal = (url: string) => {
+    // @ts-ignore
+    if (window?.ipcRenderer?.openExternal) {
+      // @ts-ignore
+      window.ipcRenderer.openExternal(url)
+      return
+    }
+    window.open(url, '_blank')
+  }
+
   return (
     <div className="m3-card p-6 md:p-7 flex-1">
       <h2 className="font-tempo text-2xl mb-5 flex items-center gap-2">
@@ -141,6 +151,41 @@ export function SettingsPage() {
             aria-pressed={useNativeControls}
           >
             <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${useNativeControls ? 'translate-x-6' : 'translate-x-0'}`} />
+          </button>
+        </div>
+      </div>
+      <div className="mt-8 pt-6 border-t border-m3-outline/20">
+        <h3 className="font-tempo text-xl mb-3">Project</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <button
+            onClick={() => openExternal('https://github.com/vorlie/AniPlayV2')}
+            className="rounded-xl border border-m3-outline/20 bg-m3-surface-container/40 hover:bg-m3-on-surface/10 transition-all px-4 py-3 text-left"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <Github size={16} />
+              <span className="font-bold text-sm">GitHub Repo</span>
+            </div>
+            <p className="text-xs text-m3-on-surface-variant">View source code and releases.</p>
+          </button>
+          <button
+            onClick={() => openExternal('https://github.com/vorlie/AniPlayV2/issues')}
+            className="rounded-xl border border-m3-outline/20 bg-m3-surface-container/40 hover:bg-m3-on-surface/10 transition-all px-4 py-3 text-left"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <Bug size={16} />
+              <span className="font-bold text-sm">Report Issue</span>
+            </div>
+            <p className="text-xs text-m3-on-surface-variant">Open a bug report or request.</p>
+          </button>
+          <button
+            onClick={() => openExternal('https://github.com/vorlie/AniPlayV2/pulls')}
+            className="rounded-xl border border-m3-outline/20 bg-m3-surface-container/40 hover:bg-m3-on-surface/10 transition-all px-4 py-3 text-left"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <GitPullRequest size={16} />
+              <span className="font-bold text-sm">Contribute</span>
+            </div>
+            <p className="text-xs text-m3-on-surface-variant">Create or review pull requests.</p>
           </button>
         </div>
       </div>

@@ -89,3 +89,35 @@ npm run pack:dir
 ```
 
 - Check terminal logs from Electron main process for renderer load errors.
+
+## Maintenance
+
+### Sync cipher map and scrape metadata from ani-cli
+
+If upstream `ani-cli` changes its provider cipher mapping or core scrape constants,
+you can refresh local maintenance data with:
+
+```powershell
+cd D:\Projekty\AniPlayV2
+Invoke-WebRequest `
+  -Uri "https://raw.githubusercontent.com/pystardust/ani-cli/refs/heads/master/ani-cli" `
+  -OutFile "ignore/ani-cli"
+
+cd ani-cli-gui
+npm run sync:ciphermap
+```
+
+This script parses `ignore/ani-cli` and regenerates:
+
+- `ignore/ciphermap.json`
+
+Generated file includes:
+
+- `cipherMap` hex-to-char mapping
+- `userAgent`
+- `referer`
+- `baseDomain`
+- `apiUrl`
+- `modeDefault`
+- `queryHash`
+- `keySeed`

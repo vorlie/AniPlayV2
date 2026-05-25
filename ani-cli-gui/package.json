@@ -16,6 +16,7 @@
     "forge:start": "npm run build:ui && electron-forge start",
     "forge:package": "npm run build:ui && electron-forge package",
     "forge:make": "npm run build:ui && electron-forge make",
+    "sync:ciphermap": "node scripts/sync-ciphermap.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },

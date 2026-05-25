@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, session } from 'electron'
+import { app, BrowserWindow, ipcMain, session, shell } from 'electron'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { dirname } from 'node:path'
@@ -91,6 +91,16 @@ function createWindow() {
       return { success: true, data: links }
     } catch (e: any) {
       return { success: false, error: e.message }
+    }
+  })
+
+  ipcMain.handle('open-external', async (_event, url: string) => {
+    try {
+      if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) return { success: false }
+      await shell.openExternal(url)
+      return { success: true }
+    } catch {
+      return { success: false }
     }
   })
 
