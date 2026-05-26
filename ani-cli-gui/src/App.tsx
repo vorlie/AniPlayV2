@@ -38,17 +38,18 @@ function App() {
       </div>
 
       {/* Header */}
-      <header className="relative z-10 flex justify-between items-center mb-6 draggable" style={{ WebkitAppRegion: 'drag' } as any}>
+      <header className="relative z-10 flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-5 draggable" style={{ WebkitAppRegion: 'drag' } as any}>
         <div className="effect-container">
           <h1 className="effect-neon font-sakura text-4xl tracking-wide select-none">
             <span className="glow-layer">ani-cli</span>
             <span className="text-layer">ani-cli</span>
           </h1>
         </div>
+        <Navigation activeTab={activeTab} setActiveTab={setActiveTab} className="self-start md:self-auto" />
       </header>
 
       {/* Main Content Area */}
-      <main className="relative z-10 flex-1 flex flex-col pb-20">
+      <main className="relative z-10 flex-1 flex flex-col pb-4">
         {activeTab === 'search' && !activeAnime && (
           <BrowsePage 
             searchQuery={searchQuery}
@@ -85,7 +86,6 @@ function App() {
          )}
       </main>
 
-      <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
     </div>
   )
 }

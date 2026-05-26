@@ -250,7 +250,7 @@ export function PlayerPage({
       )}
 
       {!useNativeControls && (
-        <div className={isOverlay ? 'absolute left-3 right-3 bottom-3 z-20' : 'absolute left-4 right-4 bottom-4'}>
+        <div className={isOverlay ? 'absolute left-3 right-3 bottom-1 z-20' : 'mt-2'}>
           <div className="rounded-2xl border border-m3-outline/25 bg-m3-surface/75 backdrop-blur-xl px-3 py-3 shadow-2xl">
             <div className="flex items-center gap-2 text-m3-on-surface text-xs mb-2">
             <button onClick={togglePlay} className="p-2 rounded-lg bg-m3-primary text-m3-on-primary hover:brightness-110 transition-all">

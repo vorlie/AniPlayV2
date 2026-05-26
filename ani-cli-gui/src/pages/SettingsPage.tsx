@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Bug, Github, GitPullRequest, Palette, RotateCcw } from 'lucide-react'
+import { Bug, GitPullRequest, Globe, Palette, RotateCcw } from 'lucide-react'
 import { argbFromRgb, hexFromArgb, themeFromSourceColor } from '@material/material-color-utilities'
 
 const DEFAULT_PRIMARY = '#D0BCFF'
@@ -90,9 +90,9 @@ export function SettingsPage() {
   }
 
   const openExternal = (url: string) => {
-    // @ts-ignore
+    // @ts-expect-error
     if (window?.ipcRenderer?.openExternal) {
-      // @ts-ignore
+      // @ts-expect-error d
       window.ipcRenderer.openExternal(url)
       return
     }
@@ -162,7 +162,7 @@ export function SettingsPage() {
             className="rounded-xl border border-m3-outline/20 bg-m3-surface-container/40 hover:bg-m3-on-surface/10 transition-all px-4 py-3 text-left"
           >
             <div className="flex items-center gap-2 mb-1">
-              <Github size={16} />
+              <Globe size={16} />
               <span className="font-bold text-sm">GitHub Repo</span>
             </div>
             <p className="text-xs text-m3-on-surface-variant">View source code and releases.</p>
