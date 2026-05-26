@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from 'react'
 import { Bug, GitPullRequest, Globe, Palette, RotateCcw } from 'lucide-react'
 import { argbFromRgb, hexFromArgb, themeFromSourceColor } from '@material/material-color-utilities'
@@ -90,9 +91,9 @@ export function SettingsPage() {
   }
 
   const openExternal = (url: string) => {
-    // @ts-expect-error
+    // @ts-expect-error Electron's ipcRenderer is only available in Electron, so it may not exist in web environments
     if (window?.ipcRenderer?.openExternal) {
-      // @ts-expect-error d
+      // @ts-expect-error definitely not a security risk since we control the URLs
       window.ipcRenderer.openExternal(url)
       return
     }
