@@ -32,7 +32,7 @@ export function HistoryPage({
 
   return (
     <div className="flex-1 space-y-6 min-h-0">
-      <div className="m3-card p-5 md:p-6 flex flex-col space-y-4 relative overflow-hidden group max-w-4xl mx-auto w-full min-h-[280px]">
+      <div className="m3-card p-5 md:p-6 flex flex-col space-y-4 relative overflow-hidden group max-w-4xl mx-auto w-full min-h-70">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center space-x-2 text-m3-primary">
             <History size={20} />

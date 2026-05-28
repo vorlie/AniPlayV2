@@ -74,7 +74,7 @@ const ANILIST_API = 'https://graphql.anilist.co'
 const FEED_QUERY = `
   query HomeFeed($latestPage: Int!, $latestPerPage: Int!, $trendingPage: Int!, $trendingPerPage: Int!) {
     latest: Page(page: $latestPage, perPage: $latestPerPage) {
-      media(type: ANIME, status: RELEASING, sort: UPDATED_AT_DESC) {
+      media(type: ANIME, status: RELEASING, sort: UPDATED_AT_DESC, isAdult: false) {
         id
         title {
           romaji
@@ -93,7 +93,7 @@ const FEED_QUERY = `
       }
     }
     trending: Page(page: $trendingPage, perPage: $trendingPerPage) {
-      media(type: ANIME, status: RELEASING, sort: TRENDING_DESC) {
+      media(type: ANIME, status: RELEASING, sort: TRENDING_DESC, isAdult: false) {
         id
         title {
           romaji
@@ -412,7 +412,7 @@ export function HomePage({
       </section>
 
       {error ? (
-        <section className="m3-card flex-1 min-h-[240px] p-6 flex items-center justify-center text-center">
+        <section className="m3-card flex-1 min-h-60 p-6 flex items-center justify-center text-center">
           <div className="max-w-lg space-y-2">
             <p className="text-lg font-bold text-m3-on-surface">AniList feed unavailable</p>
             <p className="text-sm text-m3-on-surface-variant">{error}</p>
