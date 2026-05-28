@@ -1,20 +1,44 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, MonitorPlay } from 'lucide-react'
 import { PlayerPage } from './PlayerPage'
 import { addHistory } from '../lib/history'
 
+interface StreamLink {
+  url: string
+  resolution: string
+  hls: boolean
+  provider: string
+}
+
+interface IpcResponse<T> {
+  success: boolean
+  data?: T
+}
+
+interface AnimePageProps {
+  anime: { id: string; name: string; episodes: number }
+  onBack: () => void
+  initialEpisode?: string | null
+  initialResumeSeconds?: number | null
+}
+
+type IpcRenderer = {
+  invoke<T>(channel: string, ...args: unknown[]): Promise<IpcResponse<T>>
+}
+
+function getIpcRenderer() {
+  return (window as Window & { ipcRenderer?: IpcRenderer }).ipcRenderer
+}
+
 export function AnimePage({
   anime,
   onBack,
-  initialEpisode
-}: {
-  anime: { id: string, name: string, episodes: number },
-  onBack: () => void,
-  initialEpisode?: string | null
-}) {
+  initialEpisode,
+  initialResumeSeconds,
+}: AnimePageProps) {
   const [episodes, setEpisodes] = useState<string[]>([])
-  const [loading, setLoading] = useState(true)
-  const [playingLinks, setPlayingLinks] = useState<any[]>([])
+  const [loading, setLoading] = useState(() => !getIpcRenderer())
+  const [playingLinks, setPlayingLinks] = useState<StreamLink[]>([])
   const [playingEp, setPlayingEp] = useState<string>('')
   const [loadingEp, setLoadingEp] = useState<string | null>(null)
   const restoredRef = useRef<string | null>(null)
@@ -22,28 +46,49 @@ export function AnimePage({
   const handlePlay = (ep: string) => {
     if (loadingEp === ep) return
     setLoadingEp(ep)
-    // @ts-ignore
-    window.ipcRenderer.invoke('links', anime.id, ep).then((res: any) => {
+
+    const ipcRenderer = getIpcRenderer()
+    if (!ipcRenderer) {
       setLoadingEp(null)
-      if (res.success && res.data && res.data.length > 0) {
+      alert('Stream fetch failed.')
+      return
+    }
+
+    ipcRenderer.invoke<StreamLink[]>('links', anime.id, ep).then((res) => {
+      setLoadingEp(null)
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const resumeSeconds =
+          initialEpisode === ep && typeof initialResumeSeconds === 'number' && Number.isFinite(initialResumeSeconds)
+            ? Math.max(0, initialResumeSeconds)
+            : 0
+
         setPlayingLinks(res.data)
         setPlayingEp(ep)
-        addHistory({ animeId: anime.id, animeName: anime.name, episode: ep })
+        addHistory({
+          animeId: anime.id,
+          animeName: anime.name,
+          episode: ep,
+          progressSeconds: resumeSeconds,
+        })
       } else {
-        alert("Failed to find streams for this episode.")
+        alert('Failed to find streams for this episode.')
       }
     }).catch(() => {
       setLoadingEp(null)
-      alert("Stream fetch failed.")
+      alert('Stream fetch failed.')
     })
   }
 
   useEffect(() => {
-    // @ts-ignore
-    window.ipcRenderer.invoke('episodes', anime.id).then((res: any) => {
-      if (res.success) {
+    const ipcRenderer = getIpcRenderer()
+    if (!ipcRenderer) return
+
+    ipcRenderer.invoke<string[]>('episodes', anime.id).then((res) => {
+      if (res.success && Array.isArray(res.data)) {
         setEpisodes(res.data)
       }
+      setLoading(false)
+    }).catch(() => {
       setLoading(false)
     })
   }, [anime.id])
@@ -60,7 +105,7 @@ export function AnimePage({
   return (
     <div className="flex-1 flex flex-col space-y-6">
       <div className="flex items-center space-x-4 mb-2">
-        <button 
+        <button
           onClick={onBack}
           className="p-3 rounded-full hover:bg-m3-on-surface/10 transition-colors text-m3-on-surface"
         >
@@ -87,7 +132,7 @@ export function AnimePage({
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto pr-1 space-y-2">
-              {episodes.map(ep => {
+              {episodes.map((ep) => {
                 const isActive = playingEp === ep
                 return (
                   <button
@@ -108,10 +153,15 @@ export function AnimePage({
         <section className="flex flex-col gap-3 min-h-[320px]">
           {playingLinks.length > 0 ? (
             <PlayerPage
+              key={`${anime.id}:${playingEp}`}
               mode="embedded"
               links={playingLinks}
               title={`${anime.name} - Ep ${playingEp}`}
               onBack={() => setPlayingLinks([])}
+              animeId={anime.id}
+              animeName={anime.name}
+              episode={playingEp}
+              initialResumeSeconds={initialEpisode === playingEp ? initialResumeSeconds : null}
             />
           ) : (
             <div className="m3-card flex-1 min-h-[280px] flex items-center justify-center text-m3-on-surface-variant text-sm">

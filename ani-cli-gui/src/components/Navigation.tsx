@@ -1,4 +1,5 @@
-import { Search, History, Settings } from 'lucide-react'
+import { Search, History, Settings, House } from 'lucide-react'
+import type { CSSProperties } from 'react'
 
 export function Navigation({
   activeTab,
@@ -10,7 +11,13 @@ export function Navigation({
   className?: string
 }) {
   return (
-    <nav className={`bg-m3-surface-container/80 backdrop-blur-xl border border-m3-outline/20 rounded-2xl p-1.5 flex items-center gap-1.5 ${className}`} style={{ WebkitAppRegion: 'no-drag' } as any}>
+    <nav className={`bg-m3-surface-container/80 backdrop-blur-xl border border-m3-outline/20 rounded-2xl p-1.5 flex items-center gap-1.5 ${className}`} style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
+      <button 
+        onClick={() => setActiveTab('home')}
+        className={`px-3 md:px-4 py-2 rounded-xl flex items-center space-x-1.5 text-sm font-semibold transition-all ${activeTab === 'home' ? 'bg-m3-primary text-m3-on-primary shadow-sm' : 'text-m3-on-surface-variant hover:bg-m3-on-surface/10'}`}>
+        <House size={16} />
+        <span>Home</span>
+      </button>
       <button 
         onClick={() => setActiveTab('search')}
         className={`px-3 md:px-4 py-2 rounded-xl flex items-center space-x-1.5 text-sm font-semibold transition-all ${activeTab === 'search' ? 'bg-m3-primary text-m3-on-primary shadow-sm' : 'text-m3-on-surface-variant hover:bg-m3-on-surface/10'}`}>

@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Hls from 'hls.js'
 import { ArrowLeft, Maximize2, Minimize2, Pause, PictureInPicture2, Play, Server, Sparkles, Volume2, VolumeX } from 'lucide-react'
+import { addHistory } from '../lib/history'
 
 interface StreamLink {
   url: string
@@ -9,23 +10,78 @@ interface StreamLink {
   provider: string
 }
 
+interface PlayerPageProps {
+  links: StreamLink[]
+  title: string
+  onBack: () => void
+  mode?: 'overlay' | 'embedded'
+  animeId?: string
+  animeName?: string
+  episode?: string
+  initialResumeSeconds?: number | null
+}
+
+const SAVE_THROTTLE_MS = 5000
+
+function toResumeSeconds(value: number | null | undefined) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null
+  return Math.max(0, value)
+}
+
+function clampProgress(progressSeconds: number, durationSeconds?: number) {
+  if (!Number.isFinite(progressSeconds) || progressSeconds < 0) return 0
+  if (typeof durationSeconds === 'number' && Number.isFinite(durationSeconds) && durationSeconds > 0) {
+    return Math.min(progressSeconds, durationSeconds)
+  }
+  return progressSeconds
+}
+
+function formatTime(s: number) {
+  if (!Number.isFinite(s) || s < 0) return '0:00'
+  const m = Math.floor(s / 60)
+  const sec = Math.floor(s % 60).toString().padStart(2, '0')
+  return `${m}:${sec}`
+}
+
+function seekToResumePosition(video: HTMLVideoElement, progressSeconds: number, durationSeconds?: number) {
+  const target = clampProgress(progressSeconds, durationSeconds)
+  if (target <= 0) return false
+  if (video.readyState < 1 && !Number.isFinite(video.duration)) return false
+  try {
+    video.currentTime = target
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function PlayerPage({
   links,
   title,
   onBack,
-  mode = 'overlay'
-}: {
-  links: StreamLink[],
-  title: string,
-  onBack: () => void,
-  mode?: 'overlay' | 'embedded'
-}) {
+  mode = 'overlay',
+  animeId,
+  animeName,
+  episode,
+  initialResumeSeconds,
+}: PlayerPageProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const hlsRef = useRef<Hls | null>(null)
+  const seekedRef = useRef(false)
+  const lastSavedAtRef = useRef(0)
+  const latestTimeRef = useRef(0)
+  const latestDurationRef = useRef(0)
   const [activeIdx, setActiveIdx] = useState(0)
   const [showServers, setShowServers] = useState(false)
   const [failed, setFailed] = useState<Set<number>>(new Set())
-  const [useNativeControls, setUseNativeControls] = useState(true)
+  const [useNativeControls, setUseNativeControls] = useState(() => {
+    try {
+      const saved = localStorage.getItem('player.useNativeControls')
+      return saved == null ? true : saved !== 'false'
+    } catch {
+      return true
+    }
+  })
   const [isPlaying, setIsPlaying] = useState(false)
   const [muted, setMuted] = useState(false)
   const [volume, setVolume] = useState(1)
@@ -34,16 +90,27 @@ export function PlayerPage({
   const [isPip, setIsPip] = useState(false)
 
   const activeLink = links[activeIdx]
+  const resumeSeconds = useMemo(() => toResumeSeconds(initialResumeSeconds), [initialResumeSeconds])
+
+  const saveProgress = (force = false) => {
+    if (!animeId || !animeName || !episode) return
+    const progressSeconds = clampProgress(latestTimeRef.current, latestDurationRef.current || undefined)
+    if (!force && progressSeconds <= 0) return
+
+    const now = Date.now()
+    if (!force && now - lastSavedAtRef.current < SAVE_THROTTLE_MS) return
+
+    lastSavedAtRef.current = now
+    addHistory({
+      animeId,
+      animeName,
+      episode,
+      progressSeconds,
+      durationSeconds: latestDurationRef.current > 0 ? latestDurationRef.current : undefined,
+    })
+  }
 
   useEffect(() => {
-    setActiveIdx(0)
-    setShowServers(false)
-    setFailed(new Set())
-  }, [links, title])
-
-  useEffect(() => {
-    const saved = localStorage.getItem('player.useNativeControls')
-    setUseNativeControls(saved == null ? true : saved !== 'false')
     const onStorage = (e: StorageEvent) => {
       if (e.key === 'player.useNativeControls') {
         setUseNativeControls(e.newValue == null ? true : e.newValue !== 'false')
@@ -56,34 +123,59 @@ export function PlayerPage({
   useEffect(() => {
     const video = videoRef.current
     if (!video || !activeLink) return
-    setFailed(prev => {
+    setFailed((prev) => {
       const next = new Set(prev)
       next.delete(activeIdx)
       return next
     })
 
-    // Destroy any existing HLS instance
     if (hlsRef.current) {
       hlsRef.current.destroy()
       hlsRef.current = null
     }
+
+    const applyResumePosition = () => {
+      if (seekedRef.current || resumeSeconds == null) return
+      const target = clampProgress(resumeSeconds, video.duration)
+      if (target <= 0) {
+        seekedRef.current = true
+        return
+      }
+      if (seekToResumePosition(video, target, video.duration)) {
+        seekedRef.current = true
+      }
+    }
+
+    const handleLoadedMetadata = () => {
+      applyResumePosition()
+    }
+
+    video.addEventListener('loadedmetadata', handleLoadedMetadata)
 
     if (activeLink.hls && Hls.isSupported()) {
       const hls = new Hls()
       hlsRef.current = hls
       hls.loadSource(activeLink.url)
       hls.attachMedia(video)
-      hls.on(Hls.Events.MANIFEST_PARSED, () => { video.play().catch(() => {}) })
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        applyResumePosition()
+        video.play().catch(() => {})
+      })
     } else {
       video.src = activeLink.url
       video.load()
+      applyResumePosition()
       video.play().catch(() => {})
     }
 
     return () => {
-      if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null }
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata)
+      if (hlsRef.current) {
+        hlsRef.current.destroy()
+        hlsRef.current = null
+      }
     }
-  }, [activeIdx, activeLink])
+  }, [activeIdx, activeLink, resumeSeconds])
 
   useEffect(() => {
     const onPipEnter = () => setIsPip(true)
@@ -96,8 +188,23 @@ export function PlayerPage({
     }
   }, [])
 
+  useEffect(() => {
+    const flush = () => {
+      saveProgress(true)
+    }
+    window.addEventListener('pagehide', flush)
+    window.addEventListener('beforeunload', flush)
+    document.addEventListener('visibilitychange', flush)
+    return () => {
+      window.removeEventListener('pagehide', flush)
+      window.removeEventListener('beforeunload', flush)
+      document.removeEventListener('visibilitychange', flush)
+      saveProgress(true)
+    }
+  }, [animeId, animeName, episode, latestDurationRef, latestTimeRef])
+
   const tryNextServer = () => {
-    setFailed(prev => {
+    setFailed((prev) => {
       const next = new Set(prev)
       next.add(activeIdx)
       return next
@@ -112,11 +219,33 @@ export function PlayerPage({
   }
 
   const isOverlay = mode === 'overlay'
-  const formatTime = (s: number) => {
-    if (!Number.isFinite(s) || s < 0) return '0:00'
-    const m = Math.floor(s / 60)
-    const sec = Math.floor(s % 60).toString().padStart(2, '0')
-    return `${m}:${sec}`
+
+  const handleTimeUpdate = (video: HTMLVideoElement) => {
+    latestTimeRef.current = video.currentTime || 0
+    latestDurationRef.current = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : latestDurationRef.current
+    setCurrentTime(latestTimeRef.current)
+    setDuration(latestDurationRef.current)
+    saveProgress(false)
+  }
+
+  const handleDurationChange = (video: HTMLVideoElement) => {
+    latestDurationRef.current = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 0
+    setDuration(latestDurationRef.current)
+  }
+
+  const handlePause = (video: HTMLVideoElement) => {
+    latestTimeRef.current = video.currentTime || 0
+    latestDurationRef.current = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : latestDurationRef.current
+    setIsPlaying(false)
+    saveProgress(true)
+  }
+
+  const handleEnded = (video: HTMLVideoElement) => {
+    latestTimeRef.current = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : video.currentTime || 0
+    latestDurationRef.current = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : latestDurationRef.current
+    setIsPlaying(false)
+    setCurrentTime(latestTimeRef.current)
+    saveProgress(true)
   }
 
   const togglePlay = () => {
@@ -146,7 +275,10 @@ export function PlayerPage({
   const seek = (t: number) => {
     const video = videoRef.current
     if (!video) return
-    video.currentTime = Math.max(0, Math.min(duration || 0, t))
+    const nextTime = Math.max(0, Math.min(duration || 0, t))
+    video.currentTime = nextTime
+    latestTimeRef.current = nextTime
+    setCurrentTime(nextTime)
   }
 
   const enterFullscreen = () => {
@@ -170,17 +302,20 @@ export function PlayerPage({
     }
   }
 
+  const handleBack = () => {
+    saveProgress(true)
+    onBack()
+  }
+
   return (
     <div
       className={isOverlay ? 'fixed inset-0 bg-black z-50 flex flex-col relative' : 'm3-card p-4 md:p-6 flex flex-col gap-3 relative'}
-      style={{ WebkitAppRegion: 'no-drag' } as any}
+      style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
     >
-
-      {/* Top bar */}
       <div className={isOverlay ? 'p-4 flex items-center justify-between absolute top-0 left-0 w-full z-10 bg-gradient-to-b from-black/90 to-transparent' : 'flex items-center justify-between'}>
         <div className="flex items-center space-x-3">
           <button
-            onClick={onBack}
+            onClick={handleBack}
             className={isOverlay ? 'p-2 rounded-full hover:bg-white/20 transition-colors text-white' : 'p-2 rounded-full hover:bg-m3-on-surface/10 transition-colors text-m3-on-surface'}
           >
             <ArrowLeft size={22} />
@@ -197,7 +332,7 @@ export function PlayerPage({
             </span>
           )}
           <button
-            onClick={() => setShowServers(s => !s)}
+            onClick={() => setShowServers((s) => !s)}
             className={`flex items-center space-x-2 px-4 py-2 rounded-full border transition-all text-sm font-bold ${showServers ? 'bg-m3-primary text-m3-on-primary border-transparent' : (isOverlay ? 'border-white/30 text-white hover:bg-white/10' : 'border-m3-outline/30 text-m3-on-surface hover:bg-m3-on-surface/10')}`}
           >
             <Server size={16} />
@@ -206,7 +341,6 @@ export function PlayerPage({
         </div>
       </div>
 
-      {/* Video */}
       {isOverlay ? (
         <div className="flex-1 flex items-center justify-center bg-black">
           <video
@@ -216,9 +350,10 @@ export function PlayerPage({
             autoPlay
             onError={tryNextServer}
             onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-            onTimeUpdate={(e) => setCurrentTime((e.target as HTMLVideoElement).currentTime || 0)}
-            onDurationChange={(e) => setDuration((e.target as HTMLVideoElement).duration || 0)}
+            onPause={(e) => handlePause(e.currentTarget)}
+            onEnded={(e) => handleEnded(e.currentTarget)}
+            onTimeUpdate={(e) => handleTimeUpdate(e.currentTarget)}
+            onDurationChange={(e) => handleDurationChange(e.currentTarget)}
             onVolumeChange={(e) => {
               const v = e.target as HTMLVideoElement
               setVolume(v.volume)
@@ -236,9 +371,10 @@ export function PlayerPage({
               autoPlay
               onError={tryNextServer}
               onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
-              onTimeUpdate={(e) => setCurrentTime((e.target as HTMLVideoElement).currentTime || 0)}
-              onDurationChange={(e) => setDuration((e.target as HTMLVideoElement).duration || 0)}
+              onPause={(e) => handlePause(e.currentTarget)}
+              onEnded={(e) => handleEnded(e.currentTarget)}
+              onTimeUpdate={(e) => handleTimeUpdate(e.currentTarget)}
+              onDurationChange={(e) => handleDurationChange(e.currentTarget)}
               onVolumeChange={(e) => {
                 const v = e.target as HTMLVideoElement
                 setVolume(v.volume)
@@ -253,45 +389,44 @@ export function PlayerPage({
         <div className={isOverlay ? 'absolute left-3 right-3 bottom-1 z-20' : 'mt-2'}>
           <div className="rounded-2xl border border-m3-outline/25 bg-m3-surface/75 backdrop-blur-xl px-3 py-3 shadow-2xl">
             <div className="flex items-center gap-2 text-m3-on-surface text-xs mb-2">
-            <button onClick={togglePlay} className="p-2 rounded-lg bg-m3-primary text-m3-on-primary hover:brightness-110 transition-all">
-              {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-            </button>
-            <button onClick={toggleMute} className="p-2 rounded-lg border border-m3-outline/30 text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface transition-all">
-              {muted || volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
-            </button>
+              <button onClick={togglePlay} className="p-2 rounded-lg bg-m3-primary text-m3-on-primary hover:brightness-110 transition-all">
+                {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+              </button>
+              <button onClick={toggleMute} className="p-2 rounded-lg border border-m3-outline/30 text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface transition-all">
+                {muted || volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
+              </button>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={muted ? 0 : volume}
+                onChange={(e) => setVideoVolume(Number(e.target.value))}
+                className="w-20 accent-[var(--color-m3-primary)]"
+              />
+              <span className="ml-1 px-2 py-1 rounded-md bg-m3-surface-container/70 border border-m3-outline/20 text-m3-on-surface-variant">
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </span>
+              <button onClick={enterFullscreen} className="ml-auto p-2 rounded-lg border border-m3-outline/30 text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface transition-all">
+                <Maximize2 size={16} />
+              </button>
+              <button onClick={togglePip} className="p-2 rounded-lg border border-m3-outline/30 text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface transition-all" title="Picture in Picture">
+                {isPip ? <Minimize2 size={16} /> : <PictureInPicture2 size={16} />}
+              </button>
+            </div>
             <input
               type="range"
               min={0}
-              max={1}
-              step={0.01}
-              value={muted ? 0 : volume}
-              onChange={(e) => setVideoVolume(Number(e.target.value))}
-              className="w-20 accent-[var(--color-m3-primary)]"
+              max={Math.max(duration, 0)}
+              step={0.1}
+              value={Math.min(currentTime, duration || 0)}
+              onChange={(e) => seek(Number(e.target.value))}
+              className="w-full accent-[var(--color-m3-primary)]"
             />
-            <span className="ml-1 px-2 py-1 rounded-md bg-m3-surface-container/70 border border-m3-outline/20 text-m3-on-surface-variant">
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </span>
-            <button onClick={enterFullscreen} className="ml-auto p-2 rounded-lg border border-m3-outline/30 text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface transition-all">
-              <Maximize2 size={16} />
-            </button>
-            <button onClick={togglePip} className="p-2 rounded-lg border border-m3-outline/30 text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface transition-all" title="Picture in Picture">
-              {isPip ? <Minimize2 size={16} /> : <PictureInPicture2 size={16} />}
-            </button>
-          </div>
-          <input
-            type="range"
-            min={0}
-            max={Math.max(duration, 0)}
-            step={0.1}
-            value={Math.min(currentTime, duration || 0)}
-            onChange={(e) => seek(Number(e.target.value))}
-            className="w-full accent-[var(--color-m3-primary)]"
-          />
           </div>
         </div>
       )}
 
-      {/* Server panel - slides up from bottom */}
       {showServers && (
         <div className={isOverlay ? 'absolute bottom-0 left-0 right-0 bg-m3-surface/95 backdrop-blur-xl border-t border-m3-outline/20 p-4 z-20' : 'bg-m3-surface/70 rounded-2xl border border-m3-outline/20 p-4'}>
           <p className="text-xs text-m3-on-surface-variant mb-3 uppercase tracking-widest font-bold">Select Server</p>
@@ -299,7 +434,10 @@ export function PlayerPage({
             {links.map((link, i) => (
               <button
                 key={i}
-                onClick={() => { setActiveIdx(i); setShowServers(false) }}
+                onClick={() => {
+                  setActiveIdx(i)
+                  setShowServers(false)
+                }}
                 className={`px-4 py-2 rounded-full text-sm font-bold border transition-all ${
                   i === activeIdx
                     ? 'bg-m3-primary text-m3-on-primary border-transparent shadow-lg'

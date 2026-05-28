@@ -1,31 +1,42 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useState, type CSSProperties } from 'react'
 import { BrowsePage } from './pages/BrowsePage'
 import { HistoryPage } from './pages/HistoryPage'
 import { AnimePage } from './pages/AnimePage'
+import { HomePage } from './pages/HomePage'
 import { Navigation } from './components/Navigation'
 import type { HistoryEntry } from './lib/history'
+
+interface AnimeSelection {
+  id: string
+  name: string
+  episodes: number
+}
 
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 
 function App() {
-  const [activeTab, setActiveTab] = useState('search')
+  const [activeTab, setActiveTab] = useState('home')
   const [searchQuery, setSearchQuery] = useState('')
-  const [results, setResults] = useState<any[]>([])
-  const [activeAnime, setActiveAnime] = useState<any>(null)
+  const [results, setResults] = useState<AnimeSelection[]>([])
+  const [activeAnime, setActiveAnime] = useState<AnimeSelection | null>(null)
   const [resumeEpisode, setResumeEpisode] = useState<string | null>(null)
+  const [resumeProgressSeconds, setResumeProgressSeconds] = useState<number | null>(null)
 
   const handleResumeFromHistory = (item: HistoryEntry) => {
     setActiveTab('search')
     setActiveAnime({
       id: item.animeId,
       name: item.animeName,
-      episodes: 0
+      episodes: 0,
     })
     setResumeEpisode(item.episode)
+    setResumeProgressSeconds(item.progressSeconds)
   }
 
-  const handleSelectAnime = (anime: any) => {
+  const handleSelectAnime = (anime: AnimeSelection) => {
     setResumeEpisode(null)
+    setResumeProgressSeconds(null)
+    setActiveTab('search')
     setActiveAnime(anime)
   }
 
@@ -38,7 +49,7 @@ function App() {
       </div>
 
       {/* Header */}
-      <header className="relative z-10 flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-5 draggable" style={{ WebkitAppRegion: 'drag' } as any}>
+      <header className="relative z-10 flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-5 draggable" style={{ WebkitAppRegion: 'drag' } as CSSProperties}>
         <div className="effect-container">
           <h1 className="effect-neon font-sakura text-4xl tracking-wide select-none">
             <span className="glow-layer">ani-cli</span>
@@ -50,8 +61,16 @@ function App() {
 
       {/* Main Content Area */}
       <main className="relative z-10 flex-1 flex flex-col pb-4">
+        {activeTab === 'home' && (
+          <HomePage
+            setSearchQuery={setSearchQuery}
+            setResults={setResults}
+            onSelectAnime={handleSelectAnime}
+          />
+        )}
+
         {activeTab === 'search' && !activeAnime && (
-          <BrowsePage 
+          <BrowsePage
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             results={results}
@@ -61,16 +80,18 @@ function App() {
         )}
 
         {activeTab === 'search' && activeAnime && (
-          <AnimePage 
+          <AnimePage
             anime={activeAnime}
             initialEpisode={resumeEpisode}
+            initialResumeSeconds={resumeProgressSeconds}
             onBack={() => {
               setActiveAnime(null)
               setResumeEpisode(null)
+              setResumeProgressSeconds(null)
             }}
           />
         )}
-        
+
         {activeTab === 'history' && (
           <HistoryPage onResume={handleResumeFromHistory} />
         )}

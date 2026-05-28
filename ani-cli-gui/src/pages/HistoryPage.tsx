@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { History, Play, Trash2 } from 'lucide-react'
 import { clearHistory, readHistory, type HistoryEntry } from '../lib/history'
 
@@ -7,13 +7,23 @@ export function HistoryPage({
 }: {
   onResume: (item: HistoryEntry) => void
 }) {
-  const [items, setItems] = useState<HistoryEntry[]>([])
+  const [items, setItems] = useState<HistoryEntry[]>(() => readHistory())
 
   const refresh = () => setItems(readHistory())
 
-  useEffect(() => {
-    refresh()
-  }, [])
+  const formatProgress = (seconds: number) => {
+    if (!Number.isFinite(seconds) || seconds <= 0) return 'Resume from start'
+    const total = Math.floor(seconds)
+    const hours = Math.floor(total / 3600)
+    const minutes = Math.floor((total % 3600) / 60)
+    const secs = total % 60
+
+    if (hours > 0) {
+      return `Resume at ${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+    }
+
+    return `Resume at ${minutes}:${String(secs).padStart(2, '0')}`
+  }
 
   const handleClear = () => {
     clearHistory()
@@ -49,6 +59,9 @@ export function HistoryPage({
                   <p className="font-bold text-sm text-m3-on-surface truncate">{item.animeName}</p>
                   <p className="text-xs text-m3-on-surface-variant">
                     Episode {item.episode} · {new Date(item.watchedAt).toLocaleString()}
+                  </p>
+                  <p className="text-xs text-m3-primary mt-1">
+                    {formatProgress(item.progressSeconds)}
                   </p>
                 </div>
                 <button
