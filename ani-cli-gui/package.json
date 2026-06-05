@@ -3,7 +3,7 @@
   "description": "Desktop GUI for ani-cli style anime browsing and playback.",
   "author": "AniPlayV2",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.1.1",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -53,7 +53,7 @@
     "@electron-forge/maker-zip": "^7.10.2",
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.3.0",
-    "@types/node": "^24.12.3",
+    "@types/node": "^24.13.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",

@@ -80,9 +80,9 @@ function processResponse(responseRaw: string): any {
     // If it's already an object, leave it
   }
 
-  // @ts-ignore
+  // @ts-expect-error brother
   if (!parsed?.data?.episode?.sourceUrls) {
-      // @ts-ignore
+      // @ts-expect-error brother
       const tobeparsed = parsed?.data?.episode?.tobeparsed || parsed?.data?.tobeparsed || parsed?.tobeparsed
       if (!tobeparsed) return parsed
 

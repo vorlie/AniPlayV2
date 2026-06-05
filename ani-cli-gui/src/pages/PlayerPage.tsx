@@ -281,6 +281,12 @@ export function PlayerPage({
     setCurrentTime(nextTime)
   }
 
+  const skipForward = () => {
+    const video = videoRef.current
+    if (!video) return
+    seek(video.currentTime + 85)
+  }
+
   const enterFullscreen = () => {
     const video = videoRef.current
     if (!video) return
@@ -391,6 +397,9 @@ export function PlayerPage({
             <div className="flex items-center gap-2 text-m3-on-surface text-xs mb-2">
               <button onClick={togglePlay} className="p-2 rounded-lg bg-m3-primary text-m3-on-primary hover:brightness-110 transition-all">
                 {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+              </button>
+              <button onClick={skipForward} className="p-2 rounded-lg border border-m3-outline/30 text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface transition-all">
+                +85s
               </button>
               <button onClick={toggleMute} className="p-2 rounded-lg border border-m3-outline/30 text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface transition-all">
                 {muted || volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
