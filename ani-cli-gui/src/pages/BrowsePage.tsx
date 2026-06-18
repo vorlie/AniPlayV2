@@ -16,7 +16,7 @@ export function BrowsePage({
   return (
     <div className="flex-1 flex flex-col space-y-6">
       <div className="m3-card p-6 flex flex-col space-y-4">
-        <h2 className="font-tempo text-2xl text-m3-on-surface">Find Anime</h2>
+        <h2 className="font-sans font-bold text-2xl text-m3-on-surface">Find Anime</h2>
         <div className="relative">
           <input 
             type="text" 

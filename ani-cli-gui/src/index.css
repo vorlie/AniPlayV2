@@ -2,12 +2,15 @@
 @import "tailwindcss";
 
 @layer base {
-  html {
-    font-family: 'Google Sans', 'Roboto', sans-serif;
+
+  html,
+  body {
+    font-family: var(--font-sans);
   }
 }
 
 @theme {
+  --font-sans: 'Google Sans', 'Roboto', sans-serif;
   --color-m3-surface: #1C1B1F;
   --color-m3-surface-container: #211F26;
   --color-m3-surface-variant: #49454F;

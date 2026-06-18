@@ -36,7 +36,7 @@ export function HistoryPage({
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center space-x-2 text-m3-primary">
             <History size={20} />
-            <h2 className="font-tempo text-xl font-medium">Watch History</h2>
+            <h2 className="font-sans font-bold text-xl font-medium">Watch History</h2>
           </div>
           <button
             onClick={handleClear}

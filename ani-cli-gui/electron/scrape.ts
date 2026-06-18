@@ -1,4 +1,51 @@
 import * as crypto from 'crypto'
+import fs from 'node:fs'
+import { join } from 'node:path'
+import { app } from 'electron'
+
+// ---- Dynamic cipher map (hot-reloadable via IPC) ----
+
+const FALLBACK_CIPHER_MAP: Record<string, string> = {
+  '79':'A','7a':'B','7b':'C','7c':'D','7d':'E','7e':'F','7f':'G','70':'H','71':'I','72':'J',
+  '73':'K','74':'L','75':'M','76':'N','77':'O','68':'P','69':'Q','6a':'R','6b':'S','6c':'T',
+  '6d':'U','6e':'V','6f':'W','60':'X','61':'Y','62':'Z','59':'a','5a':'b','5b':'c','5c':'d',
+  '5d':'e','5e':'f','5f':'g','50':'h','51':'i','52':'j','53':'k','54':'l','55':'m','56':'n',
+  '57':'o','48':'p','49':'q','4a':'r','4b':'s','4c':'t','4d':'u','4e':'v','4f':'w','40':'x',
+  '41':'y','42':'z','08':'0','09':'1','0a':'2','0b':'3','0c':'4','0d':'5','0e':'6','0f':'7',
+  '00':'8','01':'9','15':'-','16':'.','67':'_','46':'~','02':':','17':'/','07':'?','1b':'#',
+  '63':'[','65':']','78':'@','19':'!','1c':'$','1e':'&','10':'(','11':')','12':'*','13':'+',
+  '14':',','03':';','05':'=','1d':'%',
+}
+
+let _activeCipherMap: Record<string, string> = { ...FALLBACK_CIPHER_MAP }
+
+/** Load persisted ciphermap from userData on first import, silently fallback if missing. */
+function loadPersistedCipherMap(): void {
+  try {
+    const outPath = join(app.getPath('userData'), 'ciphermap.json')
+    if (!fs.existsSync(outPath)) return
+    const parsed = JSON.parse(fs.readFileSync(outPath, 'utf8'))
+    if (parsed?.cipherMap && Object.keys(parsed.cipherMap).length >= 60) {
+      _activeCipherMap = parsed.cipherMap
+      console.log(`[scrape] Loaded ${Object.keys(_activeCipherMap).length}-entry ciphermap from ${outPath}`)
+    }
+  } catch (e: any) {
+    console.warn('[scrape] Could not load persisted ciphermap, using fallback:', e.message)
+  }
+}
+
+loadPersistedCipherMap()
+
+export function getCipherMap(): Record<string, string> {
+  return _activeCipherMap
+}
+
+export function reloadCipherMap(map: Record<string, string>): void {
+  _activeCipherMap = map
+  console.log(`[scrape] CipherMap hot-reloaded: ${Object.keys(map).length} entries`)
+}
+
+// ---- Scraper constants ----
 
 const ALLANIME_BASE = 'allanime.day'
 const ALLANIME_API = `https://api.${ALLANIME_BASE}`
@@ -166,17 +213,7 @@ export async function getEpisodeLinks(showId: string, epNo: string): Promise<any
         sources = JSON.parse(sources)
     }
 
-    const cipherMap: Record<string, string> = {
-        '79':'A','7a':'B','7b':'C','7c':'D','7d':'E','7e':'F','7f':'G','70':'H','71':'I','72':'J',
-        '73':'K','74':'L','75':'M','76':'N','77':'O','68':'P','69':'Q','6a':'R','6b':'S','6c':'T',
-        '6d':'U','6e':'V','6f':'W','60':'X','61':'Y','62':'Z','59':'a','5a':'b','5b':'c','5c':'d',
-        '5d':'e','5e':'f','5f':'g','50':'h','51':'i','52':'j','53':'k','54':'l','55':'m','56':'n',
-        '57':'o','48':'p','49':'q','4a':'r','4b':'s','4c':'t','4d':'u','4e':'v','4f':'w','40':'x',
-        '41':'y','42':'z','08':'0','09':'1','0a':'2','0b':'3','0c':'4','0d':'5','0e':'6','0f':'7',
-        '00':'8','01':'9','15':'-','16':'.','67':'_','46':'~','02':':','17':'/','07':'?','1b':'#',
-        '63':'[','65':']','78':'@','19':'!','1c':'$','1e':'&','10':'(','11':')','12':'*','13':'+',
-        '14':',','03':';','05':'=','1d':'%'
-    }
+    const cipherMap = getCipherMap()
 
     const resolvedLinks: any[] = []
     const seen = new Set<string>()

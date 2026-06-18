@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from 'react'
-import { Bug, GitPullRequest, Globe, Palette, RotateCcw } from 'lucide-react'
+import { Bug, GitPullRequest, Globe, Palette, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
 import { argbFromRgb, hexFromArgb, themeFromSourceColor } from '@material/material-color-utilities'
 
 const DEFAULT_PRIMARY = '#D0BCFF'
@@ -53,15 +53,35 @@ function applyThemeFromPrimary(primary: string) {
   root.style.setProperty('--custom-display-name-styles-dark-1-color', rgbToHex(clamp(r - 48), clamp(g - 48), clamp(b - 48)))
 }
 
+type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
+
+interface CiphermapInfo {
+  generatedAt: string
+  entries: number
+  source: string
+  tag?: string | null
+}
+
 export function SettingsPage() {
   const [primary, setPrimary] = useState(DEFAULT_PRIMARY)
   const [useNativeControls, setUseNativeControls] = useState(true)
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
+  const [syncError, setSyncError] = useState<string | null>(null)
+  const [ciphermapInfo, setCiphermapInfo] = useState<CiphermapInfo | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem('theme.primary')
     if (!saved) return
     setPrimary(saved)
     applyThemeFromPrimary(saved)
+  }, [])
+
+  useEffect(() => {
+    // Load current ciphermap metadata from main process
+    const ipc = (window as any)?.ipcRenderer
+    ipc?.invoke('get-ciphermap-info').then((res: any) => {
+      if (res?.success && res.data) setCiphermapInfo(res.data)
+    }).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -90,6 +110,25 @@ export function SettingsPage() {
     })
   }
 
+  const syncCiphermap = async () => {
+    setSyncStatus('syncing')
+    setSyncError(null)
+    try {
+      const ipc = (window as any)?.ipcRenderer
+      const res: any = await ipc?.invoke('sync-ciphermap')
+      if (res?.success) {
+        setSyncStatus('success')
+        setCiphermapInfo({ generatedAt: res.generatedAt, entries: res.entries, source: res.source, tag: res.tag ?? null })
+      } else {
+        setSyncStatus('error')
+        setSyncError(res?.error ?? 'Unknown error')
+      }
+    } catch (e: any) {
+      setSyncStatus('error')
+      setSyncError(e.message ?? 'Unknown error')
+    }
+  }
+
   const openExternal = (url: string) => {
     // @ts-expect-error Electron's ipcRenderer is only available in Electron, so it may not exist in web environments
     if (window?.ipcRenderer?.openExternal) {
@@ -102,7 +141,7 @@ export function SettingsPage() {
 
   return (
     <div className="m3-card p-6 md:p-7 flex-1">
-      <h2 className="font-tempo text-2xl mb-5 flex items-center gap-2">
+      <h2 className="font-sans font-bold text-2xl mb-5 flex items-center gap-2">
         <Palette size={22} />
         Theme
       </h2>
@@ -140,7 +179,7 @@ export function SettingsPage() {
         </div>
       </div>
       <div className="mt-8 pt-6 border-t border-m3-outline/20">
-        <h3 className="font-tempo text-xl mb-3">Player</h3>
+        <h3 className="font-sans font-bold text-xl mb-3">Player</h3>
         <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex items-center justify-between">
           <div>
             <p className="font-bold text-sm">Use native video controls</p>
@@ -156,7 +195,7 @@ export function SettingsPage() {
         </div>
       </div>
       <div className="mt-8 pt-6 border-t border-m3-outline/20">
-        <h3 className="font-tempo text-xl mb-3">Project</h3>
+        <h3 className="font-sans font-bold text-xl mb-3">Project</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <button
             onClick={() => openExternal('https://github.com/vorlie/AniPlayV2')}
@@ -188,6 +227,45 @@ export function SettingsPage() {
             </div>
             <p className="text-xs text-m3-on-surface-variant">Create or review pull requests.</p>
           </button>
+        </div>
+      </div>
+      <div className="mt-8 pt-6 border-t border-m3-outline/20">
+        <h3 className="font-sans font-bold text-xl mb-3 flex items-center gap-2">
+          <ShieldCheck size={18} />
+          Scraper
+        </h3>
+        <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="font-bold text-sm">Cipher Map</p>
+              <p className="text-xs text-m3-on-surface-variant mt-0.5">
+                The cipher map is used to decode stream URLs. Update it when streams stop working.
+              </p>
+              {ciphermapInfo ? (
+                <p className="text-xs text-m3-on-surface-variant/70 mt-1">
+                  Last synced: {new Date(ciphermapInfo.generatedAt).toLocaleString()}{' '}
+                  {ciphermapInfo.tag && <span className="ml-1 px-1.5 py-0.5 rounded bg-m3-primary/20 text-m3-primary font-mono">{ciphermapInfo.tag}</span>}
+                  {' '}&middot; {ciphermapInfo.entries} entries
+                </p>
+              ) : (
+                <p className="text-xs text-m3-on-surface-variant/50 mt-1">Using built-in fallback map</p>
+              )}
+            </div>
+            <button
+              onClick={syncCiphermap}
+              disabled={syncStatus === 'syncing'}
+              className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border border-m3-outline/30 hover:bg-m3-on-surface/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              <RefreshCw size={14} className={syncStatus === 'syncing' ? 'animate-spin' : ''} />
+              {syncStatus === 'syncing' ? 'Updating…' : 'Update'}
+            </button>
+          </div>
+          {syncStatus === 'success' && (
+            <p className="text-xs text-green-400">✓ Cipher map updated successfully. Takes effect immediately.</p>
+          )}
+          {syncStatus === 'error' && (
+            <p className="text-xs text-red-400">✗ Update failed: {syncError}</p>
+          )}
         </div>
       </div>
     </div>

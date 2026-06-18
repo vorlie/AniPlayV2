@@ -2,7 +2,8 @@ import { app, BrowserWindow, ipcMain, session, shell } from 'electron'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { dirname } from 'node:path'
-import { searchAnime, getEpisodes, getEpisodeLinks } from './scrape'
+import fs from 'node:fs'
+import { searchAnime, getEpisodes, getEpisodeLinks, reloadCipherMap } from './scrape'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -101,6 +102,94 @@ function createWindow() {
       return { success: true }
     } catch {
       return { success: false }
+    }
+  })
+
+  ipcMain.handle('sync-ciphermap', async () => {
+    try {
+      // Resolve the latest release tag from GitHub API
+      const releasesRes = await fetch(
+        'https://api.github.com/repos/pystardust/ani-cli/releases/latest',
+        { headers: { 'Accept': 'application/vnd.github+json', 'User-Agent': 'AniPlayV2' }, signal: AbortSignal.timeout(10_000) }
+      )
+      if (!releasesRes.ok) throw new Error(`GitHub releases API returned ${releasesRes.status}`)
+      const releaseJson = await releasesRes.json() as { tag_name: string }
+      const tag = releaseJson.tag_name
+
+      const ANI_CLI_RAW = `https://raw.githubusercontent.com/pystardust/ani-cli/${tag}/ani-cli`
+      const res = await fetch(ANI_CLI_RAW, { signal: AbortSignal.timeout(15_000) })
+      if (!res.ok) throw new Error(`GitHub returned ${res.status} for tag ${tag}`)
+      const content = await res.text()
+
+      // ---- parse ciphermap — new format: inline s/^XX$/Y/g; entries in provider_init ----
+      // The sed chain lives on one long line inside provider_init(), e.g.:
+      //   s/^79$/A/g;s/^7a$/B/g;...
+      const pairRegex = /s\/\^([0-9a-f]{2})\$\/((?:\\.|[^/])*)\//g
+      const cipherMap: Record<string, string> = {}
+
+      for (const match of content.matchAll(pairRegex)) {
+        const hex = match[1]
+        let ch = match[2]
+        ch = ch
+          .replace(/\\\//g, '/')
+          .replace(/\\\[/g, '[')
+          .replace(/\\\]/g, ']')
+          .replace(/\\\(/g, '(')
+          .replace(/\\\)/g, ')')
+          .replace(/\\\$/g, '$')
+          .replace(/\\\\/g, '\\')
+        cipherMap[hex] = ch
+      }
+
+      if (Object.keys(cipherMap).length < 60) {
+        throw new Error(`Parsed too few map entries (${Object.keys(cipherMap).length}); aborting`)
+      }
+
+      const readVar = (name: string) => {
+        const m = content.match(new RegExp(`${name}="([^"]*)"`)) 
+        return m ? m[1] : null
+      }
+      const queryHashMatch = content.match(/query_hash="([a-f0-9]{32,64})"/i)
+      const keySeedMatch   = content.match(/printf '%s' '([^']+)' \| openssl dgst -sha256/i)
+
+      const payload = {
+        source:      `github:pystardust/ani-cli@${tag}`,
+        tag,
+        generatedAt: new Date().toISOString(),
+        entries:     Object.keys(cipherMap).length,
+        metadata: {
+          userAgent:   readVar('agent'),
+          referer:     readVar('allanime_refr'),
+          baseDomain:  readVar('allanime_base'),
+          apiUrl:      readVar('allanime_api'),
+          modeDefault: readVar('mode'),
+          queryHash:   queryHashMatch ? queryHashMatch[1] : null,
+          keySeed:     keySeedMatch   ? keySeedMatch[1]   : null,
+        },
+        cipherMap,
+      }
+
+      const outPath = join(app.getPath('userData'), 'ciphermap.json')
+      fs.writeFileSync(outPath, JSON.stringify(payload, null, 2) + '\n', 'utf8')
+
+      // hot-reload into the running scraper
+      reloadCipherMap(cipherMap)
+
+      return { success: true, entries: payload.entries, generatedAt: payload.generatedAt, tag, source: payload.source }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  })
+
+  ipcMain.handle('get-ciphermap-info', async () => {
+    try {
+      const outPath = join(app.getPath('userData'), 'ciphermap.json')
+      if (!fs.existsSync(outPath)) return { success: true, data: null }
+      const raw = fs.readFileSync(outPath, 'utf8')
+      const parsed = JSON.parse(raw)
+      return { success: true, data: { generatedAt: parsed.generatedAt, entries: parsed.entries, source: parsed.source, tag: parsed.tag ?? null } }
+    } catch {
+      return { success: true, data: null }
     }
   })
 

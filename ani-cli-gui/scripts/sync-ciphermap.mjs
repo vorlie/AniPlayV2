@@ -23,16 +23,13 @@ function main() {
   }
 
   const content = fs.readFileSync(sourcePath, 'utf8')
-  const mappingBlockMatch = content.match(/sed\s+'s\/\^\-\-\$\/\\n\/g;([^']+)'/)
-  if (!mappingBlockMatch) {
-    throw new Error('Could not find ciphermap sed block in ignore/ani-cli')
-  }
 
-  const mappingBlock = mappingBlockMatch[1]
-  const pairRegex = /s\/\^([0-9a-f]{2})\$\/((?:\\.|[^/]))\/g/g
+  // New format: inline s/^XX$/Y/g entries scattered through provider_init()
+  // e.g.: s/^79$/A/g;s/^7a$/B/g;...
+  const pairRegex = /s\/\^\(?([0-9a-f]{2})\)?\$\/((?:\\.|[^/]*))\//g
   const map = {}
 
-  for (const match of mappingBlock.matchAll(pairRegex)) {
+  for (const match of content.matchAll(pairRegex)) {
     const hex = match[1]
     const replacement = decodeSedReplacement(match[2])
     map[hex] = replacement
