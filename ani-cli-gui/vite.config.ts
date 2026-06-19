@@ -11,6 +11,13 @@ export default defineConfig({
     electron({
       main: {
         entry: 'electron/main.ts',
+        vite: {
+          build: {
+            rollupOptions: {
+              external: ['express', 'cors', 'hls.js', 'http-proxy-middleware']
+            }
+          }
+        }
       },
       preload: {
         input: 'electron/preload.ts',

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Flame, Loader2, Sparkles, TrendingUp } from 'lucide-react'
+import { invokeSearch } from '../lib/api'
 
 interface SearchResult {
   id: string
@@ -185,7 +186,7 @@ export function HomePage({
   const [actionMessage, setActionMessage] = useState('Pick something new to jump straight into its page.')
   const [actionError, setActionError] = useState<string | null>(null)
 
-  const hasElectronSearch = useMemo(() => Boolean(window.ipcRenderer?.invoke), [])
+  const hasElectronSearch = true
 
   useEffect(() => {
     const controller = new AbortController()
@@ -248,15 +249,8 @@ export function HomePage({
     setOpeningTitle(title)
     setSearchQuery(title)
 
-    if (!window.ipcRenderer?.invoke) {
-      setActionError('Search is only available inside the Electron app.')
-      setActionMessage('AniList is loaded, but opening anime requires the desktop shell.')
-      setOpeningTitle(null)
-      return
-    }
-
     try {
-      const response = await window.ipcRenderer.invoke('search', title)
+      const response = await invokeSearch(title)
       if (!isSearchInvokeResponse(response) || !response.success) {
         throw new Error(isSearchInvokeResponse(response) && response.error ? response.error : 'Search failed')
       }

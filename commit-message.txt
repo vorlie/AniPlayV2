@@ -1,0 +1,8 @@
+feat(network): add local network exposure and HTTP streaming proxy
+
+Implemented an Express server within the Electron main process to allow local network streaming.
+- Added Express and http-proxy-middleware to intercept and fulfill remote browser stream chunk requests.
+- Dynamically parse and cache request bypass headers directly from ciphermap.json.
+- Updated SettingsPage UI with LAN settings toggle mapping, network interface discovery, and active device tracking.
+- Created standalone React fallbacks in api.ts to safely decouple window.ipcRenderer for remote browser sessions.
+- Excluded express, cors, and http-proxy-middleware from Vite build targets to prevent ESM context clashes.

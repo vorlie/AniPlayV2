@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, MonitorPlay } from 'lucide-react'
 import { PlayerPage } from './PlayerPage'
 import { addHistory } from '../lib/history'
+import { invokeEpisodes, invokeLinks } from '../lib/api'
 
 interface StreamLink {
   url: string
@@ -10,24 +11,13 @@ interface StreamLink {
   provider: string
 }
 
-interface IpcResponse<T> {
-  success: boolean
-  data?: T
-}
+
 
 interface AnimePageProps {
   anime: { id: string; name: string; episodes: number }
   onBack: () => void
   initialEpisode?: string | null
   initialResumeSeconds?: number | null
-}
-
-type IpcRenderer = {
-  invoke<T>(channel: string, ...args: unknown[]): Promise<IpcResponse<T>>
-}
-
-function getIpcRenderer() {
-  return (window as Window & { ipcRenderer?: IpcRenderer }).ipcRenderer
 }
 
 export function AnimePage({
@@ -37,7 +27,7 @@ export function AnimePage({
   initialResumeSeconds,
 }: AnimePageProps) {
   const [episodes, setEpisodes] = useState<string[]>([])
-  const [loading, setLoading] = useState(() => !getIpcRenderer())
+  const [loading, setLoading] = useState(true)
   const [playingLinks, setPlayingLinks] = useState<StreamLink[]>([])
   const [playingEp, setPlayingEp] = useState<string>('')
   const [loadingEp, setLoadingEp] = useState<string | null>(null)
@@ -47,14 +37,7 @@ export function AnimePage({
     if (loadingEp === ep) return
     setLoadingEp(ep)
 
-    const ipcRenderer = getIpcRenderer()
-    if (!ipcRenderer) {
-      setLoadingEp(null)
-      alert('Stream fetch failed.')
-      return
-    }
-
-    ipcRenderer.invoke<StreamLink[]>('links', anime.id, ep).then((res) => {
+    invokeLinks<StreamLink[]>(anime.id, ep).then((res) => {
       setLoadingEp(null)
       if (res.success && Array.isArray(res.data) && res.data.length > 0) {
         const resumeSeconds =
@@ -80,10 +63,7 @@ export function AnimePage({
   }
 
   useEffect(() => {
-    const ipcRenderer = getIpcRenderer()
-    if (!ipcRenderer) return
-
-    ipcRenderer.invoke<string[]>('episodes', anime.id).then((res) => {
+    invokeEpisodes<string[]>(anime.id).then((res) => {
       if (res.success && Array.isArray(res.data)) {
         setEpisodes(res.data)
       }

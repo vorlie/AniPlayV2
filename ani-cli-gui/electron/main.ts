@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname } from 'node:path'
 import fs from 'node:fs'
 import { searchAnime, getEpisodes, getEpisodeLinks, reloadCipherMap } from './scrape'
+import { startServer, stopServer, getClients, getServerStatus } from './server'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -193,6 +194,24 @@ function createWindow() {
     }
   })
 
+  // ---- Local Network Server Handlers ----
+  ipcMain.handle('local-network:toggle', (_event, enable: boolean, port: number = 3000) => {
+    if (enable) {
+      return startServer(port, RENDERER_DIST)
+    } else {
+      stopServer()
+      return { success: true }
+    }
+  })
+
+  ipcMain.handle('local-network:status', () => {
+    return getServerStatus()
+  })
+
+  ipcMain.handle('local-network:clients', () => {
+    return getClients()
+  })
+
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL)
     win.webContents.openDevTools()
@@ -209,6 +228,10 @@ app.on('window-all-closed', () => {
     app.quit()
     win = null
   }
+})
+
+app.on('before-quit', () => {
+  stopServer()
 })
 
 app.on('activate', () => {

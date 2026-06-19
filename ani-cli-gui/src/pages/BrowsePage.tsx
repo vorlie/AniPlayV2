@@ -1,4 +1,5 @@
 import { Search, MonitorPlay } from 'lucide-react'
+import { invokeSearch } from '../lib/api'
 
 export function BrowsePage({
   searchQuery,
@@ -25,8 +26,7 @@ export function BrowsePage({
             value={searchQuery}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                // @ts-ignore
-                window.ipcRenderer.invoke('search', searchQuery).then((res: any) => {
+                invokeSearch(searchQuery).then((res: any) => {
                   if (res.success) setResults(res.data)
                 })
               }
@@ -37,8 +37,7 @@ export function BrowsePage({
         </div>
         <button 
           onClick={() => {
-            // @ts-ignore
-            window.ipcRenderer.invoke('search', searchQuery).then((res: any) => {
+            invokeSearch(searchQuery).then((res: any) => {
               if (res.success) setResults(res.data)
             })
           }}

@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from 'react'
-import { Bug, GitPullRequest, Globe, Palette, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
+import { Bug, GitPullRequest, Globe, Palette, RefreshCw, RotateCcw, ShieldCheck, Wifi } from 'lucide-react'
 import { argbFromRgb, hexFromArgb, themeFromSourceColor } from '@material/material-color-utilities'
 
 const DEFAULT_PRIMARY = '#D0BCFF'
@@ -68,6 +68,66 @@ export function SettingsPage() {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
   const [syncError, setSyncError] = useState<string | null>(null)
   const [ciphermapInfo, setCiphermapInfo] = useState<CiphermapInfo | null>(null)
+
+  const [networkEnabled, setNetworkEnabled] = useState(false)
+  const [networkInfo, setNetworkInfo] = useState<{ ip?: string, port?: number } | null>(null)
+  const [networkClients, setNetworkClients] = useState<{ ip: string, lastSeen: number }[]>([])
+
+  useEffect(() => {
+    const saved = localStorage.getItem('localNetwork.enabled')
+    if (saved === 'true') {
+      toggleNetwork(true, false)
+    } else {
+      refreshNetworkStatus()
+    }
+  }, [])
+
+  const refreshNetworkStatus = async () => {
+    const ipc = (window as any)?.ipcRenderer
+    if (!ipc) return
+    const status = await ipc.invoke('local-network:status')
+    if (status?.active) {
+      setNetworkEnabled(true)
+      setNetworkInfo({ ip: status.ip, port: status.port })
+      const clients = await ipc.invoke('local-network:clients')
+      setNetworkClients(clients || [])
+    } else {
+      setNetworkEnabled(false)
+      setNetworkInfo(null)
+    }
+  }
+
+  const toggleNetwork = async (enable?: boolean, save = true) => {
+    const next = enable ?? !networkEnabled
+    const ipc = (window as any)?.ipcRenderer
+    if (!ipc) return
+    
+    if (next) {
+      const res = await ipc.invoke('local-network:toggle', true, 3000)
+      if (res?.success) {
+        setNetworkEnabled(true)
+        setNetworkInfo({ ip: res.ip, port: res.port })
+        if (save) localStorage.setItem('localNetwork.enabled', 'true')
+      }
+    } else {
+      await ipc.invoke('local-network:toggle', false)
+      setNetworkEnabled(false)
+      setNetworkInfo(null)
+      if (save) localStorage.setItem('localNetwork.enabled', 'false')
+    }
+  }
+
+  useEffect(() => {
+    if (!networkEnabled) return
+    const interval = setInterval(async () => {
+      const ipc = (window as any)?.ipcRenderer
+      if (ipc) {
+        const cls = await ipc.invoke('local-network:clients')
+        setNetworkClients(cls || [])
+      }
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [networkEnabled])
 
   useEffect(() => {
     const saved = localStorage.getItem('theme.primary')
@@ -192,6 +252,49 @@ export function SettingsPage() {
           >
             <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${useNativeControls ? 'translate-x-6' : 'translate-x-0'}`} />
           </button>
+        </div>
+      </div>
+      <div className="mt-8 pt-6 border-t border-m3-outline/20">
+        <h3 className="font-sans font-bold text-xl mb-3 flex items-center gap-2">
+          <Wifi size={18} />
+          Local Network Access
+        </h3>
+        <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-bold text-sm">Expose on Local Network</p>
+              <p className="text-xs text-m3-on-surface-variant">Allow other devices on this network to browse and watch anime.</p>
+            </div>
+            <button
+              onClick={() => toggleNetwork()}
+              className={`w-14 h-8 rounded-full p-1 transition-colors ${networkEnabled ? 'bg-m3-primary' : 'bg-m3-surface-variant/60'}`}
+              aria-pressed={networkEnabled}
+            >
+              <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${networkEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+            </button>
+          </div>
+          {networkEnabled && networkInfo && (
+            <div className="pt-3 mt-3 border-t border-m3-outline/20">
+              <p className="text-sm font-bold">Network Address</p>
+              <p className="text-xs font-mono mt-1 text-m3-primary bg-m3-primary/10 px-2 py-1 rounded inline-block">http://{networkInfo.ip}:{networkInfo.port}</p>
+              
+              <div className="mt-4">
+                <p className="text-sm font-bold mb-2">Connected Clients ({networkClients.length})</p>
+                {networkClients.length === 0 ? (
+                  <p className="text-xs text-m3-on-surface-variant">No clients connected yet.</p>
+                ) : (
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {networkClients.map(c => (
+                      <div key={c.ip} className="flex items-center justify-between bg-m3-surface p-2 rounded-lg text-xs">
+                        <span className="font-mono">{c.ip}</span>
+                        <span className="text-m3-on-surface-variant">Seen: {new Date(c.lastSeen).toLocaleTimeString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <div className="mt-8 pt-6 border-t border-m3-outline/20">
