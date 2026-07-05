@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Search, MonitorPlay } from 'lucide-react'
-import { invokeSearch, type AnimeSearchResult } from '../lib/api'
+import { ArrowRight, Loader2, Search, Tv2 } from 'lucide-react'
+import { getTranslationType, invokeSearch, type AnimeSearchResult } from '../lib/api'
 
 interface BrowsePageProps {
   searchQuery: string
@@ -10,31 +10,21 @@ interface BrowsePageProps {
   onSelectAnime: (anime: AnimeSearchResult) => void
 }
 
-export function BrowsePage({
-  searchQuery,
-  setSearchQuery,
-  results,
-  setResults,
-  onSelectAnime,
-}: BrowsePageProps) {
+export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, onSelectAnime }: BrowsePageProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasSearched, setHasSearched] = useState(results.length > 0)
+  const translationType = getTranslationType()
 
   const search = async () => {
     const query = searchQuery.trim()
     if (!query || loading) return
-
     setLoading(true)
     setError(null)
     setHasSearched(true)
     try {
       const response = await invokeSearch(query)
-      if (!response.success) {
-        setResults([])
-        setError(response.error || 'Search failed. Please try again.')
-        return
-      }
+      if (!response.success) throw new Error(response.error || 'Search failed. Please try again.')
       setResults(response.data ?? [])
     } catch (cause: unknown) {
       setResults([])
@@ -45,61 +35,67 @@ export function BrowsePage({
   }
 
   return (
-    <div className="flex-1 flex flex-col space-y-6">
-      <div className="m3-card p-6 flex flex-col space-y-4">
-        <h2 className="font-sans font-bold text-2xl text-m3-on-surface">Find Anime</h2>
-        <div className="relative">
+    <div className="flex-1 flex flex-col gap-4 md:gap-5">
+      <section className="m3-card overflow-hidden p-5 md:p-7">
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+          <div>
+            <p className="section-label"><Search size={14} /> Library search</p>
+            <h2 className="mt-2 text-3xl md:text-4xl font-black tracking-tight">What do you want to watch?</h2>
+            <p className="mt-1 text-sm text-m3-on-surface-variant">Searching the {translationType === 'dub' ? 'dubbed' : 'subbed'} catalog.</p>
+          </div>
+          <span className="self-start rounded-full border border-m3-primary/25 bg-m3-primary/10 px-3 py-1.5 text-xs font-bold text-m3-primary uppercase tracking-wider">{translationType}</span>
+        </div>
+
+        <div className="mt-5 flex items-stretch gap-2 rounded-2xl border border-m3-outline/25 bg-m3-surface/55 p-1.5 focus-within:border-m3-primary/60 focus-within:ring-4 focus-within:ring-m3-primary/10 transition-all">
+          <Search aria-hidden="true" className="ml-3 self-center text-m3-outline" size={20} />
           <label htmlFor="anime-search" className="sr-only">Anime title</label>
           <input
             id="anime-search"
             type="search"
-            placeholder="Search an anime title..."
-            className="w-full bg-m3-on-surface/5 border border-m3-outline/20 rounded-2xl pl-12 pr-4 py-3 text-m3-on-surface focus:outline-none focus:ring-2 focus:ring-m3-primary/30 focus:border-m3-primary/50 transition-all font-sans"
+            autoFocus
+            placeholder="Try Cowboy Bebop, Frieren, One Piece…"
+            className="min-w-0 flex-1 bg-transparent px-2 py-3 text-m3-on-surface outline-none placeholder:text-m3-on-surface-variant/55"
             value={searchQuery}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') void search()
-            }}
+            onKeyDown={(event) => { if (event.key === 'Enter') void search() }}
             onChange={(event) => setSearchQuery(event.target.value)}
             aria-describedby={error ? 'search-error' : undefined}
           />
-          <Search aria-hidden="true" className="absolute left-4 top-1/2 transform -translate-y-1/2 text-m3-outline" size={20} />
+          <button type="button" onClick={() => void search()} disabled={!searchQuery.trim() || loading} className="primary-action px-4 md:px-6">
+            {loading ? <Loader2 className="animate-spin" size={18} /> : <Search size={18} />}
+            <span className="hidden sm:inline">{loading ? 'Searching' : 'Search'}</span>
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => void search()}
-          disabled={!searchQuery.trim() || loading}
-          className="bg-m3-primary text-m3-on-primary font-black rounded-full px-6 py-3 shadow-sm hover:shadow-md transition-all self-start flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <MonitorPlay aria-hidden="true" size={20} />
-          <span>{loading ? 'Searching…' : 'Search'}</span>
-        </button>
-        {error && <p id="search-error" role="alert" className="text-sm text-red-400">{error}</p>}
-      </div>
+        {error && <p id="search-error" role="alert" className="mt-3 rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-sm text-red-300">{error}</p>}
+      </section>
 
-      <div className="m3-card p-6 flex-1 min-h-[300px]">
-        <h3 className="text-xl font-bold mb-4 opacity-80 border-b border-m3-outline/20 pb-2">
-          Results{results.length > 0 ? ` (${results.length})` : ''}
-        </h3>
+      <section className="m3-card p-4 md:p-6 flex-1 min-h-[340px]">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h3 className="text-xl font-black">Results</h3>
+            <p className="text-xs text-m3-on-surface-variant mt-0.5">{results.length ? `${results.length} titles found` : 'Matching titles appear here'}</p>
+          </div>
+        </div>
         {results.length > 0 ? (
-          <div className="flex flex-col space-y-2 overflow-y-auto max-h-[500px] pr-2">
-            {results.map((anime) => (
-              <button
-                type="button"
-                key={anime.id}
-                className="w-full p-3 m3-card-hover rounded-xl border border-transparent text-left flex justify-between items-center group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-m3-primary"
-                onClick={() => onSelectAnime(anime)}
-              >
-                <span className="font-bold text-m3-on-surface group-hover:text-m3-primary transition-colors">{anime.name}</span>
-                <span className="text-sm bg-m3-primary/10 text-m3-primary px-3 py-1 rounded-full">{anime.episodes} eps</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
+            {results.map((anime, index) => (
+              <button type="button" key={anime.id} className="group rounded-2xl border border-m3-outline/15 bg-m3-surface/40 p-3.5 text-left flex items-center gap-3 hover:-translate-y-0.5 hover:border-m3-primary/40 hover:bg-m3-primary/5 transition-all" onClick={() => onSelectAnime(anime)}>
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-m3-primary/10 text-sm font-black text-m3-primary">{String(index + 1).padStart(2, '0')}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-bold group-hover:text-m3-primary transition-colors">{anime.name}</span>
+                  <span className="block mt-0.5 text-xs text-m3-on-surface-variant">{anime.episodes || '—'} episodes</span>
+                </span>
+                <ArrowRight size={18} className="shrink-0 text-m3-outline transition-transform group-hover:translate-x-1 group-hover:text-m3-primary" />
               </button>
             ))}
           </div>
         ) : (
-          <div className="flex items-center justify-center h-full text-m3-on-surface-variant">
-            <p>{loading ? 'Searching…' : hasSearched && !error ? 'No matching anime found.' : 'Enter a search query to load anime.'}</p>
+          <div className="min-h-[240px] flex flex-col items-center justify-center text-center">
+            <span className="flex size-14 items-center justify-center rounded-2xl bg-m3-primary/10 text-m3-primary"><Tv2 size={25} /></span>
+            <p className="mt-4 font-bold">{loading ? 'Searching the catalog…' : hasSearched && !error ? 'No matching titles' : 'Start with a title'}</p>
+            <p className="mt-1 max-w-sm text-sm text-m3-on-surface-variant">{hasSearched ? 'Check the spelling or try a shorter title.' : 'Enter an anime name above. You can choose an episode and server on the next screen.'}</p>
           </div>
         )}
-      </div>
+      </section>
     </div>
   )
 }

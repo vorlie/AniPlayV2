@@ -38,9 +38,9 @@ type CiphermapSyncResponse =
     }
 
 interface AniPlayApi {
-  search(query: string): Promise<IpcResponse<SearchResult[]>>
-  getEpisodes(showId: string): Promise<IpcResponse<string[]>>
-  getEpisodeLinks(showId: string, episode: string): Promise<IpcResponse<StreamLink[]>>
+  search(query: string, translationType: 'sub' | 'dub'): Promise<IpcResponse<SearchResult[]>>
+  getEpisodes(showId: string, translationType: 'sub' | 'dub'): Promise<IpcResponse<string[]>>
+  getEpisodeLinks(showId: string, episode: string, translationType: 'sub' | 'dub'): Promise<IpcResponse<StreamLink[]>>
   getCiphermapInfo(): Promise<IpcResponse<CiphermapInfo | null>>
   syncCiphermap(): Promise<CiphermapSyncResponse>
   openProjectPage(page: 'repository' | 'issues' | 'pulls'): Promise<{ success: boolean }>

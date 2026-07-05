@@ -102,7 +102,7 @@ const ALLANIME_BASE = 'allanime.day'
 const ALLANIME_API = `https://api.${ALLANIME_BASE}`
 const ALLANIME_REFR = 'https://youtu-chan.com'
 const AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0'
-const MODE = 'sub'
+export type TranslationType = 'sub' | 'dub'
 
 export interface SearchResult {
   id: string
@@ -110,14 +110,14 @@ export interface SearchResult {
   episodes: number
 }
 
-export async function searchAnime(query: string): Promise<SearchResult[]> {
+export async function searchAnime(query: string, mode: TranslationType): Promise<SearchResult[]> {
   const searchGql = `query( $search: SearchInput $limit: Int $page: Int $translationType: VaildTranslationTypeEnumType $countryOrigin: VaildCountryOriginEnumType ) { shows( search: $search limit: $limit page: $page translationType: $translationType countryOrigin: $countryOrigin ) { edges { _id name availableEpisodes __typename } }}`
 
   const variables = {
     search: { allowAdult: false, allowUnknown: false, query },
     limit: 40,
     page: 1,
-    translationType: MODE,
+    translationType: mode,
     countryOrigin: 'ALL',
   }
 
@@ -142,14 +142,14 @@ export async function searchAnime(query: string): Promise<SearchResult[]> {
   return edges.flatMap((value): SearchResult[] => {
     if (!isObject(value) || typeof value._id !== 'string' || typeof value.name !== 'string') return []
     const availableEpisodes = isObject(value.availableEpisodes) ? value.availableEpisodes : null
-    const episodeValue = availableEpisodes?.[MODE]
+    const episodeValue = availableEpisodes?.[mode]
     // The bash script does: mode === 'sub' ? edge.availableEpisodes.sub : ...
     const episodes = typeof episodeValue === 'number' && Number.isFinite(episodeValue) ? episodeValue : 0
     return [{ id: value._id, name: value.name, episodes }]
   })
 }
 
-export async function getEpisodes(showId: string): Promise<string[]> {
+export async function getEpisodes(showId: string, mode: TranslationType): Promise<string[]> {
   const episodesListGql = `query ($showId: String!) { show( _id: $showId ) { _id availableEpisodesDetail }}`
   const json = await fetchJson(`${ALLANIME_API}/api`, {
     method: 'POST',
@@ -167,7 +167,7 @@ export async function getEpisodes(showId: string): Promise<string[]> {
   const data = isObject(json) && isObject(json.data) ? json.data : null
   const show = data && isObject(data.show) ? data.show : null
   const detail = show && isObject(show.availableEpisodesDetail) ? show.availableEpisodesDetail : null
-  const modeData = detail?.[MODE]
+  const modeData = detail?.[mode]
   if (!Array.isArray(modeData)) throw new Error('Episode response did not contain an episode list')
   return modeData
     .filter((value): value is string | number => typeof value === 'string' || typeof value === 'number')
@@ -217,9 +217,9 @@ function processResponse(responseRaw: string): unknown {
   return parsed
 }
 
-export async function getEpisodeLinks(showId: string, epNo: string): Promise<StreamLink[]> {
+export async function getEpisodeLinks(showId: string, epNo: string, mode: TranslationType): Promise<StreamLink[]> {
     const queryHash = "d405d0edd690624b66baba3068e0edc3ac90f1597d898a1ec8db4e5c43c00fec"
-    const queryVars = { showId, translationType: MODE, episodeString: epNo }
+    const queryVars = { showId, translationType: mode, episodeString: epNo }
     const extensions = { persistedQuery: { version: 1, sha256Hash: queryHash } }
 
     const url = new URL(`${ALLANIME_API}/api`)
@@ -353,6 +353,31 @@ export async function getEpisodeLinks(showId: string, epNo: string): Promise<Str
         }
     }
 
+    const resolveMp4Upload = async (embedUrl: string): Promise<string | null> => {
+        try {
+            const response = await fetchChecked(embedUrl, {
+                headers: {
+                    'User-Agent': AGENT,
+                    'Referer': ALLANIME_REFR,
+                    'Accept': 'text/html,application/xhtml+xml',
+                },
+                redirect: 'follow',
+            }, 10_000)
+            const html = await response.text()
+            const match = html.match(/\bsrc\s*:\s*["']([^"']+)["']/i)
+            if (!match) return null
+
+            const mediaUrl = match[1]
+                .replace(/\\\//g, '/')
+                .replace(/\\u0026/gi, '&')
+                .trim()
+            return /^https?:\/\//i.test(mediaUrl) ? mediaUrl : null
+        } catch (error: unknown) {
+            console.warn('Skipped provider Mp4Upload:', errorMessage(error))
+            return null
+        }
+    }
+
     for (const source of sources) {
         let providerUrl = (source.sourceUrl as string) || ''
         if (providerUrl.startsWith('--')) {
@@ -364,6 +389,20 @@ export async function getEpisodeLinks(showId: string, epNo: string): Promise<Str
             providerUrl = decipheredUrl
         }
         providerUrl = providerUrl.trim()
+
+        // MP4Upload exposes its media URL in the embed page's player config.
+        if (/^https?:\/\/(?:www\.)?mp4upload\.com\//i.test(providerUrl)) {
+            const mediaUrl = await resolveMp4Upload(providerUrl)
+            if (mediaUrl) {
+                pushLink({
+                    url: mediaUrl,
+                    resolution: 'Auto',
+                    hls: mediaUrl.includes('.m3u8'),
+                    provider: 'Mp4Upload',
+                })
+            }
+            continue
+        }
 
         // Case 1: direct stream URL, no secondary fetch needed
         if (/^https?:\/\//i.test(providerUrl) && isDirectMediaUrl(providerUrl)) {

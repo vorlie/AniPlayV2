@@ -23,7 +23,7 @@ function App() {
   const [resumeProgressSeconds, setResumeProgressSeconds] = useState<number | null>(null)
 
   const handleResumeFromHistory = (item: HistoryEntry) => {
-    setActiveTab('search')
+    setActiveTab('player')
     setActiveAnime({
       id: item.animeId,
       name: item.animeName,
@@ -36,12 +36,12 @@ function App() {
   const handleSelectAnime = (anime: AnimeSelection) => {
     setResumeEpisode(null)
     setResumeProgressSeconds(null)
-    setActiveTab('search')
+    setActiveTab('player')
     setActiveAnime(anime)
   }
 
   return (
-    <div className="min-h-screen bg-m3-surface text-m3-on-surface p-4 md:p-5 relative overflow-hidden flex flex-col">
+    <div className="min-h-screen bg-m3-surface text-m3-on-surface p-3 md:p-5 relative overflow-hidden flex flex-col">
       {/* Background Floats */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-m3-primary/10 blur-[120px] rounded-full animate-blob"></div>
@@ -49,18 +49,19 @@ function App() {
       </div>
 
       {/* Header */}
-      <header className="relative z-10 flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-5 draggable" style={{ WebkitAppRegion: 'drag' } as CSSProperties}>
-        <div className="effect-container">
-          <h1 className="effect-neon font-sakura text-4xl tracking-wide select-none">
+      <header className="relative z-10 w-full max-w-[1500px] mx-auto flex items-center justify-between gap-3 mb-4 md:mb-5 draggable" style={{ WebkitAppRegion: 'drag' } as CSSProperties}>
+        <div className="effect-container items-center gap-3">
+          <h1 className="effect-neon font-sakura text-3xl md:text-4xl tracking-wide select-none">
             <span className="glow-layer">ani-cli</span>
             <span className="text-layer">ani-cli</span>
           </h1>
+          <span className="hidden lg:inline text-xs font-bold uppercase tracking-[0.18em] text-m3-on-surface-variant">watch without the clutter</span>
         </div>
-        <Navigation activeTab={activeTab} setActiveTab={setActiveTab} className="self-start md:self-auto" />
+        <Navigation activeTab={activeTab} setActiveTab={setActiveTab} hasActivePlayer={activeAnime !== null} />
       </header>
 
       {/* Main Content Area */}
-      <main className="relative z-10 flex-1 flex flex-col pb-4">
+      <main className="relative z-10 flex-1 flex flex-col w-full max-w-[1500px] mx-auto pb-20 md:pb-4">
         {activeTab === 'home' && (
           <HomePage
             setSearchQuery={setSearchQuery}
@@ -69,7 +70,7 @@ function App() {
           />
         )}
 
-        {activeTab === 'search' && !activeAnime && (
+        {activeTab === 'search' && (
           <BrowsePage
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
@@ -79,17 +80,21 @@ function App() {
           />
         )}
 
-        {activeTab === 'search' && activeAnime && (
-          <AnimePage
-            anime={activeAnime}
-            initialEpisode={resumeEpisode}
-            initialResumeSeconds={resumeProgressSeconds}
-            onBack={() => {
-              setActiveAnime(null)
-              setResumeEpisode(null)
-              setResumeProgressSeconds(null)
-            }}
-          />
+        {activeAnime && (
+          <div className={activeTab === 'player' ? 'flex flex-1 flex-col' : 'hidden'} aria-hidden={activeTab !== 'player'}>
+            <AnimePage
+              key={activeAnime.id}
+              anime={activeAnime}
+              initialEpisode={resumeEpisode}
+              initialResumeSeconds={resumeProgressSeconds}
+              onBack={() => {
+                setActiveAnime(null)
+                setResumeEpisode(null)
+                setResumeProgressSeconds(null)
+                setActiveTab('search')
+              }}
+            />
+          </div>
         )}
 
         {activeTab === 'history' && (

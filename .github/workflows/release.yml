@@ -6,26 +6,47 @@ on:
     tags:
       - '*'
 
+permissions:
+  contents: read
+
 jobs:
   build:
-    name: Build Cross-Platform
-    runs-on: ubuntu-22.04
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            artifact: AniPlay-Windows
+            build-command: npx electron-builder --win portable --publish never
+            artifact-path: ani-cli-gui/dist/**/*.exe
+          - name: Linux
+            os: ubuntu-24.04
+            artifact: AniPlay-Linux
+            build-command: npx electron-builder --linux AppImage tar.gz --publish never
+            artifact-path: |
+              ani-cli-gui/dist/**/*.AppImage
+              ani-cli-gui/dist/**/*.tar.gz
+
     defaults:
       run:
         working-directory: ani-cli-gui
-        
+
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 20
-          cache: 'npm'
+          node-version: 24
+          cache: npm
           cache-dependency-path: ani-cli-gui/package-lock.json
 
-      - name: Install System Dependencies
+      - name: Install Linux System Dependencies
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends squashfs-tools
@@ -33,34 +54,37 @@ jobs:
       - name: Install NPM Dependencies
         run: npm ci
 
-      - name: Build Application (Windows & Linux)
-        run: |
-          npm run build:ui
-          npx electron-builder --win portable --linux
+      - name: Build Renderer and Electron
+        run: npm run build:ui
+
+      - name: Package ${{ matrix.name }}
+        run: ${{ matrix.build-command }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Artifacts (Windows)
-        uses: actions/upload-artifact@v4
+      - name: Upload ${{ matrix.name }} Artifacts
+        uses: actions/upload-artifact@v7
         with:
-          name: AniPlay-Windows
-          path: ani-cli-gui/dist/**/*.exe
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact-path }}
+          if-no-files-found: error
 
-      - name: Upload Artifacts (Linux)
-        uses: actions/upload-artifact@v4
+  release:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v8
         with:
-          name: AniPlay-Linux
-          path: |
-            ani-cli-gui/dist/**/*.AppImage
-            ani-cli-gui/dist/**/*.tar.gz
+          path: release-artifacts
+          merge-multiple: true
 
       - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
-          files: |
-            ani-cli-gui/dist/**/*.exe
-            ani-cli-gui/dist/**/*.AppImage
-            ani-cli-gui/dist/**/*.tar.gz
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          files: release-artifacts/**

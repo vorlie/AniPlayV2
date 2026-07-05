@@ -1,41 +1,48 @@
-import { Search, History, Settings, House } from 'lucide-react'
+import { Search, History, Settings, House, Radio, type LucideIcon } from 'lucide-react'
 import type { CSSProperties } from 'react'
+
+const baseTabs: Array<{ id: string; label: string; icon: LucideIcon }> = [
+  { id: 'home', label: 'Home', icon: House },
+  { id: 'search', label: 'Browse', icon: Search },
+  { id: 'history', label: 'History', icon: History },
+  { id: 'settings', label: 'Settings', icon: Settings },
+]
 
 export function Navigation({
   activeTab,
   setActiveTab,
-  className = ''
+  hasActivePlayer = false,
+  className = '',
 }: {
-  activeTab: string,
-  setActiveTab: (val: string) => void,
+  activeTab: string
+  setActiveTab: (value: string) => void
+  hasActivePlayer?: boolean
   className?: string
 }) {
   return (
-    <nav className={`bg-m3-surface-container/80 backdrop-blur-xl border border-m3-outline/20 rounded-2xl p-1.5 flex items-center gap-1.5 ${className}`} style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
-      <button 
-        onClick={() => setActiveTab('home')}
-        className={`px-3 md:px-4 py-2 rounded-xl flex items-center space-x-1.5 text-sm font-semibold transition-all ${activeTab === 'home' ? 'bg-m3-primary text-m3-on-primary shadow-sm' : 'text-m3-on-surface-variant hover:bg-m3-on-surface/10'}`}>
-        <House size={16} />
-        <span>Home</span>
-      </button>
-      <button 
-        onClick={() => setActiveTab('search')}
-        className={`px-3 md:px-4 py-2 rounded-xl flex items-center space-x-1.5 text-sm font-semibold transition-all ${activeTab === 'search' ? 'bg-m3-primary text-m3-on-primary shadow-sm' : 'text-m3-on-surface-variant hover:bg-m3-on-surface/10'}`}>
-        <Search size={16} />
-        <span>Browse</span>
-      </button>
-      <button 
-          onClick={() => setActiveTab('history')}
-          className={`px-3 md:px-4 py-2 rounded-xl flex items-center space-x-1.5 text-sm font-semibold transition-all ${activeTab === 'history' ? 'bg-m3-primary text-m3-on-primary shadow-sm' : 'text-m3-on-surface-variant hover:bg-m3-on-surface/10'}`}>
-        <History size={16} />
-        <span>History</span>
-      </button>
-      <button 
-          onClick={() => setActiveTab('settings')}
-          className={`px-3 md:px-4 py-2 rounded-xl flex items-center space-x-1.5 text-sm font-semibold transition-all ${activeTab === 'settings' ? 'bg-m3-primary text-m3-on-primary shadow-sm' : 'text-m3-on-surface-variant hover:bg-m3-on-surface/10'}`}>
-        <Settings size={16} />
-        <span>Settings</span>
-      </button>
+    <nav
+      aria-label="Primary navigation"
+      className={`fixed z-40 bottom-3 left-3 right-3 flex gap-1 rounded-2xl border border-m3-outline/20 bg-m3-surface-container/95 p-1.5 shadow-2xl backdrop-blur-2xl md:static md:w-auto md:shadow-lg ${className}`}
+      style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}
+    >
+      {[...baseTabs, ...(hasActivePlayer ? [{ id: 'player', label: 'Playing', icon: Radio }] : [])].map(({ id, label, icon: Icon }) => {
+        const active = activeTab === id
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setActiveTab(id)}
+            aria-current={active ? 'page' : undefined}
+            className={`min-w-0 flex-1 md:flex-none px-2 md:px-4 py-2 rounded-xl flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-1.5 text-[11px] md:text-sm font-semibold transition-all ${active ? 'bg-m3-primary text-m3-on-primary shadow-sm' : 'text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface'} ${id === 'player' && !active ? 'text-m3-primary' : ''}`}
+          >
+            <span className="relative">
+              <Icon aria-hidden="true" size={17} />
+              {id === 'player' && <span className="absolute -right-1 -top-1 size-1.5 rounded-full bg-red-400 animate-pulse" />}
+            </span>
+            <span>{label}</span>
+          </button>
+        )
+      })}
     </nav>
   )
 }

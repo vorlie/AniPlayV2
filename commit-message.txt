@@ -1,0 +1,7 @@
+feat: add dub support and persistent player experience
+
+- add a persisted subbed/dubbed catalog preference across search and playback
+- scrape MP4Upload sources and configure the required media headers
+- keep playback mounted behind a dedicated Playing tab when navigating
+- redesign browse, episode, history, and responsive navigation flows
+- split Windows and Linux release builds onto native GitHub runners

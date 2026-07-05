@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { Bug, GitPullRequest, Globe, Palette, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
 import { argbFromRgb, hexFromArgb, themeFromSourceColor } from '@material/material-color-utilities'
+import { getTranslationType, TRANSLATION_TYPE_KEY, type TranslationType } from '../lib/api'
 
 const DEFAULT_PRIMARY = '#D0BCFF'
 
@@ -65,6 +66,7 @@ interface CiphermapInfo {
 export function SettingsPage() {
   const [primary, setPrimary] = useState(DEFAULT_PRIMARY)
   const [useNativeControls, setUseNativeControls] = useState(true)
+  const [translationType, setTranslationType] = useState<TranslationType>(getTranslationType)
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
   const [syncError, setSyncError] = useState<string | null>(null)
   const [ciphermapInfo, setCiphermapInfo] = useState<CiphermapInfo | null>(null)
@@ -107,6 +109,11 @@ export function SettingsPage() {
       localStorage.setItem('player.useNativeControls', String(next))
       return next
     })
+  }
+
+  const selectTranslationType = (value: TranslationType) => {
+    setTranslationType(value)
+    localStorage.setItem(TRANSLATION_TYPE_KEY, value)
   }
 
   const syncCiphermap = async () => {
@@ -172,7 +179,7 @@ export function SettingsPage() {
       </div>
       <div className="mt-8 pt-6 border-t border-m3-outline/20">
         <h3 className="font-sans font-bold text-xl mb-3">Player</h3>
-        <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex items-center justify-between">
+        <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex items-center justify-between mb-3">
           <div>
             <p className="font-bold text-sm">Use native video controls</p>
             <p className="text-xs text-m3-on-surface-variant">Recommended for maximum codec and browser compatibility.</p>
@@ -184,6 +191,25 @@ export function SettingsPage() {
           >
             <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${useNativeControls ? 'translate-x-6' : 'translate-x-0'}`} />
           </button>
+        </div>
+        <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <p className="font-bold text-sm">Audio version</p>
+            <p className="text-xs text-m3-on-surface-variant">Dub availability depends on the selected anime.</p>
+          </div>
+          <div className="inline-flex rounded-xl border border-m3-outline/30 p-1" role="group" aria-label="Audio version">
+            {(['sub', 'dub'] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => selectTranslationType(value)}
+                aria-pressed={translationType === value}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${translationType === value ? 'bg-m3-primary text-m3-on-primary' : 'hover:bg-m3-on-surface/10'}`}
+              >
+                {value === 'sub' ? 'Subbed' : 'Dubbed'}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
       <div className="mt-8 pt-6 border-t border-m3-outline/20">

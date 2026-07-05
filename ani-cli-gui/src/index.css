@@ -6,6 +6,24 @@
   html,
   body {
     font-family: var(--font-sans);
+    margin: 0;
+    min-width: 320px;
+    background: var(--color-m3-surface);
+    color: var(--color-m3-on-surface);
+  }
+
+  button,
+  input {
+    font: inherit;
+  }
+
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-m3-primary);
+    outline-offset: 3px;
   }
 }
 
@@ -469,4 +487,27 @@
 
 *::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, rgba(234, 221, 255, 0.95), rgba(79, 55, 139, 0.95));
+}
+
+.section-label {
+  @apply inline-flex items-center gap-2 rounded-full border border-m3-primary/20 bg-m3-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-m3-primary;
+}
+
+.primary-action {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl bg-m3-primary text-m3-on-primary font-black transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40;
+}
+
+.icon-button {
+  @apply inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-m3-outline/15 bg-m3-surface-container/50 text-m3-on-surface transition-colors hover:bg-m3-on-surface/10;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

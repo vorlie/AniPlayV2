@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { History, Play, Trash2 } from 'lucide-react'
+import { Clock3, History, Play, Trash2 } from 'lucide-react'
 import { clearHistory, readHistory, type HistoryEntry } from '../lib/history'
 
 export function HistoryPage({
@@ -26,6 +26,7 @@ export function HistoryPage({
   }
 
   const handleClear = () => {
+    if (!window.confirm('Clear your entire watch history? This cannot be undone.')) return
     clearHistory()
     refresh()
   }
@@ -40,7 +41,8 @@ export function HistoryPage({
           </div>
           <button
             onClick={handleClear}
-            className="px-3 py-1.5 rounded-lg border border-m3-outline/20 text-xs text-m3-on-surface-variant hover:bg-m3-on-surface/10 flex items-center gap-1.5"
+            disabled={items.length === 0}
+            className="px-3 py-1.5 rounded-lg border border-m3-outline/20 text-xs text-m3-on-surface-variant hover:bg-red-400/10 hover:border-red-400/25 hover:text-red-300 flex items-center gap-1.5 disabled:opacity-40 disabled:pointer-events-none"
           >
             <Trash2 size={14} />
             Clear
@@ -54,11 +56,11 @@ export function HistoryPage({
         ) : (
           <div className="space-y-2 overflow-y-auto pr-1">
             {items.map((item, idx) => (
-              <div key={`${item.animeId}:${item.episode}:${item.watchedAt}:${idx}`} className="rounded-xl border border-m3-outline/15 bg-m3-surface-container/40 p-3 flex items-center justify-between gap-3">
+              <div key={`${item.animeId}:${item.episode}:${item.watchedAt}:${idx}`} className="group rounded-2xl border border-m3-outline/15 bg-m3-surface/35 p-3.5 flex items-center justify-between gap-3 hover:border-m3-primary/30 transition-colors">
                 <div className="min-w-0">
                   <p className="font-bold text-sm text-m3-on-surface truncate">{item.animeName}</p>
-                  <p className="text-xs text-m3-on-surface-variant">
-                    Episode {item.episode} · {new Date(item.watchedAt).toLocaleString()}
+                  <p className="text-xs text-m3-on-surface-variant flex items-center gap-1.5 mt-0.5">
+                    <Clock3 size={12} /> Episode {item.episode} · {new Date(item.watchedAt).toLocaleString()}
                   </p>
                   <p className="text-xs text-m3-primary mt-1">
                     {formatProgress(item.progressSeconds)}

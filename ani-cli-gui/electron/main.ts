@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { dirname } from 'node:path'
 import fs from 'node:fs'
-import { searchAnime, getEpisodes, getEpisodeLinks, reloadCipherMap } from './scrape'
+import { searchAnime, getEpisodes, getEpisodeLinks, reloadCipherMap, type TranslationType } from './scrape'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -51,6 +51,11 @@ function requireString(value: unknown, name: string, maxLength: number): string 
   return normalized
 }
 
+function requireTranslationType(value: unknown): TranslationType {
+  if (value !== 'sub' && value !== 'dub') throw new TypeError('translationType must be sub or dub')
+  return value
+}
+
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Unknown error'
 }
@@ -63,13 +68,17 @@ function configureMediaRequestHeaders() {
   const urls = [
     '*://video.wixstatic.com/*',
     '*://tools.fast4speed.rsvp/*',
-    '*://*.fast4speed.rsvp/*'
+    '*://*.fast4speed.rsvp/*',
+    '*://mp4upload.com/*',
+    '*://*.mp4upload.com/*',
   ]
 
   session.defaultSession.webRequest.onBeforeSendHeaders({ urls }, (details, callback) => {
     const headers = details.requestHeaders || {}
-    headers['Referer'] = referer
-    headers['Origin'] = referer
+    const isMp4Upload = new URL(details.url).hostname.endsWith('mp4upload.com')
+    const requestReferer = isMp4Upload ? 'https://www.mp4upload.com/' : referer
+    headers['Referer'] = requestReferer
+    headers['Origin'] = new URL(requestReferer).origin
     if (!headers['User-Agent']) {
       headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0'
     }
@@ -106,32 +115,33 @@ function createWindow() {
   })
 
   // Register the scraping handlers
-  ipcMain.handle('search', async (event, query: unknown) => {
+  ipcMain.handle('search', async (event, query: unknown, translationType: unknown) => {
     try {
       assertTrustedSender(event)
-      const results = await searchAnime(requireString(query, 'query', 200))
+      const results = await searchAnime(requireString(query, 'query', 200), requireTranslationType(translationType))
       return { success: true, data: results }
     } catch (error: unknown) {
       return { success: false, error: errorMessage(error) }
     }
   })
 
-  ipcMain.handle('episodes', async (event, showId: unknown) => {
+  ipcMain.handle('episodes', async (event, showId: unknown, translationType: unknown) => {
     try {
       assertTrustedSender(event)
-      const eps = await getEpisodes(requireString(showId, 'showId', 200))
+      const eps = await getEpisodes(requireString(showId, 'showId', 200), requireTranslationType(translationType))
       return { success: true, data: eps }
     } catch (error: unknown) {
       return { success: false, error: errorMessage(error) }
     }
   })
 
-  ipcMain.handle('links', async (event, showId: unknown, epNo: unknown) => {
+  ipcMain.handle('links', async (event, showId: unknown, epNo: unknown, translationType: unknown) => {
     try {
       assertTrustedSender(event)
       const links = await getEpisodeLinks(
         requireString(showId, 'showId', 200),
         requireString(epNo, 'episode', 32),
+        requireTranslationType(translationType),
       )
       return { success: true, data: links }
     } catch (error: unknown) {

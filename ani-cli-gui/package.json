@@ -3,7 +3,7 @@
   "description": "Desktop GUI for ani-cli style anime browsing and playback.",
   "author": "AniPlayV2",
   "private": true,
-  "version": "1.4.0",
+  "version": "1.5.0",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
