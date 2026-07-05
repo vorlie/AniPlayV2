@@ -2,6 +2,10 @@
   "name": "ani-cli-gui",
   "description": "Desktop GUI for ani-cli style anime browsing and playback.",
   "author": "AniPlayV2",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vorlie/AniPlayV2.git"
+  },
   "private": true,
   "version": "1.5.0",
   "type": "module",
