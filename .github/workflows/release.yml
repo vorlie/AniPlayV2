@@ -20,7 +20,7 @@ jobs:
           - name: Windows
             os: windows-latest
             artifact: AniPlay-Windows
-            build-command: npx electron-builder --win portable --publish never
+            build-command: npx electron-builder --win portable nsis --publish never
             artifact-path: ani-cli-gui/dist/*.exe
           - name: Linux
             os: ubuntu-24.04
