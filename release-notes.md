@@ -1,34 +1,46 @@
-# AniPlayV2 v1.5.0 Release Notes
+# AniPlayV2 v1.6.0 Release Notes
 
 ## Highlights
 
-- **Dubbed anime support**: Choose between Subbed and Dubbed under Settings. The preference applies consistently to search results, episode lists, and stream lookup.
-- **Persistent playback**: The new Playing tab keeps the active video, playback position, selected server, and controls intact while you visit other parts of the app.
-- **More servers**: Added MP4Upload scraping and playback support alongside the existing stream providers.
-- **Major interface refresh**: Improved responsive navigation, browse results, episode selection, loading states, empty states, and keyboard accessibility.
+- **Episode downloads**: Download the currently playing episode using the active server, quality, and Sub/Dub selection.
+- **Persistent download queue**: Downloads continue while you browse, change tabs, or switch to another anime.
+- **Built-in FFmpeg**: HLS and direct media sources are downloaded and remuxed to MP4 without requiring a separate FFmpeg installation.
+- **Downloads dashboard**: Monitor progress, cancel queued or active jobs, retry interrupted downloads, and reveal completed files.
 
-## Player and Browsing
+## Download Management
 
-- Added a visible Sub/Dub catalog indicator to Browse.
-- Added episode filtering for shows with long episode lists.
-- Replaced blocking playback alerts with dismissible inline errors.
-- Added clearer stream-loading and no-stream states.
-- Improved server persistence when navigating between tabs.
-- Added safer watch-history clearing with confirmation.
+- Added a dedicated Downloads tab with an active-job badge.
+- Downloads run one at a time to avoid overwhelming providers or network connections.
+- Stream URLs are refreshed immediately before each job begins, reducing failures caused by expired links.
+- Added determinate progress when episode duration is available and an activity indicator otherwise.
+- Interrupted downloads are detected after restarting AniPlay and can be retried.
+- Partial files are cleaned up after cancellation, failure, or interruption.
+- Completed filenames include the anime, episode, Sub/Dub mode, and resolution.
+- Existing files are preserved by automatically adding `(2)`, `(3)`, and subsequent suffixes.
 
-## Interface and Accessibility
+## Settings and Storage
 
-- Added mobile-friendly bottom navigation and refined desktop navigation.
-- Redesigned search around a compact, search-first workflow.
-- Replaced the plain result list with responsive title cards.
-- Improved focus indicators and keyboard navigation.
-- Added reduced-motion support for users who disable animations.
-- Improved spacing, hierarchy, responsive sizing, and empty-state guidance throughout the app.
+- Downloads default to the system Downloads folder under `AniPlay`.
+- Added a native folder picker under Settings for selecting a custom download location.
+- Download history and destination settings persist between sessions.
+- Added Open Folder, Clear Finished, Cancel, and Retry actions.
 
-## Packaging and Releases
+## Security and Reliability
 
-- Windows and Linux packages now build on their native GitHub-hosted runners.
-- Updated the release workflow and actions for Node.js 24.
-- Release publishing now waits for both platform builds and combines their artifacts into one GitHub release.
+- Download work runs exclusively in the Electron main process.
+- The renderer sends episode and source metadata instead of arbitrary URLs or filesystem paths.
+- Added strict IPC validation for download requests and job actions.
+- Added typed download APIs and isolated progress-event subscriptions.
+- Added automated tests for filename sanitization, collision handling, queue ordering, restart recovery, provider headers, and FFmpeg progress parsing.
 
-**Full changelog:** https://github.com/vorlie/AniPlayV2/compare/v1.4.0...v1.5.0
+## Packaging and Licensing
+
+- FFmpeg 6.1.1 is bundled with Windows and Linux packages.
+- Added FFmpeg GPL licensing, attribution, binary-provider information, and corresponding-source links.
+- FFmpeg is packaged outside the Electron ASAR archive so it remains executable.
+
+> **Package size:** Bundling FFmpeg increases download and installation size by approximately 83 MB.
+
+> **Current limitation:** v1.6.0 supports downloading one selected episode at a time. Batch and season downloads are not included.
+
+**Full changelog:** https://github.com/vorlie/AniPlayV2/compare/1.5.1...1.6.0

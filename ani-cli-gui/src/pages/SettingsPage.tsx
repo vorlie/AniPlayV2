@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from 'react'
-import { Bug, GitPullRequest, Globe, Palette, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
+import { Bug, FolderOpen, GitPullRequest, Globe, Palette, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
 import { argbFromRgb, hexFromArgb, themeFromSourceColor } from '@material/material-color-utilities'
 import { getTranslationType, TRANSLATION_TYPE_KEY, type TranslationType } from '../lib/api'
 
@@ -70,12 +70,19 @@ export function SettingsPage() {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
   const [syncError, setSyncError] = useState<string | null>(null)
   const [ciphermapInfo, setCiphermapInfo] = useState<CiphermapInfo | null>(null)
+  const [downloadDirectory, setDownloadDirectory] = useState('Loading…')
 
   useEffect(() => {
     const saved = localStorage.getItem('theme.primary')
     if (!saved) return
     setPrimary(saved)
     applyThemeFromPrimary(saved)
+  }, [])
+
+  useEffect(() => {
+    if (!window.aniPlay) return
+    void window.aniPlay.downloads.getState().then((state) => setDownloadDirectory(state.settings.directory))
+    return window.aniPlay.downloads.onChanged((state) => setDownloadDirectory(state.settings.directory))
   }, [])
 
   useEffect(() => {
@@ -210,6 +217,22 @@ export function SettingsPage() {
               </button>
             ))}
           </div>
+        </div>
+      </div>
+      <div className="mt-8 pt-6 border-t border-m3-outline/20">
+        <h3 className="font-sans font-bold text-xl mb-3">Downloads</h3>
+        <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-bold text-sm">Download folder</p>
+            <p className="mt-1 truncate text-xs text-m3-on-surface-variant" title={downloadDirectory}>{downloadDirectory}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void window.aniPlay?.downloads.chooseDirectory().then((state) => setDownloadDirectory(state.settings.directory))}
+            className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border border-m3-outline/30 hover:bg-m3-on-surface/10"
+          >
+            <FolderOpen size={16} /> Choose folder
+          </button>
         </div>
       </div>
       <div className="mt-8 pt-6 border-t border-m3-outline/20">

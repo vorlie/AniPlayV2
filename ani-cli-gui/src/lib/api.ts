@@ -10,6 +10,13 @@ export interface AnimeSearchResult {
   episodes: number
 }
 
+export interface StreamLink {
+  url: string
+  resolution: string
+  hls: boolean
+  provider: string
+}
+
 export type TranslationType = 'sub' | 'dub'
 
 export const TRANSLATION_TYPE_KEY = 'playback.translationType'
@@ -28,7 +35,7 @@ export async function invokeEpisodes(id: string): Promise<IpcResponse<string[]>>
   throw new Error('AniPlay API is only available in the Electron application')
 }
 
-export async function invokeLinks(id: string, ep: string): Promise<IpcResponse<StreamLink[]>> {
-  if (window.aniPlay) return window.aniPlay.getEpisodeLinks(id, ep, getTranslationType())
+export async function invokeLinks(id: string, ep: string, translationType: TranslationType = getTranslationType()): Promise<IpcResponse<StreamLink[]>> {
+  if (window.aniPlay) return window.aniPlay.getEpisodeLinks(id, ep, translationType)
   throw new Error('AniPlay API is only available in the Electron application')
 }

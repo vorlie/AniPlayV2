@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url'
 import { dirname } from 'node:path'
 import fs from 'node:fs'
 import { searchAnime, getEpisodes, getEpisodeLinks, reloadCipherMap, type TranslationType } from './scrape'
+import { DownloadManager } from './download-manager'
+import type { DownloadRequest } from '../src/download-types'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -16,6 +18,7 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? join(process.env.APP_ROOT, 'publ
 
 let win: BrowserWindow | null
 let mediaHeadersConfigured = false
+let downloadManager: DownloadManager
 
 const PROJECT_PAGES = {
   repository: 'https://github.com/vorlie/AniPlayV2',
@@ -54,6 +57,24 @@ function requireString(value: unknown, name: string, maxLength: number): string 
 function requireTranslationType(value: unknown): TranslationType {
   if (value !== 'sub' && value !== 'dub') throw new TypeError('translationType must be sub or dub')
   return value
+}
+
+function requireDownloadRequest(value: unknown): DownloadRequest {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new TypeError('Invalid download request')
+  const request = value as Record<string, unknown>
+  const duration = request.durationSeconds
+  if (duration !== undefined && (typeof duration !== 'number' || !Number.isFinite(duration) || duration <= 0 || duration > 86_400)) {
+    throw new TypeError('durationSeconds must be a positive number')
+  }
+  return {
+    animeId: requireString(request.animeId, 'animeId', 200),
+    animeName: requireString(request.animeName, 'animeName', 300),
+    episode: requireString(request.episode, 'episode', 32),
+    translationType: requireTranslationType(request.translationType),
+    provider: requireString(request.provider, 'provider', 100),
+    resolution: requireString(request.resolution, 'resolution', 32),
+    durationSeconds: duration as number | undefined,
+  }
 }
 
 function errorMessage(error: unknown): string {
@@ -250,6 +271,57 @@ function createWindow() {
     }
   })
 
+  ipcMain.handle('downloads:get-state', (event) => {
+    assertTrustedSender(event)
+    return downloadManager.getState()
+  })
+
+  ipcMain.handle('downloads:start', (event, request: unknown) => {
+    try {
+      assertTrustedSender(event)
+      return downloadManager.start(requireDownloadRequest(request))
+    } catch (error: unknown) {
+      return { success: false, error: errorMessage(error) }
+    }
+  })
+
+  ipcMain.handle('downloads:cancel', (event, id: unknown) => {
+    try {
+      assertTrustedSender(event)
+      return downloadManager.cancel(requireString(id, 'downloadId', 100))
+    } catch (error: unknown) {
+      return { success: false, error: errorMessage(error) }
+    }
+  })
+
+  ipcMain.handle('downloads:retry', (event, id: unknown) => {
+    try {
+      assertTrustedSender(event)
+      return downloadManager.retry(requireString(id, 'downloadId', 100))
+    } catch (error: unknown) {
+      return { success: false, error: errorMessage(error) }
+    }
+  })
+
+  ipcMain.handle('downloads:clear-finished', (event) => {
+    assertTrustedSender(event)
+    return downloadManager.clearFinished()
+  })
+
+  ipcMain.handle('downloads:choose-directory', async (event) => {
+    assertTrustedSender(event)
+    return downloadManager.chooseDirectory()
+  })
+
+  ipcMain.handle('downloads:reveal', (event, id: unknown) => {
+    try {
+      assertTrustedSender(event)
+      return downloadManager.reveal(requireString(id, 'downloadId', 100))
+    } catch (error: unknown) {
+      return { success: false, error: errorMessage(error) }
+    }
+  })
+
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL)
     win.webContents.openDevTools()
@@ -268,6 +340,8 @@ app.on('window-all-closed', () => {
   }
 })
 
+app.on('before-quit', () => downloadManager?.shutdown())
+
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow()
@@ -275,6 +349,10 @@ app.on('activate', () => {
 })
 
 app.whenReady().then(() => {
+  downloadManager = new DownloadManager((state) => {
+    if (win && !win.isDestroyed()) win.webContents.send('downloads:changed', state)
+  })
+  downloadManager.initialize()
   configureMediaRequestHeaders()
   createWindow()
 })

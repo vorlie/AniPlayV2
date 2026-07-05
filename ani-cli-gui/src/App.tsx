@@ -1,10 +1,12 @@
-import { lazy, Suspense, useState, type CSSProperties } from 'react'
+import { lazy, Suspense, useEffect, useState, type CSSProperties } from 'react'
 import { BrowsePage } from './pages/BrowsePage'
 import { HistoryPage } from './pages/HistoryPage'
 import { AnimePage } from './pages/AnimePage'
 import { HomePage } from './pages/HomePage'
 import { Navigation } from './components/Navigation'
 import type { HistoryEntry } from './lib/history'
+import type { DownloadState } from './download-types'
+import { DownloadsPage } from './pages/DownloadsPage'
 
 interface AnimeSelection {
   id: string
@@ -21,6 +23,15 @@ function App() {
   const [activeAnime, setActiveAnime] = useState<AnimeSelection | null>(null)
   const [resumeEpisode, setResumeEpisode] = useState<string | null>(null)
   const [resumeProgressSeconds, setResumeProgressSeconds] = useState<number | null>(null)
+  const [downloadState, setDownloadState] = useState<DownloadState | null>(null)
+
+  useEffect(() => {
+    if (!window.aniPlay) return
+    void window.aniPlay.downloads.getState().then(setDownloadState)
+    return window.aniPlay.downloads.onChanged(setDownloadState)
+  }, [])
+
+  const activeDownloadCount = downloadState?.jobs.filter((job) => ['queued', 'resolving', 'downloading'].includes(job.status)).length ?? 0
 
   const handleResumeFromHistory = (item: HistoryEntry) => {
     setActiveTab('player')
@@ -57,7 +68,7 @@ function App() {
           </h1>
           <span className="hidden lg:inline text-xs font-bold uppercase tracking-[0.18em] text-m3-on-surface-variant">watch without the clutter</span>
         </div>
-        <Navigation activeTab={activeTab} setActiveTab={setActiveTab} hasActivePlayer={activeAnime !== null} />
+        <Navigation activeTab={activeTab} setActiveTab={setActiveTab} hasActivePlayer={activeAnime !== null} downloadCount={activeDownloadCount} />
       </header>
 
       {/* Main Content Area */}
@@ -100,6 +111,8 @@ function App() {
         {activeTab === 'history' && (
           <HistoryPage onResume={handleResumeFromHistory} />
         )}
+
+        {activeTab === 'downloads' && <DownloadsPage state={downloadState} />}
 
         {activeTab === 'settings' && (
           <Suspense fallback={

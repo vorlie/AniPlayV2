@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Hls from 'hls.js'
-import { ArrowLeft, Maximize2, Minimize2, Pause, PictureInPicture2, Play, Server, Sparkles, Volume2, VolumeX } from 'lucide-react'
+import { ArrowLeft, Download, Loader2, Maximize2, Minimize2, Pause, PictureInPicture2, Play, Server, Sparkles, Volume2, VolumeX } from 'lucide-react'
 import { addHistory } from '../lib/history'
+import type { TranslationType } from '../download-types'
 
 interface StreamLink {
   url: string
@@ -18,6 +19,7 @@ interface PlayerPageProps {
   animeId?: string
   animeName?: string
   episode?: string
+  translationType?: TranslationType
   initialResumeSeconds?: number | null
 }
 
@@ -63,6 +65,7 @@ export function PlayerPage({
   animeId,
   animeName,
   episode,
+  translationType = 'sub',
   initialResumeSeconds,
 }: PlayerPageProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -88,6 +91,7 @@ export function PlayerPage({
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [isPip, setIsPip] = useState(false)
+  const [downloadStatus, setDownloadStatus] = useState<'idle' | 'starting' | 'queued' | 'error'>('idle')
 
   const activeLink = links[activeIdx]
   const resumeSeconds = useMemo(() => toResumeSeconds(initialResumeSeconds), [initialResumeSeconds])
@@ -313,6 +317,22 @@ export function PlayerPage({
     onBack()
   }
 
+  const startDownload = async () => {
+    if (!window.aniPlay || !activeLink || !animeId || !animeName || !episode || downloadStatus === 'starting') return
+    setDownloadStatus('starting')
+    const result = await window.aniPlay.downloads.start({
+      animeId,
+      animeName,
+      episode,
+      translationType,
+      provider: activeLink.provider,
+      resolution: activeLink.resolution,
+      durationSeconds: duration > 0 ? duration : undefined,
+    })
+    setDownloadStatus(result.success ? 'queued' : 'error')
+    if (result.success) setTimeout(() => setDownloadStatus('idle'), 2500)
+  }
+
   return (
     <div
       className={isOverlay ? 'fixed inset-0 bg-black z-50 flex flex-col relative' : 'm3-card p-4 md:p-6 flex flex-col gap-3 relative'}
@@ -337,6 +357,16 @@ export function PlayerPage({
               Persistent Player
             </span>
           )}
+          <button
+            type="button"
+            onClick={() => void startDownload()}
+            disabled={!activeLink || !animeId || !animeName || !episode || downloadStatus === 'starting'}
+            title={downloadStatus === 'error' ? 'Could not queue download. Check Downloads for details.' : 'Download current episode'}
+            className={`flex items-center gap-2 px-3 md:px-4 py-2 rounded-full border transition-all text-sm font-bold disabled:opacity-40 ${isOverlay ? 'border-white/30 text-white hover:bg-white/10' : 'border-m3-outline/30 text-m3-on-surface hover:bg-m3-on-surface/10'}`}
+          >
+            {downloadStatus === 'starting' ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}
+            <span className="hidden sm:inline">{downloadStatus === 'queued' ? 'Queued' : 'Download'}</span>
+          </button>
           <button
             onClick={() => setShowServers((s) => !s)}
             className={`flex items-center space-x-2 px-4 py-2 rounded-full border transition-all text-sm font-bold ${showServers ? 'bg-m3-primary text-m3-on-primary border-transparent' : (isOverlay ? 'border-white/30 text-white hover:bg-white/10' : 'border-m3-outline/30 text-m3-on-surface hover:bg-m3-on-surface/10')}`}

@@ -1,7 +1,9 @@
-feat: add dub support and persistent player experience
+feat: add persistent episode downloads
 
-- add a persisted subbed/dubbed catalog preference across search and playback
-- scrape MP4Upload sources and configure the required media headers
-- keep playback mounted behind a dedicated Playing tab when navigating
-- redesign browse, episode, history, and responsive navigation flows
-- split Windows and Linux release builds onto native GitHub runners
+- add a serialized download queue with progress, cancellation, and retry support
+- download the active episode server and quality through bundled FFmpeg
+- add a Downloads tab and configurable destination folder
+- persist job history and recover interrupted downloads after restart
+- secure download operations behind validated, typed Electron IPC
+- package FFmpeg licenses and third-party notices with Windows and Linux builds
+- add tests for filenames, collisions, queue order, recovery, headers, and progress

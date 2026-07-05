@@ -1,3 +1,5 @@
+import type { DownloadRequest, DownloadResult, DownloadState } from './download-types'
+
 interface SearchResult {
   id: string
   name: string
@@ -25,17 +27,19 @@ interface IpcResponse<T> {
 }
 
 type CiphermapSyncResponse =
-  | {
-      success: true
-      entries: number
-      generatedAt: string
-      tag: string
-      source: string
-    }
-  | {
-      success: false
-      error: string
-    }
+  | { success: true; entries: number; generatedAt: string; tag: string; source: string }
+  | { success: false; error: string }
+
+interface DownloadsApi {
+  getState(): Promise<DownloadState>
+  start(request: DownloadRequest): Promise<DownloadResult>
+  cancel(id: string): Promise<DownloadResult>
+  retry(id: string): Promise<DownloadResult>
+  clearFinished(): Promise<DownloadResult>
+  chooseDirectory(): Promise<DownloadState>
+  reveal(id: string): Promise<DownloadResult>
+  onChanged(callback: (state: DownloadState) => void): () => void
+}
 
 interface AniPlayApi {
   search(query: string, translationType: 'sub' | 'dub'): Promise<IpcResponse<SearchResult[]>>
@@ -44,8 +48,13 @@ interface AniPlayApi {
   getCiphermapInfo(): Promise<IpcResponse<CiphermapInfo | null>>
   syncCiphermap(): Promise<CiphermapSyncResponse>
   openProjectPage(page: 'repository' | 'issues' | 'pulls'): Promise<{ success: boolean }>
+  downloads: DownloadsApi
 }
 
-interface Window {
-  aniPlay?: AniPlayApi
+declare global {
+  interface Window {
+    aniPlay?: AniPlayApi
+  }
 }
+
+export {}

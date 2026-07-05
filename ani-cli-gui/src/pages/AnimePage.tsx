@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { AlertCircle, ArrowLeft, Loader2, MonitorPlay, Search } from 'lucide-react'
 import { PlayerPage } from './PlayerPage'
 import { addHistory } from '../lib/history'
-import { invokeEpisodes, invokeLinks } from '../lib/api'
+import { getTranslationType, invokeEpisodes, invokeLinks, type TranslationType } from '../lib/api'
 
 interface StreamLink {
   url: string
@@ -30,6 +30,7 @@ export function AnimePage({
   const [loading, setLoading] = useState(true)
   const [playingLinks, setPlayingLinks] = useState<StreamLink[]>([])
   const [playingEp, setPlayingEp] = useState<string>('')
+  const [playingTranslationType, setPlayingTranslationType] = useState<TranslationType>('sub')
   const [loadingEp, setLoadingEp] = useState<string | null>(null)
   const [episodeQuery, setEpisodeQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -40,7 +41,8 @@ export function AnimePage({
     setLoadingEp(ep)
     setError(null)
 
-    invokeLinks(anime.id, ep).then((res) => {
+    const translationType = getTranslationType()
+    invokeLinks(anime.id, ep, translationType).then((res) => {
       setLoadingEp(null)
       if (res.success && Array.isArray(res.data) && res.data.length > 0) {
         const resumeSeconds =
@@ -50,6 +52,7 @@ export function AnimePage({
 
         setPlayingLinks(res.data)
         setPlayingEp(ep)
+        setPlayingTranslationType(translationType)
         addHistory({
           animeId: anime.id,
           animeName: anime.name,
@@ -168,6 +171,7 @@ export function AnimePage({
               animeId={anime.id}
               animeName={anime.name}
               episode={playingEp}
+              translationType={playingTranslationType}
               initialResumeSeconds={initialEpisode === playingEp ? initialResumeSeconds : null}
             />
           ) : (

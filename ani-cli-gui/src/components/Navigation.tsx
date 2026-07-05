@@ -1,10 +1,11 @@
-import { Search, History, Settings, House, Radio, type LucideIcon } from 'lucide-react'
+import { Search, History, Settings, House, Radio, Download, type LucideIcon } from 'lucide-react'
 import type { CSSProperties } from 'react'
 
 const baseTabs: Array<{ id: string; label: string; icon: LucideIcon }> = [
   { id: 'home', label: 'Home', icon: House },
   { id: 'search', label: 'Browse', icon: Search },
   { id: 'history', label: 'History', icon: History },
+  { id: 'downloads', label: 'Downloads', icon: Download },
   { id: 'settings', label: 'Settings', icon: Settings },
 ]
 
@@ -12,11 +13,13 @@ export function Navigation({
   activeTab,
   setActiveTab,
   hasActivePlayer = false,
+  downloadCount = 0,
   className = '',
 }: {
   activeTab: string
   setActiveTab: (value: string) => void
   hasActivePlayer?: boolean
+  downloadCount?: number
   className?: string
 }) {
   return (
@@ -38,6 +41,7 @@ export function Navigation({
             <span className="relative">
               <Icon aria-hidden="true" size={17} />
               {id === 'player' && <span className="absolute -right-1 -top-1 size-1.5 rounded-full bg-red-400 animate-pulse" />}
+              {id === 'downloads' && downloadCount > 0 && <span className="absolute -right-2.5 -top-2 flex min-w-4 h-4 items-center justify-center rounded-full bg-m3-primary px-1 text-[9px] font-black text-m3-on-primary">{downloadCount > 9 ? '9+' : downloadCount}</span>}
             </span>
             <span>{label}</span>
           </button>
