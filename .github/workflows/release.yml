@@ -1,0 +1,66 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    name: Build Cross-Platform
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        working-directory: ani-cli-gui
+        
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: ani-cli-gui/package-lock.json
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends squashfs-tools
+
+      - name: Install NPM Dependencies
+        run: npm ci
+
+      - name: Build Application (Windows & Linux)
+        run: |
+          npm run build:ui
+          npx electron-builder --win portable --linux
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Artifacts (Windows)
+        uses: actions/upload-artifact@v4
+        with:
+          name: AniPlay-Windows
+          path: ani-cli-gui/dist/**/*.exe
+
+      - name: Upload Artifacts (Linux)
+        uses: actions/upload-artifact@v4
+        with:
+          name: AniPlay-Linux
+          path: |
+            ani-cli-gui/dist/**/*.AppImage
+            ani-cli-gui/dist/**/*.tar.gz
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ani-cli-gui/dist/**/*.exe
+            ani-cli-gui/dist/**/*.AppImage
+            ani-cli-gui/dist/**/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -3,6 +3,57 @@ import fs from 'node:fs'
 import { join } from 'node:path'
 import { app } from 'electron'
 
+const DEFAULT_TIMEOUT_MS = 10_000
+
+type JsonObject = Record<string, unknown>
+
+interface SourceEntry {
+  sourceUrl?: string
+  sourceName?: string
+}
+
+interface ProviderLink {
+  link?: string
+  hls?: boolean
+  resolutionStr?: string
+}
+
+export interface StreamLink {
+  url: string
+  resolution: string
+  hls: boolean
+  provider: string
+}
+
+function isObject(value: unknown): value is JsonObject {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Unknown error'
+}
+
+async function fetchChecked(input: string | URL, init: RequestInit = {}, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<Response> {
+  const response = await fetch(input, {
+    ...init,
+    signal: init.signal ?? AbortSignal.timeout(timeoutMs),
+  })
+  if (!response.ok) {
+    throw new Error(`Request failed (${response.status} ${response.statusText}) for ${new URL(input.toString()).origin}`)
+  }
+  return response
+}
+
+async function fetchJson(input: string | URL, init: RequestInit = {}, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<unknown> {
+  const response = await fetchChecked(input, init, timeoutMs)
+  const text = await response.text()
+  try {
+    return JSON.parse(text) as unknown
+  } catch {
+    throw new Error(`Invalid JSON response from ${new URL(input.toString()).origin}`)
+  }
+}
+
 // ---- Dynamic cipher map (hot-reloadable via IPC) ----
 
 const FALLBACK_CIPHER_MAP: Record<string, string> = {
@@ -29,8 +80,8 @@ function loadPersistedCipherMap(): void {
       _activeCipherMap = parsed.cipherMap
       console.log(`[scrape] Loaded ${Object.keys(_activeCipherMap).length}-entry ciphermap from ${outPath}`)
     }
-  } catch (e: any) {
-    console.warn('[scrape] Could not load persisted ciphermap, using fallback:', e.message)
+  } catch (error: unknown) {
+    console.warn('[scrape] Could not load persisted ciphermap, using fallback:', errorMessage(error))
   }
 }
 
@@ -70,7 +121,7 @@ export async function searchAnime(query: string): Promise<SearchResult[]> {
     countryOrigin: 'ALL',
   }
 
-  const response = await fetch(`${ALLANIME_API}/api`, {
+  const json = await fetchJson(`${ALLANIME_API}/api`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -83,23 +134,24 @@ export async function searchAnime(query: string): Promise<SearchResult[]> {
     }),
   })
 
-  const json = await response.json()
-  
-  const edges = json?.data?.shows?.edges || []
-  return edges.map((edge: any) => {
+  const data = isObject(json) && isObject(json.data) ? json.data : null
+  const shows = data && isObject(data.shows) ? data.shows : null
+  const edges = shows && Array.isArray(shows.edges) ? shows.edges : null
+  if (!edges) throw new Error('Search response did not contain a shows list')
+
+  return edges.flatMap((value): SearchResult[] => {
+    if (!isObject(value) || typeof value._id !== 'string' || typeof value.name !== 'string') return []
+    const availableEpisodes = isObject(value.availableEpisodes) ? value.availableEpisodes : null
+    const episodeValue = availableEpisodes?.[MODE]
     // The bash script does: mode === 'sub' ? edge.availableEpisodes.sub : ...
-    const episodes = edge.availableEpisodes && edge.availableEpisodes[MODE] ? edge.availableEpisodes[MODE] : 0
-    return {
-      id: edge._id,
-      name: edge.name,
-      episodes,
-    }
+    const episodes = typeof episodeValue === 'number' && Number.isFinite(episodeValue) ? episodeValue : 0
+    return [{ id: value._id, name: value.name, episodes }]
   })
 }
 
 export async function getEpisodes(showId: string): Promise<string[]> {
   const episodesListGql = `query ($showId: String!) { show( _id: $showId ) { _id availableEpisodesDetail }}`
-  const response = await fetch(`${ALLANIME_API}/api`, {
+  const json = await fetchJson(`${ALLANIME_API}/api`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -112,26 +164,33 @@ export async function getEpisodes(showId: string): Promise<string[]> {
     }),
   })
 
-  const json = await response.json()
-  const modeData = json?.data?.show?.availableEpisodesDetail?.[MODE] || []
-  return modeData.map((e: any) => e.toString()).sort((a: any, b: any) => parseFloat(a) - parseFloat(b))
+  const data = isObject(json) && isObject(json.data) ? json.data : null
+  const show = data && isObject(data.show) ? data.show : null
+  const detail = show && isObject(show.availableEpisodesDetail) ? show.availableEpisodesDetail : null
+  const modeData = detail?.[MODE]
+  if (!Array.isArray(modeData)) throw new Error('Episode response did not contain an episode list')
+  return modeData
+    .filter((value): value is string | number => typeof value === 'string' || typeof value === 'number')
+    .map(String)
+    .sort((a, b) => parseFloat(a) - parseFloat(b))
 }
 
 const ALLANIME_KEY = crypto.createHash('sha256').update('Xot36i3lK3:v1').digest('hex')
 
-function processResponse(responseRaw: string): any {
-  let parsed = responseRaw
+function processResponse(responseRaw: string): unknown {
+  let parsed: unknown = responseRaw
   try {
-    parsed = JSON.parse(responseRaw)
-  } catch (e) {
+    parsed = JSON.parse(responseRaw) as unknown
+  } catch {
     // If it's already an object, leave it
   }
 
-  // @ts-expect-error brother
-  if (!parsed?.data?.episode?.sourceUrls) {
-      // @ts-expect-error brother
-      const tobeparsed = parsed?.data?.episode?.tobeparsed || parsed?.data?.tobeparsed || parsed?.tobeparsed
-      if (!tobeparsed) return parsed
+  const root = isObject(parsed) ? parsed : null
+  const data = root && isObject(root.data) ? root.data : null
+  const episode = data && isObject(data.episode) ? data.episode : null
+  if (!episode?.sourceUrls) {
+      const tobeparsed = episode?.tobeparsed ?? data?.tobeparsed ?? root?.tobeparsed
+      if (typeof tobeparsed !== 'string' || !tobeparsed) return parsed
 
       const buffer = Buffer.from(tobeparsed, 'base64')
       
@@ -145,6 +204,7 @@ function processResponse(responseRaw: string): any {
       const ctrBuffer = Buffer.from(ctrHex, 'hex')
       
       const ctLen = buffer.length - 13 - 16
+      if (ctLen <= 0) throw new Error('Encrypted episode payload is too short')
       const ciphertext = buffer.subarray(13, 13 + ctLen)
       
       const keyBuffer = Buffer.from(ALLANIME_KEY, 'hex')
@@ -152,12 +212,12 @@ function processResponse(responseRaw: string): any {
       const decipher = crypto.createDecipheriv('aes-256-ctr', keyBuffer, ctrBuffer)
       const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()])
       
-      return JSON.parse(decrypted.toString('utf-8'))
+      return JSON.parse(decrypted.toString('utf-8')) as unknown
   }
   return parsed
 }
 
-export async function getEpisodeLinks(showId: string, epNo: string): Promise<any> {
+export async function getEpisodeLinks(showId: string, epNo: string): Promise<StreamLink[]> {
     const queryHash = "d405d0edd690624b66baba3068e0edc3ac90f1597d898a1ec8db4e5c43c00fec"
     const queryVars = { showId, translationType: MODE, episodeString: epNo }
     const extensions = { persistedQuery: { version: 1, sha256Hash: queryHash } }
@@ -166,20 +226,24 @@ export async function getEpisodeLinks(showId: string, epNo: string): Promise<any
     url.searchParams.append('variables', JSON.stringify(queryVars))
     url.searchParams.append('extensions', JSON.stringify(extensions))
 
-    let response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: {
-        'User-Agent': AGENT,
-        'Referer': ALLANIME_REFR,
-        'Origin': ALLANIME_REFR,
-      }
-    })
-
-    let rawText = await response.text()
+    let rawText = ''
+    try {
+      const response = await fetchChecked(url, {
+        method: 'GET',
+        headers: {
+          'User-Agent': AGENT,
+          'Referer': ALLANIME_REFR,
+          'Origin': ALLANIME_REFR,
+        }
+      })
+      rawText = await response.text()
+    } catch (error: unknown) {
+      console.warn('[scrape] Persisted episode query failed, trying full query:', errorMessage(error))
+    }
 
     if (!rawText || !rawText.includes("tobeparsed")) {
         const episodeEmbedGql = `query ($showId: String!, $translationType: VaildTranslationTypeEnumType!, $episodeString: String!) { episode( showId: $showId translationType: $translationType episodeString: $episodeString ) { episodeString sourceUrls }}`
-        response = await fetch(`${ALLANIME_API}/api`, {
+        const response = await fetchChecked(`${ALLANIME_API}/api`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -195,27 +259,39 @@ export async function getEpisodeLinks(showId: string, epNo: string): Promise<any
     }
   
     const result = processResponse(rawText)
-    
-    let sources = []
+    const resultObject = isObject(result) ? result : null
+    const resultData = resultObject && isObject(resultObject.data) ? resultObject.data : null
+    const resultEpisode = resultObject && isObject(resultObject.episode)
+      ? resultObject.episode
+      : resultData && isObject(resultData.episode)
+        ? resultData.episode
+        : null
+
+    let sourceValues: unknown = []
     if (result instanceof Array) {
-        sources = result
-    } else if (result?.sourceUrls) {
-        sources = result.sourceUrls
-    } else if (result?.episode?.sourceUrls) {
-        // Decrypted tobeparsed returns { episode: { sourceUrls: [...] } }
-        sources = result.episode.sourceUrls
-    } else if (result?.data?.episode?.sourceUrls) {
-        sources = result.data.episode.sourceUrls
+        sourceValues = result
+    } else if (resultObject?.sourceUrls !== undefined) {
+        sourceValues = resultObject.sourceUrls
+    } else if (resultEpisode?.sourceUrls !== undefined) {
+        sourceValues = resultEpisode.sourceUrls
     }
-    console.log("Extracted sources count:", sources.length)
-    
-    if (typeof sources === 'string') {
-        sources = JSON.parse(sources)
+
+    if (typeof sourceValues === 'string') {
+        sourceValues = JSON.parse(sourceValues) as unknown
     }
+    if (!Array.isArray(sourceValues)) throw new Error('Episode response contained an invalid source list')
+    const sources: SourceEntry[] = sourceValues.flatMap((value): SourceEntry[] => {
+      if (!isObject(value)) return []
+      return [{
+        sourceUrl: typeof value.sourceUrl === 'string' ? value.sourceUrl : undefined,
+        sourceName: typeof value.sourceName === 'string' ? value.sourceName : undefined,
+      }]
+    })
+    console.log('Extracted sources count:', sources.length)
 
     const cipherMap = getCipherMap()
 
-    const resolvedLinks: any[] = []
+    const resolvedLinks: StreamLink[] = []
     const seen = new Set<string>()
 
     const toAbsoluteUrl = (link: string): string => {
@@ -305,7 +381,7 @@ export async function getEpisodeLinks(showId: string, epNo: string): Promise<any
             continue
         }
 
-        // Case 2: allanime.day internal proxy (/apivtwo/ or /apiv2/) — returns { links: [...] } JSON
+        // Case 2: allanime.day internal proxy (/apivtwo/ or /apiv2/) - returns { links: [...] } JSON
         // Skip external HTML providers (gogo, streamsb, mp4upload, ok.ru, etc.) they require different scraping
         const isAllanimeInternal = providerUrl.startsWith('/apivtwo/') || providerUrl.startsWith('/apiv2/')
         if (!isAllanimeInternal) continue
@@ -314,23 +390,27 @@ export async function getEpisodeLinks(showId: string, epNo: string): Promise<any
         const fullProviderUrl = `https://${ALLANIME_BASE}${clockUrl}`
         
         try {
-            const providerRes = await fetch(fullProviderUrl, {
+            const providerRes = await fetchChecked(fullProviderUrl, {
                 headers: {
                     'User-Agent': AGENT,
                     'Referer': ALLANIME_REFR,
                     'Origin': ALLANIME_REFR,
                     'Accept': 'application/json, text/plain, */*'
                 },
-                signal: AbortSignal.timeout(8000)
-            })
-            if (!providerRes.ok) continue
+            }, 8000)
             const providerText = await providerRes.text()
-            const provJson = JSON.parse(providerText)
+            const provJson = JSON.parse(providerText) as unknown
             
-            if (provJson?.links && Array.isArray(provJson.links)) {
-                for (const linkObj of provJson.links) {
+            if (isObject(provJson) && Array.isArray(provJson.links)) {
+                for (const value of provJson.links) {
+                    if (!isObject(value)) continue
+                    const linkObj: ProviderLink = {
+                      link: typeof value.link === 'string' ? value.link : undefined,
+                      hls: typeof value.hls === 'boolean' ? value.hls : undefined,
+                      resolutionStr: typeof value.resolutionStr === 'string' ? value.resolutionStr : undefined,
+                    }
                     const link: string = linkObj.link || ''
-                    // wixmp repackager — parse multi-quality from URL
+                    // wixmp repackager - parse multi-quality from URL
                     if (link.includes('repackager.wixmp.com')) {
                         const base = link.replace(/repackager\.wixmp\.com\//g, '').replace(/\.urlset.*/, '')
                         const qualitiesMatch = link.match(/,([^/]*),\/mp4/);
@@ -349,9 +429,9 @@ export async function getEpisodeLinks(showId: string, epNo: string): Promise<any
                     }
                 }
             }
-        } catch(e: any) {
+        } catch(error: unknown) {
             // Silently skip failed providers
-            console.warn(`Skipped provider ${source.sourceName}:`, e.message)
+            console.warn(`Skipped provider ${source.sourceName}:`, errorMessage(error))
         }
     }
 

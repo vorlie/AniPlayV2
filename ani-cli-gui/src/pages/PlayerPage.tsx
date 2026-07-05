@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Hls from 'hls.js'
 import { ArrowLeft, Maximize2, Minimize2, Pause, PictureInPicture2, Play, Server, Sparkles, Volume2, VolumeX } from 'lucide-react'
 import { addHistory } from '../lib/history'
@@ -92,7 +92,7 @@ export function PlayerPage({
   const activeLink = links[activeIdx]
   const resumeSeconds = useMemo(() => toResumeSeconds(initialResumeSeconds), [initialResumeSeconds])
 
-  const saveProgress = (force = false) => {
+  const saveProgress = useCallback((force = false) => {
     if (!animeId || !animeName || !episode) return
     const progressSeconds = clampProgress(latestTimeRef.current, latestDurationRef.current || undefined)
     if (!force && progressSeconds <= 0) return
@@ -108,7 +108,7 @@ export function PlayerPage({
       progressSeconds,
       durationSeconds: latestDurationRef.current > 0 ? latestDurationRef.current : undefined,
     })
-  }
+  }, [animeId, animeName, episode])
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
@@ -201,7 +201,7 @@ export function PlayerPage({
       document.removeEventListener('visibilitychange', flush)
       saveProgress(true)
     }
-  }, [animeId, animeName, episode, latestDurationRef, latestTimeRef])
+  }, [saveProgress])
 
   const tryNextServer = () => {
     setFailed((prev) => {

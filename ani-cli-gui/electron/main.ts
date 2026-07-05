@@ -1,10 +1,9 @@
-import { app, BrowserWindow, ipcMain, session, shell } from 'electron'
-import { join } from 'node:path'
+import { app, BrowserWindow, ipcMain, session, shell, type IpcMainInvokeEvent } from 'electron'
+import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { dirname } from 'node:path'
 import fs from 'node:fs'
 import { searchAnime, getEpisodes, getEpisodeLinks, reloadCipherMap } from './scrape'
-import { startServer, stopServer, getClients, getServerStatus } from './server'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -17,6 +16,44 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? join(process.env.APP_ROOT, 'publ
 
 let win: BrowserWindow | null
 let mediaHeadersConfigured = false
+
+const PROJECT_PAGES = {
+  repository: 'https://github.com/vorlie/AniPlayV2',
+  issues: 'https://github.com/vorlie/AniPlayV2/issues',
+  pulls: 'https://github.com/vorlie/AniPlayV2/pulls',
+} as const
+
+function isTrustedSender(event: IpcMainInvokeEvent): boolean {
+  const frameUrl = event.senderFrame?.url
+  if (!frameUrl) return false
+
+  try {
+    const url = new URL(frameUrl)
+    if (VITE_DEV_SERVER_URL) {
+      return url.origin === new URL(VITE_DEV_SERVER_URL).origin
+    }
+    return url.protocol === 'file:' && resolve(fileURLToPath(url)) === resolve(RENDERER_DIST, 'index.html')
+  } catch {
+    return false
+  }
+}
+
+function assertTrustedSender(event: IpcMainInvokeEvent): void {
+  if (!isTrustedSender(event)) throw new Error('IPC request rejected')
+}
+
+function requireString(value: unknown, name: string, maxLength: number): string {
+  if (typeof value !== 'string') throw new TypeError(`${name} must be a string`)
+  const normalized = value.trim()
+  if (!normalized || normalized.length > maxLength) {
+    throw new RangeError(`${name} must contain between 1 and ${maxLength} characters`)
+  }
+  return normalized
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Unknown error'
+}
 
 function configureMediaRequestHeaders() {
   if (mediaHeadersConfigured) return
@@ -69,45 +106,53 @@ function createWindow() {
   })
 
   // Register the scraping handlers
-  ipcMain.handle('search', async (_event, query) => {
+  ipcMain.handle('search', async (event, query: unknown) => {
     try {
-      const results = await searchAnime(query)
+      assertTrustedSender(event)
+      const results = await searchAnime(requireString(query, 'query', 200))
       return { success: true, data: results }
-    } catch (e: any) {
-      return { success: false, error: e.message }
+    } catch (error: unknown) {
+      return { success: false, error: errorMessage(error) }
     }
   })
 
-  ipcMain.handle('episodes', async (_event, showId) => {
+  ipcMain.handle('episodes', async (event, showId: unknown) => {
     try {
-      const eps = await getEpisodes(showId)
+      assertTrustedSender(event)
+      const eps = await getEpisodes(requireString(showId, 'showId', 200))
       return { success: true, data: eps }
-    } catch (e: any) {
-      return { success: false, error: e.message }
+    } catch (error: unknown) {
+      return { success: false, error: errorMessage(error) }
     }
   })
 
-  ipcMain.handle('links', async (_event, showId, epNo) => {
+  ipcMain.handle('links', async (event, showId: unknown, epNo: unknown) => {
     try {
-      const links = await getEpisodeLinks(showId, epNo)
+      assertTrustedSender(event)
+      const links = await getEpisodeLinks(
+        requireString(showId, 'showId', 200),
+        requireString(epNo, 'episode', 32),
+      )
       return { success: true, data: links }
-    } catch (e: any) {
-      return { success: false, error: e.message }
+    } catch (error: unknown) {
+      return { success: false, error: errorMessage(error) }
     }
   })
 
-  ipcMain.handle('open-external', async (_event, url: string) => {
+  ipcMain.handle('open-project-page', async (event, page: unknown) => {
     try {
-      if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) return { success: false }
-      await shell.openExternal(url)
+      assertTrustedSender(event)
+      if (typeof page !== 'string' || !(page in PROJECT_PAGES)) return { success: false }
+      await shell.openExternal(PROJECT_PAGES[page as keyof typeof PROJECT_PAGES])
       return { success: true }
     } catch {
       return { success: false }
     }
   })
 
-  ipcMain.handle('sync-ciphermap', async () => {
+  ipcMain.handle('sync-ciphermap', async (event) => {
     try {
+      assertTrustedSender(event)
       // Resolve the latest release tag from GitHub API
       const releasesRes = await fetch(
         'https://api.github.com/repos/pystardust/ani-cli/releases/latest',
@@ -177,13 +222,14 @@ function createWindow() {
       reloadCipherMap(cipherMap)
 
       return { success: true, entries: payload.entries, generatedAt: payload.generatedAt, tag, source: payload.source }
-    } catch (e: any) {
-      return { success: false, error: e.message }
+    } catch (error: unknown) {
+      return { success: false, error: errorMessage(error) }
     }
   })
 
-  ipcMain.handle('get-ciphermap-info', async () => {
+  ipcMain.handle('get-ciphermap-info', async (event) => {
     try {
+      assertTrustedSender(event)
       const outPath = join(app.getPath('userData'), 'ciphermap.json')
       if (!fs.existsSync(outPath)) return { success: true, data: null }
       const raw = fs.readFileSync(outPath, 'utf8')
@@ -192,24 +238,6 @@ function createWindow() {
     } catch {
       return { success: true, data: null }
     }
-  })
-
-  // ---- Local Network Server Handlers ----
-  ipcMain.handle('local-network:toggle', (_event, enable: boolean, port: number = 3000) => {
-    if (enable) {
-      return startServer(port, RENDERER_DIST)
-    } else {
-      stopServer()
-      return { success: true }
-    }
-  })
-
-  ipcMain.handle('local-network:status', () => {
-    return getServerStatus()
-  })
-
-  ipcMain.handle('local-network:clients', () => {
-    return getClients()
   })
 
   if (VITE_DEV_SERVER_URL) {
@@ -228,10 +256,6 @@ app.on('window-all-closed', () => {
     app.quit()
     win = null
   }
-})
-
-app.on('before-quit', () => {
-  stopServer()
 })
 
 app.on('activate', () => {

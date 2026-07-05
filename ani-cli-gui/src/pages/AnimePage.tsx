@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowLeft, MonitorPlay } from 'lucide-react'
 import { PlayerPage } from './PlayerPage'
 import { addHistory } from '../lib/history'
@@ -33,11 +33,11 @@ export function AnimePage({
   const [loadingEp, setLoadingEp] = useState<string | null>(null)
   const restoredRef = useRef<string | null>(null)
 
-  const handlePlay = (ep: string) => {
+  const handlePlay = useCallback((ep: string) => {
     if (loadingEp === ep) return
     setLoadingEp(ep)
 
-    invokeLinks<StreamLink[]>(anime.id, ep).then((res) => {
+    invokeLinks(anime.id, ep).then((res) => {
       setLoadingEp(null)
       if (res.success && Array.isArray(res.data) && res.data.length > 0) {
         const resumeSeconds =
@@ -60,10 +60,10 @@ export function AnimePage({
       setLoadingEp(null)
       alert('Stream fetch failed.')
     })
-  }
+  }, [anime.id, anime.name, initialEpisode, initialResumeSeconds, loadingEp])
 
   useEffect(() => {
-    invokeEpisodes<string[]>(anime.id).then((res) => {
+    invokeEpisodes(anime.id).then((res) => {
       if (res.success && Array.isArray(res.data)) {
         setEpisodes(res.data)
       }
@@ -80,7 +80,7 @@ export function AnimePage({
     if (restoredRef.current === key) return
     restoredRef.current = key
     handlePlay(initialEpisode)
-  }, [initialEpisode, episodes, loading, anime.id])
+  }, [initialEpisode, episodes, loading, anime.id, handlePlay])
 
   return (
     <div className="flex-1 flex flex-col space-y-6">

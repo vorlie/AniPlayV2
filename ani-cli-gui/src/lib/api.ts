@@ -4,32 +4,23 @@ export interface IpcResponse<T> {
   error?: string
 }
 
-export async function invokeSearch<T = any>(query: string): Promise<IpcResponse<T>> {
-  const ipc = (window as any).ipcRenderer
-  if (ipc && typeof ipc.invoke === 'function') {
-    return ipc.invoke('search', query)
-  }
-  const params = new URLSearchParams({ q: query })
-  const res = await fetch(`/api/search?${params.toString()}`)
-  return res.json()
+export interface AnimeSearchResult {
+  id: string
+  name: string
+  episodes: number
 }
 
-export async function invokeEpisodes<T = any>(id: string): Promise<IpcResponse<T>> {
-  const ipc = (window as any).ipcRenderer
-  if (ipc && typeof ipc.invoke === 'function') {
-    return ipc.invoke('episodes', id)
-  }
-  const params = new URLSearchParams({ id })
-  const res = await fetch(`/api/episodes?${params.toString()}`)
-  return res.json()
+export async function invokeSearch(query: string): Promise<IpcResponse<AnimeSearchResult[]>> {
+  if (window.aniPlay) return window.aniPlay.search(query)
+  throw new Error('AniPlay API is only available in the Electron application')
 }
 
-export async function invokeLinks<T = any>(id: string, ep: string): Promise<IpcResponse<T>> {
-  const ipc = (window as any).ipcRenderer
-  if (ipc && typeof ipc.invoke === 'function') {
-    return ipc.invoke('links', id, ep)
-  }
-  const params = new URLSearchParams({ id, ep })
-  const res = await fetch(`/api/links?${params.toString()}`)
-  return res.json()
+export async function invokeEpisodes(id: string): Promise<IpcResponse<string[]>> {
+  if (window.aniPlay) return window.aniPlay.getEpisodes(id)
+  throw new Error('AniPlay API is only available in the Electron application')
+}
+
+export async function invokeLinks(id: string, ep: string): Promise<IpcResponse<StreamLink[]>> {
+  if (window.aniPlay) return window.aniPlay.getEpisodeLinks(id, ep)
+  throw new Error('AniPlay API is only available in the Electron application')
 }

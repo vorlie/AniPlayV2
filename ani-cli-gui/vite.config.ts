@@ -14,7 +14,7 @@ export default defineConfig({
         vite: {
           build: {
             rollupOptions: {
-              external: ['express', 'cors', 'hls.js', 'http-proxy-middleware']
+              external: ['hls.js']
             }
           }
         }

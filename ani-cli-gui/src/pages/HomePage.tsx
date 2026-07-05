@@ -63,14 +63,6 @@ interface SearchInvokeResponse {
   error?: string
 }
 
-declare global {
-  interface Window {
-    ipcRenderer?: {
-      invoke: (channel: string, ...args: unknown[]) => Promise<unknown>
-    }
-  }
-}
-
 const ANILIST_API = 'https://graphql.anilist.co'
 const FEED_QUERY = `
   query HomeFeed($latestPage: Int!, $latestPerPage: Int!, $trendingPage: Int!, $trendingPerPage: Int!) {
