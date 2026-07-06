@@ -14,6 +14,7 @@ interface AnimeSelection {
   episodes: number
   aniListMediaId?: number
   coverUrl?: string
+  catalogProvider: 'allanime' | 'desu'
 }
 
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
@@ -43,6 +44,7 @@ function App() {
       episodes: 0,
       aniListMediaId: item.aniListMediaId,
       coverUrl: item.coverUrl,
+      catalogProvider: item.catalogProvider,
     })
     setResumeEpisode(item.episode)
     setResumeProgressSeconds(item.progressSeconds)

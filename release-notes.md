@@ -1,53 +1,41 @@
-# AniPlayV2 v1.8.0 Release Notes
+# AniPlayV2 v1.9.0 Release Notes
 
 ## Highlights
 
-- **Discord Rich Presence**: Share the anime, episode, Sub/Dub mode, artwork, and remaining playback time on your Discord profile.
-- **AniList cover artwork**: Playback launched from AniList uses the matching anime cover and provides a direct AniList link.
-- **Automatic metadata resolution**: Catalog and legacy-history playback can resolve AniList metadata from high-confidence title and episode-count matches.
-- **Privacy-first controls**: Rich Presence is disabled by default and can be enabled under Settings.
+- **Polish-subtitle catalog**: Browse and watch Polish-subtitled anime from Desu Online through a dedicated provider selector.
+- **Supported native playback**: Dailymotion, Iframely-hosted Dailymotion, and Rumble streams play directly in AniPlay.
+- **Browser fallback**: Episodes without a supported stream can be opened safely on their Desu Online page.
+- **Provider-aware history**: Resume entries remember their catalog while existing history remains compatible.
 
-## Discord Rich Presence
+## Desu Online Provider
 
-- Added local Discord Desktop integration using application ID `1440472840578142381`.
-- Displays the activity as **Watching on AniPlay** with the current anime and episode.
-- Shows whether playback is Subbed or Dubbed.
-- Displays a remaining-time countdown while playing.
-- Freezes the remaining time and displays a Paused state when playback is paused.
-- Recalculates the countdown after seeking or resuming.
-- Clears the activity when playback ends, the player closes, the feature is disabled, or AniPlay exits.
-- Added bounded reconnection when Discord is closed, launched later, or restarted.
-- Added a Settings status indicator for connected and waiting states.
+- Added Desu Online as an explicit catalog option alongside AllAnime.
+- Added a persistent provider selector to Browse.
+- Desu results are labeled **PL SUB** and do not use the global Sub/Dub preference.
+- Added parsing for Desu search results, anime episode lists, and Base64-encoded mirror entries.
+- Added direct HLS resolution for Dailymotion and Rumble mirrors.
+- Added support for Iframely wrappers that resolve to Dailymotion.
+- Preserved AniList metadata enrichment and Discord artwork for Desu playback.
 
-## Artwork and AniList Metadata
+## Playback and Fallbacks
 
-- Uses the AniList cover as Rich Presence artwork when a confirmed media match is available.
-- Uses the uploaded `aniplay` Discord asset when no reliable cover is known or Discord rejects the external image.
-- Adds a **View on AniList** button when an AniList media ID is available.
-- Carries AniList media IDs and cover URLs through playback selection, local history, and resume flows.
-- Searches AniList using scraper titles when playback lacks metadata.
-- Scores candidates using normalized titles, alternate titles, and episode counts.
-- Saves only high-confidence, unambiguous scraper-to-AniList mappings; uncertain results retain fallback artwork.
-- Existing `watch.history.v1` entries remain compatible.
+- Added scoped Electron request and response headers for Dailymotion HLS playback.
+- Desu streams are marked as non-downloadable, and the download action is hidden during Desu playback.
+- When no supported mirror resolves, AniPlay offers an **Open in browser** action for the selected episode.
+- Browser fallback URLs are derived from the provider's episode list and validated in the main process before opening.
+- MEGA, CDA, OK.ru, Byse, DoodStream/Playmogo, embedded third-party players, and Desu downloads remain unsupported.
 
-## Security and Reliability
+## Reliability and Security
 
-- Rich Presence runs exclusively in Electron's main process through Discord's local IPC transport.
-- Added sender validation and typed preload APIs for settings, playback updates, and activity clearing.
-- Validates title lengths, playback values, AniList IDs, and HTTPS cover URLs before publishing.
-- Throttles routine presence synchronization while immediately updating play, pause, seek, and metadata changes.
-- Discord failures are isolated from search, playback, history, downloads, and AniList synchronization.
-- Externalized the CommonJS Discord RPC dependency from the ESM Electron bundle to prevent startup failures.
-- Added automated tests for activity generation, timestamps, paused state, artwork fallback, input validation, connection failure, and reconnection behavior.
+- Added realistic provider-specific request headers, timeouts, in-flight request deduplication, and bounded short-lived caches.
+- Detects HTTP 403 responses, missing mirror data, and Cloudflare challenge pages without attempting to bypass them.
+- Validates Desu anime IDs, episode URLs, decoded iframe URLs, resolved media URLs, and allowed streaming hosts.
+- Returns a clear error when an episode contains only unsupported or unavailable mirrors.
+- Existing history records without provider metadata automatically remain assigned to AllAnime.
+- Added fixture-based tests covering search, episodes, mirror decoding, malformed data, Cloudflare challenges, Dailymotion metadata, Iframely wrappers, and Rumble embeds.
 
-## Configuration
+> **Availability:** Desu Online is an independent provider. Catalog access and individual mirrors may become temporarily unavailable or change without notice.
 
-- End users do not need to configure a Discord application.
-- Developers and forks can override the bundled application ID using `DISCORD_CLIENT_ID`.
-- Discord Desktop must be running locally for Rich Presence to connect.
+> **Downloads:** Desu playback is streaming-only in this release. Download support remains disabled until expiring links, required headers, and FFmpeg behavior can be validated reliably.
 
-> **Privacy:** Playback activity is publicly visible according to the user's Discord activity-sharing settings. AniPlay therefore keeps Rich Presence disabled until the user explicitly enables it.
-
-> **Current limitation:** AniList artwork is used only when AniPlay can establish a sufficiently confident media match. Ambiguous titles intentionally use the static AniPlay image.
-
-**Full changelog:** https://github.com/vorlie/AniPlayV2/compare/1.7.0...1.8.0
+**Full changelog:** https://github.com/vorlie/AniPlayV2/compare/1.8.0...1.9.0

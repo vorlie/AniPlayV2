@@ -2,6 +2,8 @@ import * as crypto from 'crypto'
 import fs from 'node:fs'
 import { join } from 'node:path'
 import { app } from 'electron'
+import { getDesuEpisodeLinks, getDesuEpisodes, searchDesu } from './desu'
+import type { CatalogProvider } from '../src/catalog-types'
 
 const DEFAULT_TIMEOUT_MS = 10_000
 
@@ -23,6 +25,7 @@ export interface StreamLink {
   resolution: string
   hls: boolean
   provider: string
+  downloadable: boolean
 }
 
 function isObject(value: unknown): value is JsonObject {
@@ -108,9 +111,11 @@ export interface SearchResult {
   id: string
   name: string
   episodes: number
+  catalogProvider: CatalogProvider
 }
 
-export async function searchAnime(query: string, mode: TranslationType): Promise<SearchResult[]> {
+export async function searchAnime(query: string, mode: TranslationType, catalogProvider: CatalogProvider = 'allanime'): Promise<SearchResult[]> {
+  if (catalogProvider === 'desu') return searchDesu(query)
   const searchGql = `query( $search: SearchInput $limit: Int $page: Int $translationType: VaildTranslationTypeEnumType $countryOrigin: VaildCountryOriginEnumType ) { shows( search: $search limit: $limit page: $page translationType: $translationType countryOrigin: $countryOrigin ) { edges { _id name availableEpisodes __typename } }}`
 
   const variables = {
@@ -145,11 +150,12 @@ export async function searchAnime(query: string, mode: TranslationType): Promise
     const episodeValue = availableEpisodes?.[mode]
     // The bash script does: mode === 'sub' ? edge.availableEpisodes.sub : ...
     const episodes = typeof episodeValue === 'number' && Number.isFinite(episodeValue) ? episodeValue : 0
-    return [{ id: value._id, name: value.name, episodes }]
+    return [{ id: value._id, name: value.name, episodes, catalogProvider: 'allanime' }]
   })
 }
 
-export async function getEpisodes(showId: string, mode: TranslationType): Promise<string[]> {
+export async function getEpisodes(showId: string, mode: TranslationType, catalogProvider: CatalogProvider = 'allanime'): Promise<string[]> {
+  if (catalogProvider === 'desu') return getDesuEpisodes(showId)
   const episodesListGql = `query ($showId: String!) { show( _id: $showId ) { _id availableEpisodesDetail }}`
   const json = await fetchJson(`${ALLANIME_API}/api`, {
     method: 'POST',
@@ -217,7 +223,8 @@ function processResponse(responseRaw: string): unknown {
   return parsed
 }
 
-export async function getEpisodeLinks(showId: string, epNo: string, mode: TranslationType): Promise<StreamLink[]> {
+export async function getEpisodeLinks(showId: string, epNo: string, mode: TranslationType, catalogProvider: CatalogProvider = 'allanime'): Promise<StreamLink[]> {
+    if (catalogProvider === 'desu') return getDesuEpisodeLinks(showId, epNo)
     const queryHash = "d405d0edd690624b66baba3068e0edc3ac90f1597d898a1ec8db4e5c43c00fec"
     const queryVars = { showId, translationType: mode, episodeString: epNo }
     const extensions = { persistedQuery: { version: 1, sha256Hash: queryHash } }
@@ -331,7 +338,7 @@ export async function getEpisodeLinks(showId: string, epNo: string, mode: Transl
         const key = `${url}|${entry.provider}|${entry.resolution}`
         if (seen.has(key)) return
         seen.add(key)
-        resolvedLinks.push({ ...entry, url })
+        resolvedLinks.push({ ...entry, url, downloadable: true })
     }
 
     const isReachableDirectMedia = async (url: string): Promise<boolean> => {

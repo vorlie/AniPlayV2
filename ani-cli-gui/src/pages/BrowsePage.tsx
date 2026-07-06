@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ArrowRight, Loader2, Search, Tv2 } from 'lucide-react'
-import { getTranslationType, invokeSearch, type AnimeSearchResult } from '../lib/api'
+import { CATALOG_PROVIDER_KEY, getCatalogProvider, getTranslationType, invokeSearch, type AnimeSearchResult, type CatalogProvider } from '../lib/api'
 
 interface BrowsePageProps {
   searchQuery: string
@@ -14,6 +14,7 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasSearched, setHasSearched] = useState(results.length > 0)
+  const [catalogProvider, setCatalogProvider] = useState<CatalogProvider>(getCatalogProvider)
   const translationType = getTranslationType()
 
   const search = async () => {
@@ -23,7 +24,7 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
     setError(null)
     setHasSearched(true)
     try {
-      const response = await invokeSearch(query)
+      const response = await invokeSearch(query, catalogProvider)
       if (!response.success) throw new Error(response.error || 'Search failed. Please try again.')
       setResults(response.data ?? [])
     } catch (cause: unknown) {
@@ -34,6 +35,14 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
     }
   }
 
+  const selectCatalog = (provider: CatalogProvider) => {
+    setCatalogProvider(provider)
+    localStorage.setItem(CATALOG_PROVIDER_KEY, provider)
+    setResults([])
+    setHasSearched(false)
+    setError(null)
+  }
+
   return (
     <div className="flex-1 flex flex-col gap-4 md:gap-5">
       <section className="m3-card overflow-hidden p-5 md:p-7">
@@ -41,9 +50,11 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
           <div>
             <p className="section-label"><Search size={14} /> Library search</p>
             <h2 className="mt-2 text-3xl md:text-4xl font-black tracking-tight">What do you want to watch?</h2>
-            <p className="mt-1 text-sm text-m3-on-surface-variant">Searching the {translationType === 'dub' ? 'dubbed' : 'subbed'} catalog.</p>
+            <p className="mt-1 text-sm text-m3-on-surface-variant">{catalogProvider === 'desu' ? 'Searching Desu Online for Polish-subtitled anime.' : `Searching the ${translationType === 'dub' ? 'dubbed' : 'subbed'} AllAnime catalog.`}</p>
           </div>
-          <span className="self-start rounded-full border border-m3-primary/25 bg-m3-primary/10 px-3 py-1.5 text-xs font-bold text-m3-primary uppercase tracking-wider">{translationType}</span>
+          <div className="self-start inline-flex rounded-xl border border-m3-outline/30 p-1" role="group" aria-label="Catalog provider">
+            {(['allanime', 'desu'] as const).map((provider) => <button key={provider} type="button" onClick={() => selectCatalog(provider)} aria-pressed={catalogProvider === provider} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${catalogProvider === provider ? 'bg-m3-primary text-m3-on-primary' : 'hover:bg-m3-on-surface/10'}`}>{provider === 'allanime' ? `AllAnime · ${translationType.toUpperCase()}` : 'Desu · PL SUB'}</button>)}
+          </div>
         </div>
 
         <div className="mt-5 flex items-stretch gap-2 rounded-2xl border border-m3-outline/25 bg-m3-surface/55 p-1.5 focus-within:border-m3-primary/60 focus-within:ring-4 focus-within:ring-m3-primary/10 transition-all">
@@ -78,11 +89,11 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
         {results.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
             {results.map((anime, index) => (
-              <button type="button" key={anime.id} className="group rounded-2xl border border-m3-outline/15 bg-m3-surface/40 p-3.5 text-left flex items-center gap-3 hover:-translate-y-0.5 hover:border-m3-primary/40 hover:bg-m3-primary/5 transition-all" onClick={() => onSelectAnime(anime)}>
+              <button type="button" key={`${anime.catalogProvider}:${anime.id}`} className="group rounded-2xl border border-m3-outline/15 bg-m3-surface/40 p-3.5 text-left flex items-center gap-3 hover:-translate-y-0.5 hover:border-m3-primary/40 hover:bg-m3-primary/5 transition-all" onClick={() => onSelectAnime(anime)}>
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-m3-primary/10 text-sm font-black text-m3-primary">{String(index + 1).padStart(2, '0')}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-bold group-hover:text-m3-primary transition-colors">{anime.name}</span>
-                  <span className="block mt-0.5 text-xs text-m3-on-surface-variant">{anime.episodes || '—'} episodes</span>
+                  <span className="block mt-0.5 text-xs text-m3-on-surface-variant">{anime.catalogProvider === 'desu' ? 'Polish subtitles' : `${anime.episodes || '—'} episodes`}</span>
                 </span>
                 <ArrowRight size={18} className="shrink-0 text-m3-outline transition-transform group-hover:translate-x-1 group-hover:text-m3-primary" />
               </button>

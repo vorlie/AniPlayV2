@@ -1,12 +1,13 @@
 import type { DownloadRequest, DownloadResult, DownloadState } from './download-types'
 import type { AnimeDetails, AnimeSummary, AniListSession, CatalogMapping, CatalogResolution, DashboardData, ListUpdateInput, MediaListState } from './anilist-types'
-import type { TranslationType } from './catalog-types'
+import type { CatalogProvider, TranslationType } from './catalog-types'
 import type { DiscordPlaybackPresence, DiscordPresenceSettings } from './discord-presence-types'
 
 interface SearchResult {
   id: string
   name: string
   episodes: number
+  catalogProvider: CatalogProvider
 }
 
 interface StreamLink {
@@ -14,6 +15,7 @@ interface StreamLink {
   resolution: string
   hls: boolean
   provider: string
+  downloadable: boolean
 }
 
 interface CiphermapInfo {
@@ -45,9 +47,10 @@ interface DownloadsApi {
 }
 
 interface AniPlayApi {
-  search(query: string, translationType: 'sub' | 'dub'): Promise<IpcResponse<SearchResult[]>>
-  getEpisodes(showId: string, translationType: 'sub' | 'dub'): Promise<IpcResponse<string[]>>
-  getEpisodeLinks(showId: string, episode: string, translationType: 'sub' | 'dub'): Promise<IpcResponse<StreamLink[]>>
+  search(query: string, translationType: TranslationType, catalogProvider: CatalogProvider): Promise<IpcResponse<SearchResult[]>>
+  getEpisodes(showId: string, translationType: TranslationType, catalogProvider: CatalogProvider): Promise<IpcResponse<string[]>>
+  getEpisodeLinks(showId: string, episode: string, translationType: TranslationType, catalogProvider: CatalogProvider): Promise<IpcResponse<StreamLink[]>>
+  openProviderEpisode(showId: string, episode: string, catalogProvider: CatalogProvider): Promise<IpcResponse<void>>
   getCiphermapInfo(): Promise<IpcResponse<CiphermapInfo | null>>
   syncCiphermap(): Promise<CiphermapSyncResponse>
   openProjectPage(page: 'repository' | 'issues' | 'pulls'): Promise<{ success: boolean }>

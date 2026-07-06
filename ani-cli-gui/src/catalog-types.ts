@@ -4,6 +4,8 @@ export interface AnimeSearchResult {
   episodes: number
   aniListMediaId?: number
   coverUrl?: string
+  catalogProvider: CatalogProvider
 }
 
 export type TranslationType = 'sub' | 'dub'
+export type CatalogProvider = 'allanime' | 'desu'

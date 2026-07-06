@@ -1,13 +1,14 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { DownloadRequest, DownloadState } from '../src/download-types'
 import type { AnimeSummary, CatalogMapping, ListUpdateInput } from '../src/anilist-types'
-import type { AnimeSearchResult, TranslationType } from '../src/catalog-types'
+import type { AnimeSearchResult, CatalogProvider, TranslationType } from '../src/catalog-types'
 import type { DiscordPlaybackPresence } from '../src/discord-presence-types'
 
 contextBridge.exposeInMainWorld('aniPlay', {
-  search: (query: string, translationType: 'sub' | 'dub') => ipcRenderer.invoke('search', query, translationType),
-  getEpisodes: (showId: string, translationType: 'sub' | 'dub') => ipcRenderer.invoke('episodes', showId, translationType),
-  getEpisodeLinks: (showId: string, episode: string, translationType: 'sub' | 'dub') => ipcRenderer.invoke('links', showId, episode, translationType),
+  search: (query: string, translationType: TranslationType, catalogProvider: CatalogProvider) => ipcRenderer.invoke('search', query, translationType, catalogProvider),
+  getEpisodes: (showId: string, translationType: TranslationType, catalogProvider: CatalogProvider) => ipcRenderer.invoke('episodes', showId, translationType, catalogProvider),
+  getEpisodeLinks: (showId: string, episode: string, translationType: TranslationType, catalogProvider: CatalogProvider) => ipcRenderer.invoke('links', showId, episode, translationType, catalogProvider),
+  openProviderEpisode: (showId: string, episode: string, catalogProvider: CatalogProvider) => ipcRenderer.invoke('open-provider-episode', showId, episode, catalogProvider),
   getCiphermapInfo: () => ipcRenderer.invoke('get-ciphermap-info'),
   syncCiphermap: () => ipcRenderer.invoke('sync-ciphermap'),
   openProjectPage: (page: 'repository' | 'issues' | 'pulls') => ipcRenderer.invoke('open-project-page', page),

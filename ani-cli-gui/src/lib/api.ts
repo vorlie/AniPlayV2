@@ -4,33 +4,44 @@ export interface IpcResponse<T> {
   error?: string
 }
 
-import type { AnimeSearchResult, TranslationType } from '../catalog-types'
-export type { AnimeSearchResult, TranslationType } from '../catalog-types'
+import type { AnimeSearchResult, CatalogProvider, TranslationType } from '../catalog-types'
+export type { AnimeSearchResult, CatalogProvider, TranslationType } from '../catalog-types'
 
 export interface StreamLink {
   url: string
   resolution: string
   hls: boolean
   provider: string
+  downloadable: boolean
 }
 
 export const TRANSLATION_TYPE_KEY = 'playback.translationType'
+export const CATALOG_PROVIDER_KEY = 'catalog.provider'
 
 export function getTranslationType(): TranslationType {
   return localStorage.getItem(TRANSLATION_TYPE_KEY) === 'dub' ? 'dub' : 'sub'
 }
 
-export async function invokeSearch(query: string): Promise<IpcResponse<AnimeSearchResult[]>> {
-  if (window.aniPlay) return window.aniPlay.search(query, getTranslationType())
+export function getCatalogProvider(): CatalogProvider {
+  return localStorage.getItem(CATALOG_PROVIDER_KEY) === 'desu' ? 'desu' : 'allanime'
+}
+
+export async function invokeSearch(query: string, catalogProvider: CatalogProvider = getCatalogProvider()): Promise<IpcResponse<AnimeSearchResult[]>> {
+  if (window.aniPlay) return window.aniPlay.search(query, getTranslationType(), catalogProvider)
   throw new Error('AniPlay API is only available in the Electron application')
 }
 
-export async function invokeEpisodes(id: string): Promise<IpcResponse<string[]>> {
-  if (window.aniPlay) return window.aniPlay.getEpisodes(id, getTranslationType())
+export async function invokeEpisodes(id: string, catalogProvider: CatalogProvider = 'allanime'): Promise<IpcResponse<string[]>> {
+  if (window.aniPlay) return window.aniPlay.getEpisodes(id, getTranslationType(), catalogProvider)
   throw new Error('AniPlay API is only available in the Electron application')
 }
 
-export async function invokeLinks(id: string, ep: string, translationType: TranslationType = getTranslationType()): Promise<IpcResponse<StreamLink[]>> {
-  if (window.aniPlay) return window.aniPlay.getEpisodeLinks(id, ep, translationType)
+export async function invokeLinks(id: string, ep: string, translationType: TranslationType = getTranslationType(), catalogProvider: CatalogProvider = 'allanime'): Promise<IpcResponse<StreamLink[]>> {
+  if (window.aniPlay) return window.aniPlay.getEpisodeLinks(id, ep, translationType, catalogProvider)
+  throw new Error('AniPlay API is only available in the Electron application')
+}
+
+export async function openProviderEpisode(id: string, ep: string, catalogProvider: CatalogProvider): Promise<IpcResponse<void>> {
+  if (window.aniPlay) return window.aniPlay.openProviderEpisode(id, ep, catalogProvider)
   throw new Error('AniPlay API is only available in the Electron application')
 }

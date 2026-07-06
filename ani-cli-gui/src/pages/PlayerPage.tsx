@@ -9,6 +9,7 @@ interface StreamLink {
   resolution: string
   hls: boolean
   provider: string
+  downloadable: boolean
 }
 
 interface PlayerPageProps {
@@ -23,6 +24,7 @@ interface PlayerPageProps {
   initialResumeSeconds?: number | null
   aniListMediaId?: number
   coverUrl?: string
+  catalogProvider?: 'allanime' | 'desu'
 }
 
 const SAVE_THROTTLE_MS = 5000
@@ -72,6 +74,7 @@ export function PlayerPage({
   initialResumeSeconds,
   aniListMediaId,
   coverUrl,
+  catalogProvider = 'allanime',
 }: PlayerPageProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const hlsRef = useRef<Hls | null>(null)
@@ -119,8 +122,9 @@ export function PlayerPage({
       durationSeconds: latestDurationRef.current > 0 ? latestDurationRef.current : undefined,
       aniListMediaId,
       coverUrl,
+      catalogProvider,
     })
-  }, [animeId, animeName, episode, aniListMediaId, coverUrl])
+  }, [animeId, animeName, episode, aniListMediaId, coverUrl, catalogProvider])
 
   const updatePresence = useCallback((playing: boolean, force = false) => {
     if (!window.aniPlay || !animeName || !episode) return
@@ -361,7 +365,7 @@ export function PlayerPage({
   }
 
   const startDownload = async () => {
-    if (!window.aniPlay || !activeLink || !animeId || !animeName || !episode || downloadStatus === 'starting') return
+    if (!window.aniPlay || !activeLink?.downloadable || !animeId || !animeName || !episode || downloadStatus === 'starting') return
     setDownloadStatus('starting')
     const result = await window.aniPlay.downloads.start({
       animeId,
@@ -400,7 +404,7 @@ export function PlayerPage({
               Persistent Player
             </span>
           )}
-          <button
+          {activeLink?.downloadable && <button
             type="button"
             onClick={() => void startDownload()}
             disabled={!activeLink || !animeId || !animeName || !episode || downloadStatus === 'starting'}
@@ -409,7 +413,7 @@ export function PlayerPage({
           >
             {downloadStatus === 'starting' ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}
             <span className="hidden sm:inline">{downloadStatus === 'queued' ? 'Queued' : 'Download'}</span>
-          </button>
+          </button>}
           <button
             onClick={() => setShowServers((s) => !s)}
             className={`flex items-center space-x-2 px-4 py-2 rounded-full border transition-all text-sm font-bold ${showServers ? 'bg-m3-primary text-m3-on-primary border-transparent' : (isOverlay ? 'border-white/30 text-white hover:bg-white/10' : 'border-m3-outline/30 text-m3-on-surface hover:bg-m3-on-surface/10')}`}

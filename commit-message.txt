@@ -1,10 +1,7 @@
-feat: add Discord Rich Presence for playback
+feat: add Desu Online Polish subtitle provider
 
-- publish anime, episode, audio mode, artwork, and remaining time to Discord
-- add an opt-in Rich Presence setting with connection status
-- use AniList covers and links with static AniPlay artwork as fallback
-- resolve missing AniList metadata from high-confidence scraper title matches
-- persist AniList media metadata through watch history and resume flows
-- reconnect safely when Discord starts or restarts and clear presence on exit
-- keep Discord RPC isolated behind validated, typed Electron IPC
-- add tests for payloads, validation, fallback artwork, and connection failures
+- add provider-aware browsing, playback, and history
+- resolve Dailymotion, Iframely, and Rumble streams
+- add validated browser fallback for unsupported mirrors
+- disable downloads for Desu streams
+- add provider fixtures and resolver tests

@@ -7,7 +7,7 @@
     "url": "https://github.com/vorlie/AniPlayV2.git"
   },
   "private": true,
-  "version": "1.8.0",
+  "version": "1.9.0",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -83,6 +83,7 @@
     "@emnapi/core": "^1.11.2",
     "@emnapi/runtime": "^1.11.2",
     "@material/material-color-utilities": "^0.4.0",
+    "cheerio": "^1.2.0",
     "clsx": "^2.1.1",
     "discord-rpc": "^4.0.1",
     "encoding": "^0.1.13",

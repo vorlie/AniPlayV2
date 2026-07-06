@@ -9,7 +9,9 @@ import type { DownloadRequest } from '../src/download-types'
 import { AniListService } from './anilist'
 import type { AnimeSummary, ListUpdateInput } from '../src/anilist-types'
 import type { AnimeSearchResult } from '../src/catalog-types'
+import type { CatalogProvider } from '../src/catalog-types'
 import { DiscordPresenceService, validatePlayback } from './discord-presence'
+import { getDesuEpisodePageUrl } from './desu'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -65,6 +67,11 @@ function requireTranslationType(value: unknown): TranslationType {
   return value
 }
 
+function requireCatalogProvider(value: unknown): CatalogProvider {
+  if (value !== 'allanime' && value !== 'desu') throw new TypeError('catalogProvider must be allanime or desu')
+  return value
+}
+
 function requirePositiveInteger(value: unknown, name: string): number {
   if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) throw new TypeError(`${name} must be a positive integer`)
   return value
@@ -103,18 +110,39 @@ function configureMediaRequestHeaders() {
     '*://*.fast4speed.rsvp/*',
     '*://mp4upload.com/*',
     '*://*.mp4upload.com/*',
+    '*://dailymotion.com/*',
+    '*://*.dailymotion.com/*',
+    '*://*.dmcdn.net/*',
   ]
 
   session.defaultSession.webRequest.onBeforeSendHeaders({ urls }, (details, callback) => {
     const headers = details.requestHeaders || {}
-    const isMp4Upload = new URL(details.url).hostname.endsWith('mp4upload.com')
-    const requestReferer = isMp4Upload ? 'https://www.mp4upload.com/' : referer
+    const hostname = new URL(details.url).hostname.toLowerCase()
+    const isMp4Upload = hostname === 'mp4upload.com' || hostname.endsWith('.mp4upload.com')
+    const isDailymotion = hostname === 'dailymotion.com' || hostname.endsWith('.dailymotion.com') || hostname.endsWith('.dmcdn.net')
+    const requestReferer = isDailymotion ? 'https://www.dailymotion.com/' : isMp4Upload ? 'https://www.mp4upload.com/' : referer
     headers['Referer'] = requestReferer
     headers['Origin'] = new URL(requestReferer).origin
     if (!headers['User-Agent']) {
       headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0'
     }
     callback({ requestHeaders: headers })
+  })
+
+  const dailymotionMediaUrls = [
+    '*://*.dailymotion.com/cdn/*',
+    '*://*.dmcdn.net/*',
+  ]
+  session.defaultSession.webRequest.onHeadersReceived({ urls: dailymotionMediaUrls }, (details, callback) => {
+    const responseHeaders = { ...details.responseHeaders }
+    for (const name of Object.keys(responseHeaders)) {
+      if (name.toLowerCase() === 'access-control-allow-origin' || name.toLowerCase() === 'access-control-expose-headers') {
+        delete responseHeaders[name]
+      }
+    }
+    responseHeaders['Access-Control-Allow-Origin'] = ['*']
+    responseHeaders['Access-Control-Expose-Headers'] = ['Content-Length, Content-Range, Accept-Ranges']
+    callback({ responseHeaders })
   })
 }
 
@@ -147,10 +175,10 @@ function createWindow() {
   })
 
   // Register the scraping handlers
-  ipcMain.handle('search', async (event, query: unknown, translationType: unknown) => {
+  ipcMain.handle('search', async (event, query: unknown, translationType: unknown, catalogProvider: unknown) => {
     try {
       assertTrustedSender(event)
-      const results = await searchAnime(requireString(query, 'query', 200), requireTranslationType(translationType))
+      const results = await searchAnime(requireString(query, 'query', 200), requireTranslationType(translationType), requireCatalogProvider(catalogProvider))
       return { success: true, data: results }
     } catch (error: unknown) {
       return { success: false, error: errorMessage(error) }
@@ -191,6 +219,7 @@ function createWindow() {
       id: requireString(value.id, 'animeId', 200),
       name: requireString(value.name, 'animeName', 300),
       episodes: typeof value.episodes === 'number' && Number.isInteger(value.episodes) && value.episodes >= 0 ? value.episodes : 0,
+      catalogProvider: value.catalogProvider === 'desu' ? 'desu' : 'allanime',
     }
     return aniListService.resolveAniListMetadata(normalized, mode)
   })
@@ -204,25 +233,42 @@ function createWindow() {
   ipcMain.handle('discord-presence:update', (event, playback: unknown) => { assertTrustedSender(event); return discordPresenceService.update(validatePlayback(playback)) })
   ipcMain.handle('discord-presence:clear', async (event) => { assertTrustedSender(event); await discordPresenceService.clear() })
 
-  ipcMain.handle('episodes', async (event, showId: unknown, translationType: unknown) => {
+  ipcMain.handle('episodes', async (event, showId: unknown, translationType: unknown, catalogProvider: unknown) => {
     try {
       assertTrustedSender(event)
-      const eps = await getEpisodes(requireString(showId, 'showId', 200), requireTranslationType(translationType))
+      const eps = await getEpisodes(requireString(showId, 'showId', 300), requireTranslationType(translationType), requireCatalogProvider(catalogProvider))
       return { success: true, data: eps }
     } catch (error: unknown) {
       return { success: false, error: errorMessage(error) }
     }
   })
 
-  ipcMain.handle('links', async (event, showId: unknown, epNo: unknown, translationType: unknown) => {
+  ipcMain.handle('links', async (event, showId: unknown, epNo: unknown, translationType: unknown, catalogProvider: unknown) => {
     try {
       assertTrustedSender(event)
       const links = await getEpisodeLinks(
-        requireString(showId, 'showId', 200),
+        requireString(showId, 'showId', 300),
         requireString(epNo, 'episode', 32),
         requireTranslationType(translationType),
+        requireCatalogProvider(catalogProvider),
       )
       return { success: true, data: links }
+    } catch (error: unknown) {
+      return { success: false, error: errorMessage(error) }
+    }
+  })
+
+  ipcMain.handle('open-provider-episode', async (event, showId: unknown, epNo: unknown, catalogProvider: unknown) => {
+    try {
+      assertTrustedSender(event)
+      const provider = requireCatalogProvider(catalogProvider)
+      if (provider !== 'desu') throw new Error('Browser fallback is not available for this provider')
+      const url = await getDesuEpisodePageUrl(
+        requireString(showId, 'showId', 300),
+        requireString(epNo, 'episode', 32),
+      )
+      await shell.openExternal(url)
+      return { success: true }
     } catch (error: unknown) {
       return { success: false, error: errorMessage(error) }
     }

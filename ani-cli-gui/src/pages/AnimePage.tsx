@@ -1,20 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AlertCircle, ArrowLeft, Loader2, MonitorPlay, Search } from 'lucide-react'
+import { AlertCircle, ArrowLeft, ExternalLink, Loader2, MonitorPlay, Search } from 'lucide-react'
 import { PlayerPage } from './PlayerPage'
 import { addHistory } from '../lib/history'
-import { getTranslationType, invokeEpisodes, invokeLinks, type TranslationType } from '../lib/api'
+import { getTranslationType, invokeEpisodes, invokeLinks, openProviderEpisode, type TranslationType } from '../lib/api'
 
 interface StreamLink {
   url: string
   resolution: string
   hls: boolean
   provider: string
+  downloadable: boolean
 }
 
 
 
 interface AnimePageProps {
-  anime: { id: string; name: string; episodes: number; aniListMediaId?: number; coverUrl?: string }
+  anime: { id: string; name: string; episodes: number; aniListMediaId?: number; coverUrl?: string; catalogProvider: 'allanime' | 'desu' }
   onBack: () => void
   initialEpisode?: string | null
   initialResumeSeconds?: number | null
@@ -34,6 +35,7 @@ export function AnimePage({
   const [loadingEp, setLoadingEp] = useState<string | null>(null)
   const [episodeQuery, setEpisodeQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [browserFallbackEpisode, setBrowserFallbackEpisode] = useState<string | null>(null)
   const [aniListMetadata, setAniListMetadata] = useState(() => ({ mediaId: anime.aniListMediaId, coverUrl: anime.coverUrl }))
   const restoredRef = useRef<string | null>(null)
 
@@ -48,9 +50,10 @@ export function AnimePage({
     if (loadingEp === ep) return
     setLoadingEp(ep)
     setError(null)
+    setBrowserFallbackEpisode(null)
 
     const translationType = getTranslationType()
-    invokeLinks(anime.id, ep, translationType).then((res) => {
+    invokeLinks(anime.id, ep, translationType, anime.catalogProvider).then((res) => {
       setLoadingEp(null)
       if (res.success && Array.isArray(res.data) && res.data.length > 0) {
         const resumeSeconds =
@@ -68,18 +71,21 @@ export function AnimePage({
           progressSeconds: resumeSeconds,
           aniListMediaId: aniListMetadata.mediaId,
           coverUrl: aniListMetadata.coverUrl,
+          catalogProvider: anime.catalogProvider,
         })
       } else {
         setError(res.error || 'No working streams were found for this episode.')
+        if (anime.catalogProvider === 'desu') setBrowserFallbackEpisode(ep)
       }
     }).catch((cause: unknown) => {
       setLoadingEp(null)
       setError(cause instanceof Error ? cause.message : 'Stream lookup failed. Please try another episode.')
+      if (anime.catalogProvider === 'desu') setBrowserFallbackEpisode(ep)
     })
-  }, [anime.id, anime.name, aniListMetadata.mediaId, aniListMetadata.coverUrl, initialEpisode, initialResumeSeconds, loadingEp])
+  }, [anime.id, anime.name, anime.catalogProvider, aniListMetadata.mediaId, aniListMetadata.coverUrl, initialEpisode, initialResumeSeconds, loadingEp])
 
   useEffect(() => {
-    invokeEpisodes(anime.id).then((res) => {
+    invokeEpisodes(anime.id, anime.catalogProvider).then((res) => {
       if (res.success && Array.isArray(res.data)) {
         setEpisodes(res.data)
       } else {
@@ -90,7 +96,7 @@ export function AnimePage({
       setLoading(false)
       setError(cause instanceof Error ? cause.message : 'Could not load the episode list.')
     })
-  }, [anime.id])
+  }, [anime.id, anime.catalogProvider])
 
   useEffect(() => {
     if (!initialEpisode || loading) return
@@ -125,6 +131,17 @@ export function AnimePage({
         <div role="alert" className="flex items-start gap-3 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
           <AlertCircle className="mt-0.5 shrink-0" size={18} />
           <span className="flex-1">{error}</span>
+          {browserFallbackEpisode && (
+            <button
+              type="button"
+              onClick={() => void openProviderEpisode(anime.id, browserFallbackEpisode, anime.catalogProvider).then((result) => {
+                if (!result.success) setError(result.error || 'Could not open the episode in your browser.')
+              })}
+              className="inline-flex shrink-0 items-center gap-1.5 font-bold hover:underline"
+            >
+              <ExternalLink size={15} /> Open in browser
+            </button>
+          )}
           <button type="button" onClick={() => setError(null)} className="font-bold hover:underline">Dismiss</button>
         </div>
       )}
@@ -185,6 +202,7 @@ export function AnimePage({
               initialResumeSeconds={initialEpisode === playingEp ? initialResumeSeconds : null}
               aniListMediaId={aniListMetadata.mediaId}
               coverUrl={aniListMetadata.coverUrl}
+              catalogProvider={anime.catalogProvider}
             />
           ) : (
             <div className="m3-card flex-1 min-h-[280px] flex flex-col items-center justify-center text-center px-6">

@@ -30,16 +30,16 @@ describe('AniList normalization', () => {
 describe('catalog candidate scoring', () => {
   it('ranks exact alternate titles above unrelated results', () => {
     const media = normalizeMedia({ id: 1, title: { english: 'Frieren', romaji: 'Sousou no Frieren' }, episodes: 28 })
-    const exact = scoreCandidate(media, { id: 'a', name: 'Sousou no Frieren', episodes: 28 })
-    const unrelated = scoreCandidate(media, { id: 'b', name: 'One Piece', episodes: 1000 })
+    const exact = scoreCandidate(media, { id: 'a', name: 'Sousou no Frieren', episodes: 28, catalogProvider: 'allanime' })
+    const unrelated = scoreCandidate(media, { id: 'b', name: 'One Piece', episodes: 1000, catalogProvider: 'allanime' })
     expect(exact.confidence).toBeGreaterThanOrEqual(.9)
     expect(exact.confidence).toBeGreaterThan(unrelated.confidence)
   })
 
   it('penalizes conflicting episode counts', () => {
     const media = normalizeMedia({ id: 1, title: { english: 'Example' }, episodes: 12 })
-    const matching = scoreCandidate(media, { id: 'a', name: 'Example', episodes: 12 })
-    const conflicting = scoreCandidate(media, { id: 'b', name: 'Example', episodes: 120 })
+    const matching = scoreCandidate(media, { id: 'a', name: 'Example', episodes: 12, catalogProvider: 'allanime' })
+    const conflicting = scoreCandidate(media, { id: 'b', name: 'Example', episodes: 120, catalogProvider: 'allanime' })
     expect(matching.confidence).toBeGreaterThan(conflicting.confidence)
   })
 })
