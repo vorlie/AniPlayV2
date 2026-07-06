@@ -1,7 +1,5 @@
 # AniPlayV2
 
-AniPlayV2 is an Electron + React desktop app for browsing anime and playing streams in a modern GUI.
-
 This repo is set up so users can package the app themselves on Windows.
 
 ## Project Structure
