@@ -1,9 +1,10 @@
-feat: add persistent episode downloads
+feat: add AniList account and discovery integration
 
-- add a serialized download queue with progress, cancellation, and retry support
-- download the active episode server and quality through bundled FFmpeg
-- add a Downloads tab and configurable destination folder
-- persist job history and recover interrupted downloads after restart
-- secure download operations behind validated, typed Electron IPC
-- package FFmpeg licenses and third-party notices with Windows and Linux builds
-- add tests for filenames, collisions, queue order, recovery, headers, and progress
+- move AniList requests into a cached and rate-aware Electron service
+- add secure browser OAuth login and encrypted session persistence
+- build a personalized dashboard with lists, recommendations, airing, and seasonal data
+- add anime detail pages with metadata and explicit list management
+- match AniList entries to playback results with confidence scoring and saved corrections
+- normalize AniList descriptions and improve banner presentation
+- expose validated AniList operations through typed IPC
+- add tests for media normalization, descriptions, and catalog matching

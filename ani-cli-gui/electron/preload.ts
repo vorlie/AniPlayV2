@@ -1,5 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { DownloadRequest, DownloadState } from '../src/download-types'
+import type { AnimeSummary, CatalogMapping, ListUpdateInput } from '../src/anilist-types'
+import type { AnimeSearchResult, TranslationType } from '../src/catalog-types'
 
 contextBridge.exposeInMainWorld('aniPlay', {
   search: (query: string, translationType: 'sub' | 'dub') => ipcRenderer.invoke('search', query, translationType),
@@ -8,6 +10,24 @@ contextBridge.exposeInMainWorld('aniPlay', {
   getCiphermapInfo: () => ipcRenderer.invoke('get-ciphermap-info'),
   syncCiphermap: () => ipcRenderer.invoke('sync-ciphermap'),
   openProjectPage: (page: 'repository' | 'issues' | 'pulls') => ipcRenderer.invoke('open-project-page', page),
+  aniList: {
+    auth: {
+      status: () => ipcRenderer.invoke('anilist:auth-status'),
+      start: () => ipcRenderer.invoke('anilist:auth-start'),
+      logout: () => ipcRenderer.invoke('anilist:auth-logout'),
+    },
+    dashboard: { get: () => ipcRenderer.invoke('anilist:dashboard') },
+    media: { get: (id: number) => ipcRenderer.invoke('anilist:media', id) },
+    list: {
+      update: (input: ListUpdateInput) => ipcRenderer.invoke('anilist:list-update', input),
+      delete: (id: number) => ipcRenderer.invoke('anilist:list-delete', id),
+    },
+    mapping: {
+      resolve: (media: AnimeSummary, candidates: AnimeSearchResult[], translationType: TranslationType) => ipcRenderer.invoke('anilist:mapping-resolve', media, candidates, translationType),
+      confirm: (mediaId: number, anime: AnimeSearchResult, translationType: TranslationType): Promise<CatalogMapping> => ipcRenderer.invoke('anilist:mapping-confirm', mediaId, anime, translationType),
+      forget: (mediaId: number) => ipcRenderer.invoke('anilist:mapping-forget', mediaId),
+    },
+  },
   downloads: {
     getState: () => ipcRenderer.invoke('downloads:get-state'),
     start: (request: DownloadRequest) => ipcRenderer.invoke('downloads:start', request),

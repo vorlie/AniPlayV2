@@ -63,8 +63,8 @@ function App() {
       <header className="relative z-10 w-full max-w-[1500px] mx-auto flex items-center justify-between gap-3 mb-4 md:mb-5 draggable" style={{ WebkitAppRegion: 'drag' } as CSSProperties}>
         <div className="effect-container items-center gap-3">
           <h1 className="effect-neon font-sakura text-3xl md:text-4xl tracking-wide select-none">
-            <span className="glow-layer">ani-cli</span>
-            <span className="text-layer">ani-cli</span>
+            <span className="glow-layer">AniPlay</span>
+            <span className="text-layer">AniPlay</span>
           </h1>
           <span className="hidden lg:inline text-xs font-bold uppercase tracking-[0.18em] text-m3-on-surface-variant">watch without the clutter</span>
         </div>
@@ -78,6 +78,7 @@ function App() {
             setSearchQuery={setSearchQuery}
             setResults={setResults}
             onSelectAnime={handleSelectAnime}
+            onResume={handleResumeFromHistory}
           />
         )}
 

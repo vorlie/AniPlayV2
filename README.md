@@ -27,6 +27,23 @@ npm install
 npm run dev
 ```
 
+## AniList Sign-In
+
+AniPlay includes its public AniList client ID, so users can sign in without configuration. The registered redirect URL is:
+
+```text
+http://127.0.0.1:42819/anilist/callback
+```
+
+Developers and forks can override the bundled client ID when starting or packaging the app:
+
+```powershell
+$env:ANILIST_CLIENT_ID = "your-client-id"
+npm run dev
+```
+
+No client secret is used or bundled. Account tokens are encrypted through Electron secure storage and kept in the application user-data directory.
+
 ## Build Options
 
 ### 1. Fast local packaged app (recommended for testing)

@@ -4,11 +4,8 @@ export interface IpcResponse<T> {
   error?: string
 }
 
-export interface AnimeSearchResult {
-  id: string
-  name: string
-  episodes: number
-}
+import type { AnimeSearchResult, TranslationType } from '../catalog-types'
+export type { AnimeSearchResult, TranslationType } from '../catalog-types'
 
 export interface StreamLink {
   url: string
@@ -16,8 +13,6 @@ export interface StreamLink {
   hls: boolean
   provider: string
 }
-
-export type TranslationType = 'sub' | 'dub'
 
 export const TRANSLATION_TYPE_KEY = 'playback.translationType'
 

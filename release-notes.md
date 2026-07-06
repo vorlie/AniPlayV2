@@ -1,46 +1,57 @@
-# AniPlayV2 v1.6.0 Release Notes
+# AniPlayV2 v1.7.0 Release Notes
 
 ## Highlights
 
-- **Episode downloads**: Download the currently playing episode using the active server, quality, and Sub/Dub selection.
-- **Persistent download queue**: Downloads continue while you browse, change tabs, or switch to another anime.
-- **Built-in FFmpeg**: HLS and direct media sources are downloaded and remuxed to MP4 without requiring a separate FFmpeg installation.
-- **Downloads dashboard**: Monitor progress, cancel queued or active jobs, retry interrupted downloads, and reveal completed files.
+- **AniList account integration**: Sign in through the system browser and access personalized AniList data directly in AniPlay.
+- **Personalized home dashboard**: Browse currently watching and planning lists, recommendations, upcoming episodes, trending titles, and the current season.
+- **Rich anime details**: View banners, covers, descriptions, genres, scores, formats, airing information, and related recommendations before watching.
+- **AniList list management**: Explicitly add, update, or remove titles and edit status, progress, score, and repeat count.
+- **Safer playback matching**: AniPlay ranks scraper results against AniList titles and episode counts instead of blindly opening the first result.
 
-## Download Management
+## AniList Authentication and Sync
 
-- Added a dedicated Downloads tab with an active-job badge.
-- Downloads run one at a time to avoid overwhelming providers or network connections.
-- Stream URLs are refreshed immediately before each job begins, reducing failures caused by expired links.
-- Added determinate progress when episode duration is available and an activity indicator otherwise.
-- Interrupted downloads are detected after restarting AniPlay and can be retried.
-- Partial files are cleaned up after cancellation, failure, or interruption.
-- Completed filenames include the anime, episode, Sub/Dub mode, and resolution.
-- Existing files are preserved by automatically adding `(2)`, `(3)`, and subsequent suffixes.
+- Added browser-based AniList OAuth using the public AniPlay client ID.
+- Added a temporary localhost callback that works with installed and portable builds.
+- AniList access tokens are encrypted using Electron secure storage and never exposed to the renderer.
+- Sessions are validated when AniPlay starts and invalid or expired credentials are removed automatically.
+- Account integration remains optional; public discovery, search, history, and playback continue to work while signed out.
+- List changes are always explicit. Playback does not automatically update AniList progress.
 
-## Settings and Storage
+## Discovery and Details
 
-- Downloads default to the system Downloads folder under `AniPlay`.
-- Added a native folder picker under Settings for selecting a custom download location.
-- Download history and destination settings persist between sessions.
-- Added Open Folder, Clear Finished, Cancel, and Retry actions.
+- Replaced the previous Home-page GraphQL request with a dedicated main-process AniList service.
+- Added personalized Watching, Planning, Completed, and recommendation sections.
+- Added public Trending, Popular This Season, and Airing Soon sections.
+- Added Continue Watching shortcuts backed by AniPlay's existing local history.
+- Added detailed anime pages with list controls and a dedicated Watch action.
+- Converted AniList description markup into safe, readable plain text.
+- Improved wide AniList banner rendering to fill the details hero without a bottom bar.
+- Added cached-data fallback when AniList is temporarily unavailable.
+
+## Playback Catalog Matching
+
+- Searches English, romaji, preferred, and synonym titles when resolving an AniList entry.
+- Scores candidates using normalized titles and episode counts.
+- Automatically opens only high-confidence matches.
+- Shows a candidate picker when a match is uncertain.
+- Remembers confirmed mappings for each Sub/Dub mode.
+- Added an option to reset a saved playback match.
 
 ## Security and Reliability
 
-- Download work runs exclusively in the Electron main process.
-- The renderer sends episode and source metadata instead of arbitrary URLs or filesystem paths.
-- Added strict IPC validation for download requests and job actions.
-- Added typed download APIs and isolated progress-event subscriptions.
-- Added automated tests for filename sanitization, collision handling, queue ordering, restart recovery, provider headers, and FFmpeg progress parsing.
+- Added typed and sender-validated IPC APIs for authentication, dashboard data, media details, list mutations, and mappings.
+- Added request timeouts, in-flight request deduplication, bounded caching, stale-data fallback, and AniList rate-limit errors.
+- Keeps AniList DTOs and credentials out of renderer-owned UI code.
+- Added automated tests for response normalization, HTML description conversion, alternate-title matching, and episode-count conflicts.
 
-## Packaging and Licensing
+## Configuration
 
-- FFmpeg 6.1.1 is bundled with Windows and Linux packages.
-- Added FFmpeg GPL licensing, attribution, binary-provider information, and corresponding-source links.
-- FFmpeg is packaged outside the Electron ASAR archive so it remains executable.
+- AniPlay includes AniList client ID `45193`; end users do not need to configure a developer client.
+- Developers and forks can override it using `ANILIST_CLIENT_ID`.
+- The registered OAuth callback is `http://127.0.0.1:42819/anilist/callback`.
 
-> **Package size:** Bundling FFmpeg increases download and installation size by approximately 83 MB.
+> **Privacy:** AniList sign-in grants AniPlay permission to access and modify the signed-in user's AniList data. Tokens stay encrypted in the local Electron user-data directory.
 
-> **Current limitation:** v1.6.0 supports downloading one selected episode at a time. Batch and season downloads are not included.
+> **Current limitation:** AniList progress is not updated automatically during playback. Users must save progress from the anime details page.
 
-**Full changelog:** https://github.com/vorlie/AniPlayV2/compare/1.5.1...1.6.0
+**Full changelog:** https://github.com/vorlie/AniPlayV2/compare/1.6.0...1.7.0

@@ -1,4 +1,6 @@
 import type { DownloadRequest, DownloadResult, DownloadState } from './download-types'
+import type { AnimeDetails, AnimeSummary, AniListSession, CatalogMapping, CatalogResolution, DashboardData, ListUpdateInput, MediaListState } from './anilist-types'
+import type { TranslationType } from './catalog-types'
 
 interface SearchResult {
   id: string
@@ -48,6 +50,17 @@ interface AniPlayApi {
   getCiphermapInfo(): Promise<IpcResponse<CiphermapInfo | null>>
   syncCiphermap(): Promise<CiphermapSyncResponse>
   openProjectPage(page: 'repository' | 'issues' | 'pulls'): Promise<{ success: boolean }>
+  aniList: {
+    auth: { status(): Promise<AniListSession>; start(): Promise<AniListSession>; logout(): Promise<AniListSession> }
+    dashboard: { get(): Promise<DashboardData> }
+    media: { get(id: number): Promise<AnimeDetails> }
+    list: { update(input: ListUpdateInput): Promise<MediaListState>; delete(id: number): Promise<boolean> }
+    mapping: {
+      resolve(media: AnimeSummary, candidates: SearchResult[], translationType: TranslationType): Promise<CatalogResolution>
+      confirm(mediaId: number, anime: SearchResult, translationType: TranslationType): Promise<CatalogMapping>
+      forget(mediaId: number): Promise<boolean>
+    }
+  }
   downloads: DownloadsApi
 }
 

@@ -6,6 +6,9 @@ import fs from 'node:fs'
 import { searchAnime, getEpisodes, getEpisodeLinks, reloadCipherMap, type TranslationType } from './scrape'
 import { DownloadManager } from './download-manager'
 import type { DownloadRequest } from '../src/download-types'
+import { AniListService } from './anilist'
+import type { AnimeSummary, ListUpdateInput } from '../src/anilist-types'
+import type { AnimeSearchResult } from '../src/catalog-types'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -19,6 +22,7 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? join(process.env.APP_ROOT, 'publ
 let win: BrowserWindow | null
 let mediaHeadersConfigured = false
 let downloadManager: DownloadManager
+let aniListService: AniListService
 
 const PROJECT_PAGES = {
   repository: 'https://github.com/vorlie/AniPlayV2',
@@ -56,6 +60,11 @@ function requireString(value: unknown, name: string, maxLength: number): string 
 
 function requireTranslationType(value: unknown): TranslationType {
   if (value !== 'sub' && value !== 'dub') throw new TypeError('translationType must be sub or dub')
+  return value
+}
+
+function requirePositiveInteger(value: unknown, name: string): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) throw new TypeError(`${name} must be a positive integer`)
   return value
 }
 
@@ -145,6 +154,33 @@ function createWindow() {
       return { success: false, error: errorMessage(error) }
     }
   })
+
+  ipcMain.handle('anilist:auth-status', (event) => { assertTrustedSender(event); return aniListService.getSession() })
+  ipcMain.handle('anilist:auth-start', async (event) => { assertTrustedSender(event); return aniListService.startAuth() })
+  ipcMain.handle('anilist:auth-logout', (event) => { assertTrustedSender(event); return aniListService.logout() })
+  ipcMain.handle('anilist:dashboard', async (event) => { assertTrustedSender(event); return aniListService.dashboard() })
+  ipcMain.handle('anilist:media', async (event, id: unknown) => { assertTrustedSender(event); return aniListService.details(requirePositiveInteger(id, 'mediaId')) })
+  ipcMain.handle('anilist:list-update', async (event, input: unknown) => {
+    assertTrustedSender(event)
+    if (!input || typeof input !== 'object') throw new TypeError('Invalid list update')
+    const value = input as ListUpdateInput
+    requirePositiveInteger(value.mediaId, 'mediaId')
+    if (!['CURRENT', 'PLANNING', 'COMPLETED', 'PAUSED', 'DROPPED', 'REPEATING'].includes(value.status)) throw new TypeError('Invalid list status')
+    for (const [name, item] of Object.entries({ progress: value.progress, score: value.score, repeat: value.repeat })) if (item !== undefined && (typeof item !== 'number' || !Number.isFinite(item) || item < 0)) throw new TypeError(`${name} must be a non-negative number`)
+    return aniListService.updateList(value)
+  })
+  ipcMain.handle('anilist:list-delete', async (event, id: unknown) => { assertTrustedSender(event); return aniListService.deleteList(requirePositiveInteger(id, 'entryId')) })
+  ipcMain.handle('anilist:mapping-resolve', (event, media: unknown, candidates: unknown, translationType: unknown) => {
+    assertTrustedSender(event); const mode = requireTranslationType(translationType)
+    if (!media || typeof media !== 'object' || !Array.isArray(candidates)) throw new TypeError('Invalid mapping request')
+    return aniListService.resolveMapping(media as AnimeSummary, candidates as AnimeSearchResult[], mode)
+  })
+  ipcMain.handle('anilist:mapping-confirm', (event, mediaId: unknown, anime: unknown, translationType: unknown) => {
+    assertTrustedSender(event); const mode = requireTranslationType(translationType)
+    if (!anime || typeof anime !== 'object') throw new TypeError('Invalid catalog candidate')
+    return aniListService.confirmMapping(requirePositiveInteger(mediaId, 'mediaId'), anime as AnimeSearchResult, mode)
+  })
+  ipcMain.handle('anilist:mapping-forget', (event, mediaId: unknown) => { assertTrustedSender(event); return aniListService.forgetMapping(requirePositiveInteger(mediaId, 'mediaId')) })
 
   ipcMain.handle('episodes', async (event, showId: unknown, translationType: unknown) => {
     try {
@@ -340,7 +376,7 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('before-quit', () => downloadManager?.shutdown())
+app.on('before-quit', () => { downloadManager?.shutdown(); aniListService?.shutdown() })
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
@@ -349,6 +385,9 @@ app.on('activate', () => {
 })
 
 app.whenReady().then(() => {
+  aniListService = new AniListService()
+  aniListService.initialize()
+  void aniListService.validateSession()
   downloadManager = new DownloadManager((state) => {
     if (win && !win.isDestroyed()) win.webContents.send('downloads:changed', state)
   })
