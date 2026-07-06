@@ -1,10 +1,10 @@
-feat: add AniList account and discovery integration
+feat: add Discord Rich Presence for playback
 
-- move AniList requests into a cached and rate-aware Electron service
-- add secure browser OAuth login and encrypted session persistence
-- build a personalized dashboard with lists, recommendations, airing, and seasonal data
-- add anime detail pages with metadata and explicit list management
-- match AniList entries to playback results with confidence scoring and saved corrections
-- normalize AniList descriptions and improve banner presentation
-- expose validated AniList operations through typed IPC
-- add tests for media normalization, descriptions, and catalog matching
+- publish anime, episode, audio mode, artwork, and remaining time to Discord
+- add an opt-in Rich Presence setting with connection status
+- use AniList covers and links with static AniPlay artwork as fallback
+- resolve missing AniList metadata from high-confidence scraper title matches
+- persist AniList media metadata through watch history and resume flows
+- reconnect safely when Discord starts or restarts and clear presence on exit
+- keep Discord RPC isolated behind validated, typed Electron IPC
+- add tests for payloads, validation, fallback artwork, and connection failures

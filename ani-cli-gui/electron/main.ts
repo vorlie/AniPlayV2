@@ -9,6 +9,7 @@ import type { DownloadRequest } from '../src/download-types'
 import { AniListService } from './anilist'
 import type { AnimeSummary, ListUpdateInput } from '../src/anilist-types'
 import type { AnimeSearchResult } from '../src/catalog-types'
+import { DiscordPresenceService, validatePlayback } from './discord-presence'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -23,6 +24,7 @@ let win: BrowserWindow | null
 let mediaHeadersConfigured = false
 let downloadManager: DownloadManager
 let aniListService: AniListService
+let discordPresenceService: DiscordPresenceService
 
 const PROJECT_PAGES = {
   repository: 'https://github.com/vorlie/AniPlayV2',
@@ -181,6 +183,26 @@ function createWindow() {
     return aniListService.confirmMapping(requirePositiveInteger(mediaId, 'mediaId'), anime as AnimeSearchResult, mode)
   })
   ipcMain.handle('anilist:mapping-forget', (event, mediaId: unknown) => { assertTrustedSender(event); return aniListService.forgetMapping(requirePositiveInteger(mediaId, 'mediaId')) })
+  ipcMain.handle('anilist:mapping-enrich', async (event, anime: unknown, translationType: unknown) => {
+    assertTrustedSender(event); const mode = requireTranslationType(translationType)
+    if (!anime || typeof anime !== 'object') throw new TypeError('Invalid catalog anime')
+    const value = anime as Record<string, unknown>
+    const normalized: AnimeSearchResult = {
+      id: requireString(value.id, 'animeId', 200),
+      name: requireString(value.name, 'animeName', 300),
+      episodes: typeof value.episodes === 'number' && Number.isInteger(value.episodes) && value.episodes >= 0 ? value.episodes : 0,
+    }
+    return aniListService.resolveAniListMetadata(normalized, mode)
+  })
+
+  ipcMain.handle('discord-presence:get-settings', (event) => { assertTrustedSender(event); return discordPresenceService.getSettings() })
+  ipcMain.handle('discord-presence:set-enabled', (event, enabled: unknown) => {
+    assertTrustedSender(event)
+    if (typeof enabled !== 'boolean') throw new TypeError('enabled must be a boolean')
+    return discordPresenceService.setEnabled(enabled)
+  })
+  ipcMain.handle('discord-presence:update', (event, playback: unknown) => { assertTrustedSender(event); return discordPresenceService.update(validatePlayback(playback)) })
+  ipcMain.handle('discord-presence:clear', async (event) => { assertTrustedSender(event); await discordPresenceService.clear() })
 
   ipcMain.handle('episodes', async (event, showId: unknown, translationType: unknown) => {
     try {
@@ -376,7 +398,7 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('before-quit', () => { downloadManager?.shutdown(); aniListService?.shutdown() })
+app.on('before-quit', () => { downloadManager?.shutdown(); aniListService?.shutdown(); void discordPresenceService?.shutdown() })
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
@@ -388,6 +410,8 @@ app.whenReady().then(() => {
   aniListService = new AniListService()
   aniListService.initialize()
   void aniListService.validateSession()
+  discordPresenceService = new DiscordPresenceService()
+  discordPresenceService.initialize()
   downloadManager = new DownloadManager((state) => {
     if (win && !win.isDestroyed()) win.webContents.send('downloads:changed', state)
   })

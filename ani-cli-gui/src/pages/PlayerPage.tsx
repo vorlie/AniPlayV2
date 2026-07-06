@@ -21,9 +21,12 @@ interface PlayerPageProps {
   episode?: string
   translationType?: TranslationType
   initialResumeSeconds?: number | null
+  aniListMediaId?: number
+  coverUrl?: string
 }
 
 const SAVE_THROTTLE_MS = 5000
+const PRESENCE_SYNC_MS = 15000
 
 function toResumeSeconds(value: number | null | undefined) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return null
@@ -67,6 +70,8 @@ export function PlayerPage({
   episode,
   translationType = 'sub',
   initialResumeSeconds,
+  aniListMediaId,
+  coverUrl,
 }: PlayerPageProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const hlsRef = useRef<Hls | null>(null)
@@ -74,6 +79,7 @@ export function PlayerPage({
   const lastSavedAtRef = useRef(0)
   const latestTimeRef = useRef(0)
   const latestDurationRef = useRef(0)
+  const lastPresenceAtRef = useRef(0)
   const [activeIdx, setActiveIdx] = useState(0)
   const [showServers, setShowServers] = useState(false)
   const [failed, setFailed] = useState<Set<number>>(new Set())
@@ -111,8 +117,32 @@ export function PlayerPage({
       episode,
       progressSeconds,
       durationSeconds: latestDurationRef.current > 0 ? latestDurationRef.current : undefined,
+      aniListMediaId,
+      coverUrl,
     })
-  }, [animeId, animeName, episode])
+  }, [animeId, animeName, episode, aniListMediaId, coverUrl])
+
+  const updatePresence = useCallback((playing: boolean, force = false) => {
+    if (!window.aniPlay || !animeName || !episode) return
+    const now = Date.now()
+    if (!force && now - lastPresenceAtRef.current < PRESENCE_SYNC_MS) return
+    lastPresenceAtRef.current = now
+    void window.aniPlay.discordPresence.update({
+      animeName,
+      episode,
+      translationType,
+      currentTime: latestTimeRef.current,
+      duration: latestDurationRef.current > 0 ? latestDurationRef.current : undefined,
+      playing,
+      aniListMediaId,
+      coverUrl,
+    }).catch(() => {})
+  }, [animeName, episode, translationType, aniListMediaId, coverUrl])
+
+  useEffect(() => {
+    if (!videoRef.current) return
+    updatePresence(!videoRef.current.paused, true)
+  }, [updatePresence])
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
@@ -204,6 +234,7 @@ export function PlayerPage({
       window.removeEventListener('beforeunload', flush)
       document.removeEventListener('visibilitychange', flush)
       saveProgress(true)
+      void window.aniPlay?.discordPresence.clear().catch(() => {})
     }
   }, [saveProgress])
 
@@ -230,11 +261,20 @@ export function PlayerPage({
     setCurrentTime(latestTimeRef.current)
     setDuration(latestDurationRef.current)
     saveProgress(false)
+    updatePresence(!video.paused, false)
   }
 
   const handleDurationChange = (video: HTMLVideoElement) => {
     latestDurationRef.current = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 0
     setDuration(latestDurationRef.current)
+    updatePresence(!video.paused, true)
+  }
+
+  const handlePlaying = (video: HTMLVideoElement) => {
+    latestTimeRef.current = video.currentTime || 0
+    latestDurationRef.current = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : latestDurationRef.current
+    setIsPlaying(true)
+    updatePresence(true, true)
   }
 
   const handlePause = (video: HTMLVideoElement) => {
@@ -242,6 +282,7 @@ export function PlayerPage({
     latestDurationRef.current = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : latestDurationRef.current
     setIsPlaying(false)
     saveProgress(true)
+    updatePresence(false, true)
   }
 
   const handleEnded = (video: HTMLVideoElement) => {
@@ -250,6 +291,7 @@ export function PlayerPage({
     setIsPlaying(false)
     setCurrentTime(latestTimeRef.current)
     saveProgress(true)
+    void window.aniPlay?.discordPresence.clear().catch(() => {})
   }
 
   const togglePlay = () => {
@@ -283,6 +325,7 @@ export function PlayerPage({
     video.currentTime = nextTime
     latestTimeRef.current = nextTime
     setCurrentTime(nextTime)
+    updatePresence(!video.paused, true)
   }
 
   const skipForward = () => {
@@ -385,7 +428,7 @@ export function PlayerPage({
             controls={useNativeControls}
             autoPlay
             onError={tryNextServer}
-            onPlay={() => setIsPlaying(true)}
+            onPlay={(e) => handlePlaying(e.currentTarget)}
             onPause={(e) => handlePause(e.currentTarget)}
             onEnded={(e) => handleEnded(e.currentTarget)}
             onTimeUpdate={(e) => handleTimeUpdate(e.currentTarget)}
@@ -406,7 +449,7 @@ export function PlayerPage({
               controls={useNativeControls}
               autoPlay
               onError={tryNextServer}
-              onPlay={() => setIsPlaying(true)}
+              onPlay={(e) => handlePlaying(e.currentTarget)}
               onPause={(e) => handlePause(e.currentTarget)}
               onEnded={(e) => handleEnded(e.currentTarget)}
               onTimeUpdate={(e) => handleTimeUpdate(e.currentTarget)}

@@ -14,7 +14,7 @@ export default defineConfig({
         vite: {
           build: {
             rollupOptions: {
-              external: ['hls.js']
+              external: ['hls.js', 'discord-rpc']
             }
           }
         }

@@ -14,7 +14,7 @@ interface StreamLink {
 
 
 interface AnimePageProps {
-  anime: { id: string; name: string; episodes: number }
+  anime: { id: string; name: string; episodes: number; aniListMediaId?: number; coverUrl?: string }
   onBack: () => void
   initialEpisode?: string | null
   initialResumeSeconds?: number | null
@@ -34,7 +34,15 @@ export function AnimePage({
   const [loadingEp, setLoadingEp] = useState<string | null>(null)
   const [episodeQuery, setEpisodeQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [aniListMetadata, setAniListMetadata] = useState(() => ({ mediaId: anime.aniListMediaId, coverUrl: anime.coverUrl }))
   const restoredRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (anime.aniListMediaId && anime.coverUrl) return
+    void window.aniPlay?.aniList.mapping.enrich(anime, getTranslationType()).then((media) => {
+      if (media) setAniListMetadata({ mediaId: media.id, coverUrl: media.coverUrl || undefined })
+    }).catch(() => {})
+  }, [anime])
 
   const handlePlay = useCallback((ep: string) => {
     if (loadingEp === ep) return
@@ -58,6 +66,8 @@ export function AnimePage({
           animeName: anime.name,
           episode: ep,
           progressSeconds: resumeSeconds,
+          aniListMediaId: aniListMetadata.mediaId,
+          coverUrl: aniListMetadata.coverUrl,
         })
       } else {
         setError(res.error || 'No working streams were found for this episode.')
@@ -66,7 +76,7 @@ export function AnimePage({
       setLoadingEp(null)
       setError(cause instanceof Error ? cause.message : 'Stream lookup failed. Please try another episode.')
     })
-  }, [anime.id, anime.name, initialEpisode, initialResumeSeconds, loadingEp])
+  }, [anime.id, anime.name, aniListMetadata.mediaId, aniListMetadata.coverUrl, initialEpisode, initialResumeSeconds, loadingEp])
 
   useEffect(() => {
     invokeEpisodes(anime.id).then((res) => {
@@ -173,6 +183,8 @@ export function AnimePage({
               episode={playingEp}
               translationType={playingTranslationType}
               initialResumeSeconds={initialEpisode === playingEp ? initialResumeSeconds : null}
+              aniListMediaId={aniListMetadata.mediaId}
+              coverUrl={aniListMetadata.coverUrl}
             />
           ) : (
             <div className="m3-card flex-1 min-h-[280px] flex flex-col items-center justify-center text-center px-6">

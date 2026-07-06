@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { DownloadRequest, DownloadState } from '../src/download-types'
 import type { AnimeSummary, CatalogMapping, ListUpdateInput } from '../src/anilist-types'
 import type { AnimeSearchResult, TranslationType } from '../src/catalog-types'
+import type { DiscordPlaybackPresence } from '../src/discord-presence-types'
 
 contextBridge.exposeInMainWorld('aniPlay', {
   search: (query: string, translationType: 'sub' | 'dub') => ipcRenderer.invoke('search', query, translationType),
@@ -26,7 +27,14 @@ contextBridge.exposeInMainWorld('aniPlay', {
       resolve: (media: AnimeSummary, candidates: AnimeSearchResult[], translationType: TranslationType) => ipcRenderer.invoke('anilist:mapping-resolve', media, candidates, translationType),
       confirm: (mediaId: number, anime: AnimeSearchResult, translationType: TranslationType): Promise<CatalogMapping> => ipcRenderer.invoke('anilist:mapping-confirm', mediaId, anime, translationType),
       forget: (mediaId: number) => ipcRenderer.invoke('anilist:mapping-forget', mediaId),
+      enrich: (anime: AnimeSearchResult, translationType: TranslationType) => ipcRenderer.invoke('anilist:mapping-enrich', anime, translationType),
     },
+  },
+  discordPresence: {
+    getSettings: () => ipcRenderer.invoke('discord-presence:get-settings'),
+    setEnabled: (enabled: boolean) => ipcRenderer.invoke('discord-presence:set-enabled', enabled),
+    update: (playback: DiscordPlaybackPresence) => ipcRenderer.invoke('discord-presence:update', playback),
+    clear: () => ipcRenderer.invoke('discord-presence:clear'),
   },
   downloads: {
     getState: () => ipcRenderer.invoke('downloads:get-state'),

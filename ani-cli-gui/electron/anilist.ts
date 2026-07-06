@@ -33,6 +33,7 @@ const PRIVATE_DASHBOARD_QUERY = `query PrivateDashboard($userId: Int!) {
 fragment Card on Media { id title { english romaji userPreferred } synonyms coverImage { large color } bannerImage format seasonYear episodes averageScore nextAiringEpisode { episode airingAt } mediaListEntry { id status progress score repeat } }`
 
 const DETAILS_QUERY = `query Details($id: Int!) { Media(id: $id, type: ANIME) { id title { english romaji userPreferred } synonyms coverImage { extraLarge large color } bannerImage description(asHtml: false) genres format season seasonYear status episodes averageScore nextAiringEpisode { episode airingAt } mediaListEntry { id status progress score repeat } recommendations(perPage: 8, sort: RATING_DESC) { nodes { mediaRecommendation { id title { english romaji userPreferred } synonyms coverImage { large color } bannerImage format seasonYear episodes averageScore nextAiringEpisode { episode airingAt } mediaListEntry { id status progress score repeat } } } } } }`
+const SEARCH_QUERY = `query SearchMedia($search: String!) { Page(page: 1, perPage: 8) { media(search: $search, type: ANIME, isAdult: false, sort: SEARCH_MATCH) { id title { english romaji userPreferred } synonyms coverImage { extraLarge large color } bannerImage format seasonYear episodes averageScore } } }`
 
 function record(value: unknown): JsonObject { return value && typeof value === 'object' ? value as JsonObject : {} }
 function array(value: unknown): unknown[] { return Array.isArray(value) ? value : [] }
@@ -225,6 +226,24 @@ export class AniListService {
     const first = ranked[0]; const second = ranked[1]; const auto = Boolean(first && first.confidence >= .86 && (!second || first.confidence - second.confidence >= .12))
     if (auto) { const mapping = this.confirmMapping(media.id, first.anime, translationType); return { mapping, candidates: ranked, autoMatched: true } }
     return { candidates: ranked, autoMatched: false }
+  }
+  async resolveAniListMetadata(scraperAnime: AnimeSearchResult, translationType: TranslationType): Promise<AnimeSummary | null> {
+    const saved = [...this.mappings.values()].find((mapping) => mapping.scraperId === scraperAnime.id && mapping.translationType === translationType)
+    if (saved) {
+      try { return await this.details(saved.mediaId) } catch { /* fall through to title search */ }
+    }
+
+    const data = record(await this.request(SEARCH_QUERY, { search: scraperAnime.name }, false, true, `media-search:${scraperAnime.name.toLowerCase()}`))
+    const ranked = array(record(data.Page).media)
+      .map(normalizeMedia)
+      .filter((media) => media.id)
+      .map((media) => ({ media, ...scoreCandidate(media, scraperAnime) }))
+      .sort((a, b) => b.confidence - a.confidence)
+    const first = ranked[0]
+    const second = ranked[1]
+    if (!first || first.confidence < .8 || (second && first.confidence - second.confidence < .12)) return null
+    this.confirmMapping(first.media.id, scraperAnime, translationType)
+    return first.media
   }
   confirmMapping(mediaId: number, anime: AnimeSearchResult, translationType: TranslationType) { const mapping: CatalogMapping = { mediaId, scraperId: anime.id, scraperName: anime.name, episodes: anime.episodes, translationType, confirmedAt: Date.now() }; this.mappings.set(mediaId, mapping); this.saveMappings(); return mapping }
   forgetMapping(mediaId: number) { const removed = this.mappings.delete(mediaId); this.saveMappings(); return removed }

@@ -12,6 +12,8 @@ interface AnimeSelection {
   id: string
   name: string
   episodes: number
+  aniListMediaId?: number
+  coverUrl?: string
 }
 
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
@@ -39,6 +41,8 @@ function App() {
       id: item.animeId,
       name: item.animeName,
       episodes: 0,
+      aniListMediaId: item.aniListMediaId,
+      coverUrl: item.coverUrl,
     })
     setResumeEpisode(item.episode)
     setResumeProgressSeconds(item.progressSeconds)

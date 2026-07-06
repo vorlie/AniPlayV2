@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from 'react'
-import { Bug, FolderOpen, GitPullRequest, Globe, Palette, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
+import { Bug, FolderOpen, Gamepad2, GitPullRequest, Globe, Palette, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
 import { argbFromRgb, hexFromArgb, themeFromSourceColor } from '@material/material-color-utilities'
 import { getTranslationType, TRANSLATION_TYPE_KEY, type TranslationType } from '../lib/api'
 
@@ -71,6 +71,8 @@ export function SettingsPage() {
   const [syncError, setSyncError] = useState<string | null>(null)
   const [ciphermapInfo, setCiphermapInfo] = useState<CiphermapInfo | null>(null)
   const [downloadDirectory, setDownloadDirectory] = useState('Loading…')
+  const [discordPresenceEnabled, setDiscordPresenceEnabled] = useState(false)
+  const [discordPresenceConnected, setDiscordPresenceConnected] = useState(false)
 
   useEffect(() => {
     const saved = localStorage.getItem('theme.primary')
@@ -78,6 +80,21 @@ export function SettingsPage() {
     setPrimary(saved)
     applyThemeFromPrimary(saved)
   }, [])
+
+  useEffect(() => {
+    void window.aniPlay?.discordPresence.getSettings().then((settings) => {
+      setDiscordPresenceEnabled(settings.enabled)
+      setDiscordPresenceConnected(settings.connected)
+    }).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (!discordPresenceEnabled) return
+    const timer = window.setInterval(() => {
+      void window.aniPlay?.discordPresence.getSettings().then((settings) => setDiscordPresenceConnected(settings.connected)).catch(() => {})
+    }, 5000)
+    return () => window.clearInterval(timer)
+  }, [discordPresenceEnabled])
 
   useEffect(() => {
     if (!window.aniPlay) return
@@ -121,6 +138,13 @@ export function SettingsPage() {
   const selectTranslationType = (value: TranslationType) => {
     setTranslationType(value)
     localStorage.setItem(TRANSLATION_TYPE_KEY, value)
+  }
+
+  const toggleDiscordPresence = async () => {
+    const settings = await window.aniPlay?.discordPresence.setEnabled(!discordPresenceEnabled)
+    if (!settings) return
+    setDiscordPresenceEnabled(settings.enabled)
+    setDiscordPresenceConnected(settings.connected)
   }
 
   const syncCiphermap = async () => {
@@ -217,6 +241,25 @@ export function SettingsPage() {
               </button>
             ))}
           </div>
+        </div>
+        <div className="mt-3 rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex items-center justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <Gamepad2 size={19} className="mt-0.5 shrink-0 text-m3-primary" />
+            <div>
+              <p className="font-bold text-sm">Discord Rich Presence</p>
+              <p className="text-xs text-m3-on-surface-variant">Share the anime, episode, audio version, artwork, and remaining time on your Discord profile.</p>
+              {discordPresenceEnabled && <p className={`mt-1 text-xs ${discordPresenceConnected ? 'text-green-400' : 'text-m3-on-surface-variant'}`}>{discordPresenceConnected ? 'Connected to Discord' : 'Waiting for Discord Desktop'}</p>}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => void toggleDiscordPresence()}
+            className={`w-14 h-8 shrink-0 rounded-full p-1 transition-colors ${discordPresenceEnabled ? 'bg-m3-primary' : 'bg-m3-surface-variant/60'}`}
+            aria-pressed={discordPresenceEnabled}
+            aria-label="Enable Discord Rich Presence"
+          >
+            <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${discordPresenceEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+          </button>
         </div>
       </div>
       <div className="mt-8 pt-6 border-t border-m3-outline/20">

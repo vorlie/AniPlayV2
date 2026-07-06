@@ -1,57 +1,53 @@
-# AniPlayV2 v1.7.0 Release Notes
+# AniPlayV2 v1.8.0 Release Notes
 
 ## Highlights
 
-- **AniList account integration**: Sign in through the system browser and access personalized AniList data directly in AniPlay.
-- **Personalized home dashboard**: Browse currently watching and planning lists, recommendations, upcoming episodes, trending titles, and the current season.
-- **Rich anime details**: View banners, covers, descriptions, genres, scores, formats, airing information, and related recommendations before watching.
-- **AniList list management**: Explicitly add, update, or remove titles and edit status, progress, score, and repeat count.
-- **Safer playback matching**: AniPlay ranks scraper results against AniList titles and episode counts instead of blindly opening the first result.
+- **Discord Rich Presence**: Share the anime, episode, Sub/Dub mode, artwork, and remaining playback time on your Discord profile.
+- **AniList cover artwork**: Playback launched from AniList uses the matching anime cover and provides a direct AniList link.
+- **Automatic metadata resolution**: Catalog and legacy-history playback can resolve AniList metadata from high-confidence title and episode-count matches.
+- **Privacy-first controls**: Rich Presence is disabled by default and can be enabled under Settings.
 
-## AniList Authentication and Sync
+## Discord Rich Presence
 
-- Added browser-based AniList OAuth using the public AniPlay client ID.
-- Added a temporary localhost callback that works with installed and portable builds.
-- AniList access tokens are encrypted using Electron secure storage and never exposed to the renderer.
-- Sessions are validated when AniPlay starts and invalid or expired credentials are removed automatically.
-- Account integration remains optional; public discovery, search, history, and playback continue to work while signed out.
-- List changes are always explicit. Playback does not automatically update AniList progress.
+- Added local Discord Desktop integration using application ID `1440472840578142381`.
+- Displays the activity as **Watching on AniPlay** with the current anime and episode.
+- Shows whether playback is Subbed or Dubbed.
+- Displays a remaining-time countdown while playing.
+- Freezes the remaining time and displays a Paused state when playback is paused.
+- Recalculates the countdown after seeking or resuming.
+- Clears the activity when playback ends, the player closes, the feature is disabled, or AniPlay exits.
+- Added bounded reconnection when Discord is closed, launched later, or restarted.
+- Added a Settings status indicator for connected and waiting states.
 
-## Discovery and Details
+## Artwork and AniList Metadata
 
-- Replaced the previous Home-page GraphQL request with a dedicated main-process AniList service.
-- Added personalized Watching, Planning, Completed, and recommendation sections.
-- Added public Trending, Popular This Season, and Airing Soon sections.
-- Added Continue Watching shortcuts backed by AniPlay's existing local history.
-- Added detailed anime pages with list controls and a dedicated Watch action.
-- Converted AniList description markup into safe, readable plain text.
-- Improved wide AniList banner rendering to fill the details hero without a bottom bar.
-- Added cached-data fallback when AniList is temporarily unavailable.
-
-## Playback Catalog Matching
-
-- Searches English, romaji, preferred, and synonym titles when resolving an AniList entry.
-- Scores candidates using normalized titles and episode counts.
-- Automatically opens only high-confidence matches.
-- Shows a candidate picker when a match is uncertain.
-- Remembers confirmed mappings for each Sub/Dub mode.
-- Added an option to reset a saved playback match.
+- Uses the AniList cover as Rich Presence artwork when a confirmed media match is available.
+- Uses the uploaded `aniplay` Discord asset when no reliable cover is known or Discord rejects the external image.
+- Adds a **View on AniList** button when an AniList media ID is available.
+- Carries AniList media IDs and cover URLs through playback selection, local history, and resume flows.
+- Searches AniList using scraper titles when playback lacks metadata.
+- Scores candidates using normalized titles, alternate titles, and episode counts.
+- Saves only high-confidence, unambiguous scraper-to-AniList mappings; uncertain results retain fallback artwork.
+- Existing `watch.history.v1` entries remain compatible.
 
 ## Security and Reliability
 
-- Added typed and sender-validated IPC APIs for authentication, dashboard data, media details, list mutations, and mappings.
-- Added request timeouts, in-flight request deduplication, bounded caching, stale-data fallback, and AniList rate-limit errors.
-- Keeps AniList DTOs and credentials out of renderer-owned UI code.
-- Added automated tests for response normalization, HTML description conversion, alternate-title matching, and episode-count conflicts.
+- Rich Presence runs exclusively in Electron's main process through Discord's local IPC transport.
+- Added sender validation and typed preload APIs for settings, playback updates, and activity clearing.
+- Validates title lengths, playback values, AniList IDs, and HTTPS cover URLs before publishing.
+- Throttles routine presence synchronization while immediately updating play, pause, seek, and metadata changes.
+- Discord failures are isolated from search, playback, history, downloads, and AniList synchronization.
+- Externalized the CommonJS Discord RPC dependency from the ESM Electron bundle to prevent startup failures.
+- Added automated tests for activity generation, timestamps, paused state, artwork fallback, input validation, connection failure, and reconnection behavior.
 
 ## Configuration
 
-- AniPlay includes AniList client ID `45193`; end users do not need to configure a developer client.
-- Developers and forks can override it using `ANILIST_CLIENT_ID`.
-- The registered OAuth callback is `http://127.0.0.1:42819/anilist/callback`.
+- End users do not need to configure a Discord application.
+- Developers and forks can override the bundled application ID using `DISCORD_CLIENT_ID`.
+- Discord Desktop must be running locally for Rich Presence to connect.
 
-> **Privacy:** AniList sign-in grants AniPlay permission to access and modify the signed-in user's AniList data. Tokens stay encrypted in the local Electron user-data directory.
+> **Privacy:** Playback activity is publicly visible according to the user's Discord activity-sharing settings. AniPlay therefore keeps Rich Presence disabled until the user explicitly enables it.
 
-> **Current limitation:** AniList progress is not updated automatically during playback. Users must save progress from the anime details page.
+> **Current limitation:** AniList artwork is used only when AniPlay can establish a sufficiently confident media match. Ambiguous titles intentionally use the static AniPlay image.
 
-**Full changelog:** https://github.com/vorlie/AniPlayV2/compare/1.6.0...1.7.0
+**Full changelog:** https://github.com/vorlie/AniPlayV2/compare/1.7.0...1.8.0

@@ -5,6 +5,8 @@ export interface HistoryEntry {
   watchedAt: number
   progressSeconds: number
   durationSeconds?: number
+  aniListMediaId?: number
+  coverUrl?: string
 }
 
 const HISTORY_KEY = 'watch.history.v1'
@@ -27,6 +29,10 @@ function normalizeEntry(entry: unknown): HistoryEntry | null {
   const normalizedDuration = typeof durationSeconds === 'number' && Number.isFinite(durationSeconds) && durationSeconds >= 0
     ? durationSeconds
     : undefined
+  const aniListMediaId = typeof candidate.aniListMediaId === 'number' && Number.isInteger(candidate.aniListMediaId) && candidate.aniListMediaId > 0
+    ? candidate.aniListMediaId
+    : undefined
+  const coverUrl = typeof candidate.coverUrl === 'string' && candidate.coverUrl.startsWith('https://') ? candidate.coverUrl : undefined
 
   return {
     animeId: candidate.animeId,
@@ -35,6 +41,8 @@ function normalizeEntry(entry: unknown): HistoryEntry | null {
     watchedAt: toFiniteNumber(candidate.watchedAt, 0),
     progressSeconds,
     durationSeconds: normalizedDuration,
+    aniListMediaId,
+    coverUrl,
   }
 }
 
@@ -73,6 +81,8 @@ export function addHistory(entry: Omit<HistoryEntry, 'watchedAt'>) {
       ? entry.durationSeconds
       : undefined,
     watchedAt: Date.now(),
+    aniListMediaId: entry.aniListMediaId,
+    coverUrl: entry.coverUrl,
   }
   const filtered = existing.filter((x) => !(x.animeId === entry.animeId && x.episode === entry.episode))
   filtered.unshift(normalizedEntry)

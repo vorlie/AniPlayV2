@@ -91,7 +91,10 @@ export function HomePage({ setSearchQuery, setResults, onSelectAnime, onResume }
   const signIn = async () => { setAuthBusy(true); setError(null); try { await window.aniPlay!.aniList.auth.start(); load() } catch (cause) { setError(cause instanceof Error ? cause.message : 'Sign-in failed') } finally { setAuthBusy(false) } }
   const logout = async () => { await window.aniPlay!.aniList.auth.logout(); load() }
 
-  const openMapped = (anime: AnimeSearchResult) => { setSearchQuery(anime.name); setResults([anime]); onSelectAnime(anime) }
+  const openMapped = (media: AnimeSummary, anime: AnimeSearchResult) => {
+    const selection = { ...anime, aniListMediaId: media.id, coverUrl: media.coverUrl || undefined }
+    setSearchQuery(anime.name); setResults([selection]); onSelectAnime(selection)
+  }
   const watch = async (media: AnimeSummary) => {
     setError(null)
     try {
@@ -99,12 +102,12 @@ export function HomePage({ setSearchQuery, setResults, onSelectAnime, onResume }
       let results: AnimeSearchResult[] = []
       for (const query of queries) { const response = await invokeSearch(query); if (response.success && response.data?.length) { results = response.data; break } }
       const resolution = await window.aniPlay!.aniList.mapping.resolve(media, results, getTranslationType())
-      if (resolution.mapping) { openMapped({ id: resolution.mapping.scraperId, name: resolution.mapping.scraperName, episodes: resolution.mapping.episodes }); return }
+      if (resolution.mapping) { openMapped(media, { id: resolution.mapping.scraperId, name: resolution.mapping.scraperName, episodes: resolution.mapping.episodes }); return }
       if (!resolution.candidates.length) throw new Error(`No playable catalog result found for “${media.title}”.`)
       setCandidates({ media, items: resolution.candidates.slice(0, 8) })
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not find this anime in the playback catalog') }
   }
-  const choose = async (media: AnimeSummary, anime: AnimeSearchResult) => { await window.aniPlay!.aniList.mapping.confirm(media.id, anime, getTranslationType()); setCandidates(null); openMapped(anime) }
+  const choose = async (media: AnimeSummary, anime: AnimeSearchResult) => { await window.aniPlay!.aniList.mapping.confirm(media.id, anime, getTranslationType()); setCandidates(null); openMapped(media, anime) }
 
   if (selectedId) return <DetailsView id={selectedId} onBack={() => setSelectedId(null)} onWatch={(media) => void watch(media)} onChanged={load} />
   const history = readHistory().slice(0, 4)

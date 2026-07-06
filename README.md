@@ -42,6 +42,16 @@ npm run dev
 
 No client secret is used or bundled. Account tokens are encrypted through Electron secure storage and kept in the application user-data directory.
 
+## Discord Rich Presence
+
+Discord Rich Presence is optional and disabled by default. Enable it under **Settings → Player → Discord Rich Presence** to share the current anime, episode, Sub/Dub mode, artwork, and remaining playback time on your Discord profile.
+
+- Discord Desktop must be running locally.
+- AniList playback uses the anime cover and links back to its AniList page.
+- Catalog-only and legacy history playback use the static AniPlay artwork.
+- Pausing freezes the displayed remaining time; ending or closing playback clears the activity.
+- Developers and forks can override the bundled Discord application ID with `DISCORD_CLIENT_ID`.
+
 ## Build Options
 
 ### 1. Fast local packaged app (recommended for testing)
