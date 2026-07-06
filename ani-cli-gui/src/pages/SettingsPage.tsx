@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Bug, FolderOpen, Gamepad2, GitPullRequest, Globe, Palette, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
 import { argbFromRgb, hexFromArgb, themeFromSourceColor } from '@material/material-color-utilities'
 import { getTranslationType, TRANSLATION_TYPE_KEY, type TranslationType } from '../lib/api'
+import type { UpdateState } from '../updater-types'
 
 const DEFAULT_PRIMARY = '#D0BCFF'
 
@@ -73,12 +74,19 @@ export function SettingsPage() {
   const [downloadDirectory, setDownloadDirectory] = useState('Loading…')
   const [discordPresenceEnabled, setDiscordPresenceEnabled] = useState(false)
   const [discordPresenceConnected, setDiscordPresenceConnected] = useState(false)
+  const [updateState, setUpdateState] = useState<UpdateState | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem('theme.primary')
     if (!saved) return
     setPrimary(saved)
     applyThemeFromPrimary(saved)
+  }, [])
+
+  useEffect(() => {
+    if (!window.aniPlay) return
+    void window.aniPlay.updater.getState().then(setUpdateState)
+    return window.aniPlay.updater.onChanged(setUpdateState)
   }, [])
 
   useEffect(() => {
@@ -275,6 +283,41 @@ export function SettingsPage() {
             className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border border-m3-outline/30 hover:bg-m3-on-surface/10"
           >
             <FolderOpen size={16} /> Choose folder
+          </button>
+        </div>
+      </div>
+      <div className="mt-8 pt-6 border-t border-m3-outline/20">
+        <h3 className="font-sans font-bold text-xl mb-3">Application updates</h3>
+        <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-bold text-sm">AniPlay {updateState?.currentVersion ?? ''}</p>
+            <p className="mt-1 text-xs text-m3-on-surface-variant">
+              {updateState?.phase === 'available' && `Version ${updateState.availableVersion} is available.`}
+              {updateState?.phase === 'downloading' && `Downloading version ${updateState.availableVersion ?? ''}… ${Math.round(updateState.progress ?? 0)}%`}
+              {updateState?.phase === 'downloaded' && `Version ${updateState.availableVersion} is ready to install.`}
+              {updateState?.phase === 'checking' && 'Checking GitHub for updates…'}
+              {(updateState?.phase === 'idle' || updateState?.phase === 'error' || updateState?.phase === 'unavailable') && (updateState.message ?? 'Updates are checked automatically after startup.')}
+              {!updateState && 'Loading update status…'}
+            </p>
+            {updateState?.phase === 'downloading' && (
+              <div className="mt-2 h-1.5 max-w-sm overflow-hidden rounded-full bg-m3-on-surface/10">
+                <div className="h-full bg-m3-primary transition-[width]" style={{ width: `${updateState.progress ?? 0}%` }} />
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            disabled={!updateState || updateState.phase === 'unavailable' || updateState.phase === 'checking' || updateState.phase === 'downloading'}
+            onClick={() => {
+              if (!window.aniPlay || !updateState) return
+              if (updateState.phase === 'available') void window.aniPlay.updater.download().then(setUpdateState)
+              else if (updateState.phase === 'downloaded') void window.aniPlay.updater.install()
+              else void window.aniPlay.updater.check().then(setUpdateState)
+            }}
+            className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border border-m3-outline/30 hover:bg-m3-on-surface/10 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RefreshCw size={14} className={updateState?.phase === 'checking' || updateState?.phase === 'downloading' ? 'animate-spin' : ''} />
+            {updateState?.phase === 'available' ? 'Download update' : updateState?.phase === 'downloaded' ? 'Restart and install' : 'Check for updates'}
           </button>
         </div>
       </div>

@@ -2,6 +2,7 @@ import type { DownloadRequest, DownloadResult, DownloadState } from './download-
 import type { AnimeDetails, AnimeSummary, AniListSession, CatalogMapping, CatalogResolution, DashboardData, ListUpdateInput, MediaListState } from './anilist-types'
 import type { CatalogProvider, TranslationType } from './catalog-types'
 import type { DiscordPlaybackPresence, DiscordPresenceSettings } from './discord-presence-types'
+import type { UpdateState } from './updater-types'
 
 interface SearchResult {
   id: string
@@ -71,6 +72,13 @@ interface AniPlayApi {
     setEnabled(enabled: boolean): Promise<DiscordPresenceSettings>
     update(playback: DiscordPlaybackPresence): Promise<DiscordPresenceSettings>
     clear(): Promise<void>
+  }
+  updater: {
+    getState(): Promise<UpdateState>
+    check(): Promise<UpdateState>
+    download(): Promise<UpdateState>
+    install(): Promise<void>
+    onChanged(callback: (state: UpdateState) => void): () => void
   }
   downloads: DownloadsApi
 }

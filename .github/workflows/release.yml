@@ -21,7 +21,10 @@ jobs:
             os: windows-latest
             artifact: AniPlay-Windows
             build-command: npx electron-builder --win portable nsis --publish never
-            artifact-path: ani-cli-gui/dist/*.exe
+            artifact-path: |
+              ani-cli-gui/dist/*.exe
+              ani-cli-gui/dist/*.blockmap
+              ani-cli-gui/dist/latest.yml
           - name: Linux
             os: ubuntu-24.04
             artifact: AniPlay-Linux

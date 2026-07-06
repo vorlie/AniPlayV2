@@ -3,6 +3,7 @@ import type { DownloadRequest, DownloadState } from '../src/download-types'
 import type { AnimeSummary, CatalogMapping, ListUpdateInput } from '../src/anilist-types'
 import type { AnimeSearchResult, CatalogProvider, TranslationType } from '../src/catalog-types'
 import type { DiscordPlaybackPresence } from '../src/discord-presence-types'
+import type { UpdateState } from '../src/updater-types'
 
 contextBridge.exposeInMainWorld('aniPlay', {
   search: (query: string, translationType: TranslationType, catalogProvider: CatalogProvider) => ipcRenderer.invoke('search', query, translationType, catalogProvider),
@@ -36,6 +37,17 @@ contextBridge.exposeInMainWorld('aniPlay', {
     setEnabled: (enabled: boolean) => ipcRenderer.invoke('discord-presence:set-enabled', enabled),
     update: (playback: DiscordPlaybackPresence) => ipcRenderer.invoke('discord-presence:update', playback),
     clear: () => ipcRenderer.invoke('discord-presence:clear'),
+  },
+  updater: {
+    getState: (): Promise<UpdateState> => ipcRenderer.invoke('updater:get-state'),
+    check: (): Promise<UpdateState> => ipcRenderer.invoke('updater:check'),
+    download: (): Promise<UpdateState> => ipcRenderer.invoke('updater:download'),
+    install: (): Promise<void> => ipcRenderer.invoke('updater:install'),
+    onChanged: (callback: (state: UpdateState) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, state: UpdateState) => callback(state)
+      ipcRenderer.on('updater:changed', listener)
+      return () => ipcRenderer.removeListener('updater:changed', listener)
+    },
   },
   downloads: {
     getState: () => ipcRenderer.invoke('downloads:get-state'),

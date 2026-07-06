@@ -12,6 +12,7 @@ import type { AnimeSearchResult } from '../src/catalog-types'
 import type { CatalogProvider } from '../src/catalog-types'
 import { DiscordPresenceService, validatePlayback } from './discord-presence'
 import { getDesuEpisodePageUrl } from './desu'
+import { UpdateService } from './updater'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -27,6 +28,7 @@ let mediaHeadersConfigured = false
 let downloadManager: DownloadManager
 let aniListService: AniListService
 let discordPresenceService: DiscordPresenceService
+let updateService: UpdateService
 
 const PROJECT_PAGES = {
   repository: 'https://github.com/vorlie/AniPlayV2',
@@ -426,6 +428,11 @@ function createWindow() {
     }
   })
 
+  ipcMain.handle('updater:get-state', (event) => { assertTrustedSender(event); return updateService.getState() })
+  ipcMain.handle('updater:check', (event) => { assertTrustedSender(event); return updateService.check() })
+  ipcMain.handle('updater:download', (event) => { assertTrustedSender(event); return updateService.download() })
+  ipcMain.handle('updater:install', (event) => { assertTrustedSender(event); updateService.install() })
+
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL)
     win.webContents.openDevTools()
@@ -444,7 +451,7 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('before-quit', () => { downloadManager?.shutdown(); aniListService?.shutdown(); void discordPresenceService?.shutdown() })
+app.on('before-quit', () => { updateService?.shutdown(); downloadManager?.shutdown(); aniListService?.shutdown(); void discordPresenceService?.shutdown() })
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
@@ -453,6 +460,10 @@ app.on('activate', () => {
 })
 
 app.whenReady().then(() => {
+  updateService = new UpdateService((state) => {
+    if (win && !win.isDestroyed()) win.webContents.send('updater:changed', state)
+  })
+  updateService.initialize()
   aniListService = new AniListService()
   aniListService.initialize()
   void aniListService.validateSession()
