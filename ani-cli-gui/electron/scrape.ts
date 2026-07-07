@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import { join } from 'node:path'
 import { app } from 'electron'
 import { getDesuEpisodeLinks, getDesuEpisodes, searchDesu } from './desu'
+import { getMiruroEpisodeLinks, getMiruroEpisodes, searchMiruro } from './miruro'
 import type { CatalogProvider } from '../src/catalog-types'
 
 const DEFAULT_TIMEOUT_MS = 10_000
@@ -116,6 +117,7 @@ export interface SearchResult {
 
 export async function searchAnime(query: string, mode: TranslationType, catalogProvider: CatalogProvider = 'allanime'): Promise<SearchResult[]> {
   if (catalogProvider === 'desu') return searchDesu(query)
+  if (catalogProvider === 'miruro') return searchMiruro(query)
   const searchGql = `query( $search: SearchInput $limit: Int $page: Int $translationType: VaildTranslationTypeEnumType $countryOrigin: VaildCountryOriginEnumType ) { shows( search: $search limit: $limit page: $page translationType: $translationType countryOrigin: $countryOrigin ) { edges { _id name availableEpisodes __typename } }}`
 
   const variables = {
@@ -156,6 +158,7 @@ export async function searchAnime(query: string, mode: TranslationType, catalogP
 
 export async function getEpisodes(showId: string, mode: TranslationType, catalogProvider: CatalogProvider = 'allanime'): Promise<string[]> {
   if (catalogProvider === 'desu') return getDesuEpisodes(showId)
+  if (catalogProvider === 'miruro') return getMiruroEpisodes(showId)
   const episodesListGql = `query ($showId: String!) { show( _id: $showId ) { _id availableEpisodesDetail }}`
   const json = await fetchJson(`${ALLANIME_API}/api`, {
     method: 'POST',
@@ -181,7 +184,29 @@ export async function getEpisodes(showId: string, mode: TranslationType, catalog
     .sort((a, b) => parseFloat(a) - parseFloat(b))
 }
 
-const ALLANIME_KEY = crypto.createHash('sha256').update('Xot36i3lK3:v1').digest('hex')
+const ALLANIME_EPOCH = 4128
+const ALLANIME_BUILD_ID = '9'
+const ALLANIME_QUERY_HASH = 'd405d0edd690624b66baba3068e0edc3ac90f1597d898a1ec8db4e5c43c00fec'
+const ALLANIME_KEY = Buffer.from('b1a9a4d051988f1b1b12dbb747439d9bd64b09ea17835600a7eaa4de87c1ad87', 'hex')
+  .map((byte, index) => byte ^ Buffer.from('k7DLdv5SGiuEyGUtcncl5wQOR7r4aenLfDV3AOBKlAU=', 'base64')[index])
+
+function createAllAnimeRequestToken(queryHash: string): string {
+  const ts = Math.floor(Date.now() / 300_000) * 300_000
+  const payload = {
+    v: 1,
+    ts,
+    epoch: ALLANIME_EPOCH,
+    buildId: ALLANIME_BUILD_ID,
+    qh: queryHash,
+  }
+  const iv = crypto.createHash('sha256')
+    .update(`${ALLANIME_EPOCH}:${ALLANIME_BUILD_ID}:${queryHash}:${ts}`)
+    .digest()
+    .subarray(0, 12)
+  const cipher = crypto.createCipheriv('aes-256-gcm', ALLANIME_KEY, iv)
+  const encrypted = Buffer.concat([cipher.update(JSON.stringify(payload)), cipher.final()])
+  return Buffer.concat([Buffer.from([1]), iv, encrypted, cipher.getAuthTag()]).toString('base64')
+}
 
 function processResponse(responseRaw: string): unknown {
   let parsed: unknown = responseRaw
@@ -213,11 +238,20 @@ function processResponse(responseRaw: string): unknown {
       if (ctLen <= 0) throw new Error('Encrypted episode payload is too short')
       const ciphertext = buffer.subarray(13, 13 + ctLen)
       
-      const keyBuffer = Buffer.from(ALLANIME_KEY, 'hex')
-      
-      const decipher = crypto.createDecipheriv('aes-256-ctr', keyBuffer, ctrBuffer)
+      if (buffer[0] === 1 && buffer.length > 29) {
+        try {
+          const gcm = crypto.createDecipheriv('aes-256-gcm', ALLANIME_KEY, ivRaw)
+          gcm.setAuthTag(buffer.subarray(buffer.length - 16))
+          const decrypted = Buffer.concat([gcm.update(buffer.subarray(13, buffer.length - 16)), gcm.final()])
+          return JSON.parse(decrypted.toString('utf-8')) as unknown
+        } catch (error: unknown) {
+          console.warn('[scrape] AES-GCM episode decrypt failed, trying legacy CTR:', errorMessage(error))
+        }
+      }
+
+      const decipher = crypto.createDecipheriv('aes-256-ctr', ALLANIME_KEY, ctrBuffer)
       const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()])
-      
+
       return JSON.parse(decrypted.toString('utf-8')) as unknown
   }
   return parsed
@@ -225,9 +259,10 @@ function processResponse(responseRaw: string): unknown {
 
 export async function getEpisodeLinks(showId: string, epNo: string, mode: TranslationType, catalogProvider: CatalogProvider = 'allanime'): Promise<StreamLink[]> {
     if (catalogProvider === 'desu') return getDesuEpisodeLinks(showId, epNo)
-    const queryHash = "d405d0edd690624b66baba3068e0edc3ac90f1597d898a1ec8db4e5c43c00fec"
+    if (catalogProvider === 'miruro') return getMiruroEpisodeLinks(showId, epNo)
+    const queryHash = ALLANIME_QUERY_HASH
     const queryVars = { showId, translationType: mode, episodeString: epNo }
-    const extensions = { persistedQuery: { version: 1, sha256Hash: queryHash } }
+    const extensions = { persistedQuery: { version: 1, sha256Hash: queryHash }, aaReq: createAllAnimeRequestToken(queryHash) }
 
     const url = new URL(`${ALLANIME_API}/api`)
     url.searchParams.append('variables', JSON.stringify(queryVars))
@@ -260,6 +295,7 @@ export async function getEpisodeLinks(showId: string, epNo: string, mode: Transl
           body: JSON.stringify({
             variables: queryVars,
             query: episodeEmbedGql,
+            extensions: { aaReq: createAllAnimeRequestToken(queryHash) },
           }),
         })
         rawText = await response.text()

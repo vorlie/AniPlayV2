@@ -1,9 +1,9 @@
-feat: add managed remote service notices
+feat: add Miruro provider and restore AllAnime sources
 
-- fetch versioned service notices from the AniPlay CDN in the Electron main process
-- validate notice schema, provider targets, app version ranges, dates, severity, and HTTPS links
-- cache the last valid notice payload in user data for stale-safe outage messaging
-- allow users to dismiss individual notices without sending telemetry
-- expose typed preload APIs for notice state, refresh, dismiss, and validated external links
-- show a global plain-text notice banner with provider-aware filtering
-- add normalization tests for active, dismissed, malformed, unsafe, and version-gated notices
+- add Miruro as an English catalog provider with search, episodes, source lookup, and browser fallback
+- wire Miruro through catalog selection, IPC validation, history, remote notices, and player metadata
+- add Miruro and UltraCloud request headers for embedded playback
+- generate AllAnime aaReq tokens for persisted episode-source queries
+- decrypt new AllAnime AES-GCM episode payloads with the updated derived key while keeping legacy CTR fallback
+- keep AllAnime provider resolution for Mp4Upload, fast4speed, and internal proxy links
+- validate with production UI build and automated tests

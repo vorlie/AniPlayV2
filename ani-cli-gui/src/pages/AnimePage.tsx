@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { AlertCircle, ArrowLeft, ExternalLink, Loader2, MonitorPlay, Search } from 'lucide-react'
 import { PlayerPage } from './PlayerPage'
 import { addHistory } from '../lib/history'
-import { getTranslationType, invokeEpisodes, invokeLinks, openProviderEpisode, type TranslationType } from '../lib/api'
+import { getTranslationType, invokeEpisodes, invokeLinks, openProviderEpisode, type CatalogProvider, type TranslationType } from '../lib/api'
 
 interface StreamLink {
   url: string
@@ -15,7 +15,7 @@ interface StreamLink {
 
 
 interface AnimePageProps {
-  anime: { id: string; name: string; episodes: number; aniListMediaId?: number; coverUrl?: string; catalogProvider: 'allanime' | 'desu' }
+  anime: { id: string; name: string; episodes: number; aniListMediaId?: number; coverUrl?: string; catalogProvider: CatalogProvider }
   onBack: () => void
   initialEpisode?: string | null
   initialResumeSeconds?: number | null
@@ -75,12 +75,12 @@ export function AnimePage({
         })
       } else {
         setError(res.error || 'No working streams were found for this episode.')
-        if (anime.catalogProvider === 'desu') setBrowserFallbackEpisode(ep)
+        if (anime.catalogProvider === 'desu' || anime.catalogProvider === 'miruro') setBrowserFallbackEpisode(ep)
       }
     }).catch((cause: unknown) => {
       setLoadingEp(null)
       setError(cause instanceof Error ? cause.message : 'Stream lookup failed. Please try another episode.')
-      if (anime.catalogProvider === 'desu') setBrowserFallbackEpisode(ep)
+      if (anime.catalogProvider === 'desu' || anime.catalogProvider === 'miruro') setBrowserFallbackEpisode(ep)
     })
   }, [anime.id, anime.name, anime.catalogProvider, aniListMetadata.mediaId, aniListMetadata.coverUrl, initialEpisode, initialResumeSeconds, loadingEp])
 

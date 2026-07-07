@@ -23,7 +23,8 @@ export function getTranslationType(): TranslationType {
 }
 
 export function getCatalogProvider(): CatalogProvider {
-  return localStorage.getItem(CATALOG_PROVIDER_KEY) === 'desu' ? 'desu' : 'allanime'
+  const provider = localStorage.getItem(CATALOG_PROVIDER_KEY)
+  return provider === 'desu' || provider === 'miruro' ? provider : 'allanime'
 }
 
 export async function invokeSearch(query: string, catalogProvider: CatalogProvider = getCatalogProvider()): Promise<IpcResponse<AnimeSearchResult[]>> {

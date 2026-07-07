@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Hls from 'hls.js'
 import { ArrowLeft, Download, Loader2, Maximize2, Minimize2, Pause, PictureInPicture2, Play, Server, Sparkles, Volume2, VolumeX } from 'lucide-react'
 import { addHistory } from '../lib/history'
+import type { CatalogProvider } from '../catalog-types'
 import type { TranslationType } from '../download-types'
 
 interface StreamLink {
@@ -24,7 +25,7 @@ interface PlayerPageProps {
   initialResumeSeconds?: number | null
   aniListMediaId?: number
   coverUrl?: string
-  catalogProvider?: 'allanime' | 'desu'
+  catalogProvider?: CatalogProvider
 }
 
 const SAVE_THROTTLE_MS = 5000

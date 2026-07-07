@@ -43,6 +43,24 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
     setError(null)
   }
 
+  const providerDescription = catalogProvider === 'desu'
+    ? 'Searching Desu Online for Polish-subtitled anime.'
+    : catalogProvider === 'miruro'
+      ? 'Searching Miruro for English sub and dub anime.'
+      : `Searching the ${translationType === 'dub' ? 'dubbed' : 'subbed'} AllAnime catalog.`
+
+  const providerLabel = (provider: CatalogProvider) => {
+    if (provider === 'allanime') return `AllAnime · ${translationType.toUpperCase()}`
+    if (provider === 'desu') return 'Desu · PL SUB'
+    return 'Miruro · EN'
+  }
+
+  const resultMeta = (anime: AnimeSearchResult) => {
+    if (anime.catalogProvider === 'desu') return 'Polish subtitles'
+    if (anime.catalogProvider === 'miruro') return `${anime.episodes || '—'} episodes · English`
+    return `${anime.episodes || '—'} episodes`
+  }
+
   return (
     <div className="flex-1 flex flex-col gap-4 md:gap-5">
       <section className="m3-card overflow-hidden p-5 md:p-7">
@@ -50,10 +68,10 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
           <div>
             <p className="section-label"><Search size={14} /> Library search</p>
             <h2 className="mt-2 text-3xl md:text-4xl font-black tracking-tight">What do you want to watch?</h2>
-            <p className="mt-1 text-sm text-m3-on-surface-variant">{catalogProvider === 'desu' ? 'Searching Desu Online for Polish-subtitled anime.' : `Searching the ${translationType === 'dub' ? 'dubbed' : 'subbed'} AllAnime catalog.`}</p>
+            <p className="mt-1 text-sm text-m3-on-surface-variant">{providerDescription}</p>
           </div>
           <div className="self-start inline-flex rounded-xl border border-m3-outline/30 p-1" role="group" aria-label="Catalog provider">
-            {(['allanime', 'desu'] as const).map((provider) => <button key={provider} type="button" onClick={() => selectCatalog(provider)} aria-pressed={catalogProvider === provider} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${catalogProvider === provider ? 'bg-m3-primary text-m3-on-primary' : 'hover:bg-m3-on-surface/10'}`}>{provider === 'allanime' ? `AllAnime · ${translationType.toUpperCase()}` : 'Desu · PL SUB'}</button>)}
+            {(['allanime', 'desu', 'miruro'] as const).map((provider) => <button key={provider} type="button" onClick={() => selectCatalog(provider)} aria-pressed={catalogProvider === provider} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${catalogProvider === provider ? 'bg-m3-primary text-m3-on-primary' : 'hover:bg-m3-on-surface/10'}`}>{providerLabel(provider)}</button>)}
           </div>
         </div>
 
@@ -93,7 +111,7 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-m3-primary/10 text-sm font-black text-m3-primary">{String(index + 1).padStart(2, '0')}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-bold group-hover:text-m3-primary transition-colors">{anime.name}</span>
-                  <span className="block mt-0.5 text-xs text-m3-on-surface-variant">{anime.catalogProvider === 'desu' ? 'Polish subtitles' : `${anime.episodes || '—'} episodes`}</span>
+                  <span className="block mt-0.5 text-xs text-m3-on-surface-variant">{resultMeta(anime)}</span>
                 </span>
                 <ArrowRight size={18} className="shrink-0 text-m3-outline transition-transform group-hover:translate-x-1 group-hover:text-m3-primary" />
               </button>

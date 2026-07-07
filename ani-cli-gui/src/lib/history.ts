@@ -7,7 +7,7 @@ export interface HistoryEntry {
   durationSeconds?: number
   aniListMediaId?: number
   coverUrl?: string
-  catalogProvider: 'allanime' | 'desu'
+  catalogProvider: 'allanime' | 'desu' | 'miruro'
 }
 
 const HISTORY_KEY = 'watch.history.v1'
@@ -44,7 +44,7 @@ function normalizeEntry(entry: unknown): HistoryEntry | null {
     durationSeconds: normalizedDuration,
     aniListMediaId,
     coverUrl,
-    catalogProvider: candidate.catalogProvider === 'desu' ? 'desu' : 'allanime',
+    catalogProvider: candidate.catalogProvider === 'desu' || candidate.catalogProvider === 'miruro' ? candidate.catalogProvider : 'allanime',
   }
 }
 
@@ -85,7 +85,7 @@ export function addHistory(entry: Omit<HistoryEntry, 'watchedAt'>) {
     watchedAt: Date.now(),
     aniListMediaId: entry.aniListMediaId,
     coverUrl: entry.coverUrl,
-    catalogProvider: entry.catalogProvider === 'desu' ? 'desu' : 'allanime',
+    catalogProvider: entry.catalogProvider === 'desu' || entry.catalogProvider === 'miruro' ? entry.catalogProvider : 'allanime',
   }
   const filtered = existing.filter((x) => !(x.animeId === entry.animeId && x.episode === entry.episode))
   filtered.unshift(normalizedEntry)

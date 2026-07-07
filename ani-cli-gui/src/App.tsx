@@ -15,7 +15,7 @@ interface AnimeSelection {
   episodes: number
   aniListMediaId?: number
   coverUrl?: string
-  catalogProvider: 'allanime' | 'desu'
+  catalogProvider: 'allanime' | 'desu' | 'miruro'
 }
 
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))

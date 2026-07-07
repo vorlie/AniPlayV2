@@ -37,7 +37,7 @@ interface NoticeStore {
 }
 
 const severities = new Set<RemoteNoticeSeverity>(['info', 'warning', 'critical', 'update'])
-const providers = new Set<CatalogProvider>(['allanime', 'desu'])
+const providers = new Set<CatalogProvider>(['allanime', 'desu', 'miruro'])
 
 function text(value: unknown, maxLength: number): string | undefined {
   if (typeof value !== 'string') return undefined

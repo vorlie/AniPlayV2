@@ -14,6 +14,7 @@ import { DiscordPresenceService, validatePlayback } from './discord-presence'
 import { getDesuEpisodePageUrl } from './desu'
 import { UpdateService } from './updater'
 import { RemoteNoticeService } from './remote-notices'
+import { getMiruroEpisodePageUrl } from './miruro'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -72,7 +73,7 @@ function requireTranslationType(value: unknown): TranslationType {
 }
 
 function requireCatalogProvider(value: unknown): CatalogProvider {
-  if (value !== 'allanime' && value !== 'desu') throw new TypeError('catalogProvider must be allanime or desu')
+  if (value !== 'allanime' && value !== 'desu' && value !== 'miruro') throw new TypeError('catalogProvider must be allanime, desu, or miruro')
   return value
 }
 
@@ -117,6 +118,10 @@ function configureMediaRequestHeaders() {
     '*://dailymotion.com/*',
     '*://*.dailymotion.com/*',
     '*://*.dmcdn.net/*',
+    '*://miruro.to/*',
+    '*://*.miruro.to/*',
+    '*://ultracloud.cc/*',
+    '*://*.ultracloud.cc/*',
   ]
 
   session.defaultSession.webRequest.onBeforeSendHeaders({ urls }, (details, callback) => {
@@ -124,7 +129,8 @@ function configureMediaRequestHeaders() {
     const hostname = new URL(details.url).hostname.toLowerCase()
     const isMp4Upload = hostname === 'mp4upload.com' || hostname.endsWith('.mp4upload.com')
     const isDailymotion = hostname === 'dailymotion.com' || hostname.endsWith('.dailymotion.com') || hostname.endsWith('.dmcdn.net')
-    const requestReferer = isDailymotion ? 'https://www.dailymotion.com/' : isMp4Upload ? 'https://www.mp4upload.com/' : referer
+    const isMiruro = hostname === 'miruro.to' || hostname.endsWith('.miruro.to') || hostname === 'ultracloud.cc' || hostname.endsWith('.ultracloud.cc')
+    const requestReferer = isMiruro ? 'https://www.miruro.to/' : isDailymotion ? 'https://www.dailymotion.com/' : isMp4Upload ? 'https://www.mp4upload.com/' : referer
     headers['Referer'] = requestReferer
     headers['Origin'] = new URL(requestReferer).origin
     if (!headers['User-Agent']) {
@@ -136,6 +142,8 @@ function configureMediaRequestHeaders() {
   const dailymotionMediaUrls = [
     '*://*.dailymotion.com/cdn/*',
     '*://*.dmcdn.net/*',
+    '*://ultracloud.cc/*',
+    '*://*.ultracloud.cc/*',
   ]
   session.defaultSession.webRequest.onHeadersReceived({ urls: dailymotionMediaUrls }, (details, callback) => {
     const responseHeaders = { ...details.responseHeaders }
@@ -223,7 +231,7 @@ function createWindow() {
       id: requireString(value.id, 'animeId', 200),
       name: requireString(value.name, 'animeName', 300),
       episodes: typeof value.episodes === 'number' && Number.isInteger(value.episodes) && value.episodes >= 0 ? value.episodes : 0,
-      catalogProvider: value.catalogProvider === 'desu' ? 'desu' : 'allanime',
+      catalogProvider: value.catalogProvider === 'desu' || value.catalogProvider === 'miruro' ? value.catalogProvider : 'allanime',
     }
     return aniListService.resolveAniListMetadata(normalized, mode)
   })
@@ -266,11 +274,14 @@ function createWindow() {
     try {
       assertTrustedSender(event)
       const provider = requireCatalogProvider(catalogProvider)
-      if (provider !== 'desu') throw new Error('Browser fallback is not available for this provider')
-      const url = await getDesuEpisodePageUrl(
-        requireString(showId, 'showId', 300),
-        requireString(epNo, 'episode', 32),
-      )
+      const animeId = requireString(showId, 'showId', 300)
+      const episode = requireString(epNo, 'episode', 32)
+      const url = provider === 'desu'
+        ? await getDesuEpisodePageUrl(animeId, episode)
+        : provider === 'miruro'
+          ? await getMiruroEpisodePageUrl(animeId, episode)
+          : null
+      if (!url) throw new Error('Browser fallback is not available for this provider')
       await shell.openExternal(url)
       return { success: true }
     } catch (error: unknown) {
