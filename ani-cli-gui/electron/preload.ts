@@ -4,6 +4,7 @@ import type { AnimeSummary, CatalogMapping, ListUpdateInput } from '../src/anili
 import type { AnimeSearchResult, CatalogProvider, TranslationType } from '../src/catalog-types'
 import type { DiscordPlaybackPresence } from '../src/discord-presence-types'
 import type { UpdateState } from '../src/updater-types'
+import type { RemoteNoticeState } from '../src/remote-notice-types'
 
 contextBridge.exposeInMainWorld('aniPlay', {
   search: (query: string, translationType: TranslationType, catalogProvider: CatalogProvider) => ipcRenderer.invoke('search', query, translationType, catalogProvider),
@@ -47,6 +48,17 @@ contextBridge.exposeInMainWorld('aniPlay', {
       const listener = (_event: Electron.IpcRendererEvent, state: UpdateState) => callback(state)
       ipcRenderer.on('updater:changed', listener)
       return () => ipcRenderer.removeListener('updater:changed', listener)
+    },
+  },
+  notices: {
+    getState: (): Promise<RemoteNoticeState> => ipcRenderer.invoke('notices:get-state'),
+    refresh: (): Promise<RemoteNoticeState> => ipcRenderer.invoke('notices:refresh'),
+    dismiss: (id: string): Promise<RemoteNoticeState> => ipcRenderer.invoke('notices:dismiss', id),
+    open: (id: string): Promise<boolean> => ipcRenderer.invoke('notices:open', id),
+    onChanged: (callback: (state: RemoteNoticeState) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, state: RemoteNoticeState) => callback(state)
+      ipcRenderer.on('notices:changed', listener)
+      return () => ipcRenderer.removeListener('notices:changed', listener)
     },
   },
   downloads: {

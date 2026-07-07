@@ -1,5 +1,9 @@
-feat: add automatic GitHub release checks for installed Windows builds
+feat: add managed remote service notices
 
-- expose update status, download progress, and restart-to-install controls
-- keep portable builds on an explicit manual-update path
-- publish NSIS update metadata and blockmaps from the release workflow
+- fetch versioned service notices from the AniPlay CDN in the Electron main process
+- validate notice schema, provider targets, app version ranges, dates, severity, and HTTPS links
+- cache the last valid notice payload in user data for stale-safe outage messaging
+- allow users to dismiss individual notices without sending telemetry
+- expose typed preload APIs for notice state, refresh, dismiss, and validated external links
+- show a global plain-text notice banner with provider-aware filtering
+- add normalization tests for active, dismissed, malformed, unsafe, and version-gated notices

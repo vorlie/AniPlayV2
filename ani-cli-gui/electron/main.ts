@@ -13,6 +13,7 @@ import type { CatalogProvider } from '../src/catalog-types'
 import { DiscordPresenceService, validatePlayback } from './discord-presence'
 import { getDesuEpisodePageUrl } from './desu'
 import { UpdateService } from './updater'
+import { RemoteNoticeService } from './remote-notices'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -29,6 +30,7 @@ let downloadManager: DownloadManager
 let aniListService: AniListService
 let discordPresenceService: DiscordPresenceService
 let updateService: UpdateService
+let remoteNoticeService: RemoteNoticeService
 
 const PROJECT_PAGES = {
   repository: 'https://github.com/vorlie/AniPlayV2',
@@ -433,6 +435,17 @@ function createWindow() {
   ipcMain.handle('updater:download', (event) => { assertTrustedSender(event); return updateService.download() })
   ipcMain.handle('updater:install', (event) => { assertTrustedSender(event); updateService.install() })
 
+  ipcMain.handle('notices:get-state', (event) => { assertTrustedSender(event); return remoteNoticeService.getState() })
+  ipcMain.handle('notices:refresh', (event) => { assertTrustedSender(event); return remoteNoticeService.refresh() })
+  ipcMain.handle('notices:dismiss', (event, id: unknown) => {
+    assertTrustedSender(event)
+    return remoteNoticeService.dismiss(requireString(id, 'noticeId', 120))
+  })
+  ipcMain.handle('notices:open', (event, id: unknown) => {
+    assertTrustedSender(event)
+    return remoteNoticeService.openLink(requireString(id, 'noticeId', 120))
+  })
+
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL)
     win.webContents.openDevTools()
@@ -451,7 +464,7 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('before-quit', () => { updateService?.shutdown(); downloadManager?.shutdown(); aniListService?.shutdown(); void discordPresenceService?.shutdown() })
+app.on('before-quit', () => { remoteNoticeService?.shutdown(); updateService?.shutdown(); downloadManager?.shutdown(); aniListService?.shutdown(); void discordPresenceService?.shutdown() })
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
@@ -460,6 +473,10 @@ app.on('activate', () => {
 })
 
 app.whenReady().then(() => {
+  remoteNoticeService = new RemoteNoticeService((state) => {
+    if (win && !win.isDestroyed()) win.webContents.send('notices:changed', state)
+  })
+  remoteNoticeService.initialize()
   updateService = new UpdateService((state) => {
     if (win && !win.isDestroyed()) win.webContents.send('updater:changed', state)
   })

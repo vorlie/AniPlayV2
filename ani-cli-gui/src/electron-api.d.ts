@@ -3,6 +3,7 @@ import type { AnimeDetails, AnimeSummary, AniListSession, CatalogMapping, Catalo
 import type { CatalogProvider, TranslationType } from './catalog-types'
 import type { DiscordPlaybackPresence, DiscordPresenceSettings } from './discord-presence-types'
 import type { UpdateState } from './updater-types'
+import type { RemoteNoticeState } from './remote-notice-types'
 
 interface SearchResult {
   id: string
@@ -79,6 +80,13 @@ interface AniPlayApi {
     download(): Promise<UpdateState>
     install(): Promise<void>
     onChanged(callback: (state: UpdateState) => void): () => void
+  }
+  notices: {
+    getState(): Promise<RemoteNoticeState>
+    refresh(): Promise<RemoteNoticeState>
+    dismiss(id: string): Promise<RemoteNoticeState>
+    open(id: string): Promise<boolean>
+    onChanged(callback: (state: RemoteNoticeState) => void): () => void
   }
   downloads: DownloadsApi
 }

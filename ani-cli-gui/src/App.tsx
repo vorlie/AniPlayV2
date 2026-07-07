@@ -7,6 +7,7 @@ import { Navigation } from './components/Navigation'
 import type { HistoryEntry } from './lib/history'
 import type { DownloadState } from './download-types'
 import { DownloadsPage } from './pages/DownloadsPage'
+import { RemoteNoticeBanner } from './components/RemoteNoticeBanner'
 
 interface AnimeSelection {
   id: string
@@ -79,6 +80,10 @@ function App() {
 
       {/* Main Content Area */}
       <main className="relative z-10 flex-1 flex flex-col w-full max-w-[1500px] mx-auto pb-20 md:pb-4">
+        <div className="mb-4">
+          <RemoteNoticeBanner provider={activeAnime?.catalogProvider} />
+        </div>
+
         {activeTab === 'home' && (
           <HomePage
             setSearchQuery={setSearchQuery}
