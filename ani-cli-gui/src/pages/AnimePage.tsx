@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { AlertCircle, ArrowLeft, ExternalLink, Loader2, MonitorPlay, Search } from 'lucide-react'
 import { PlayerPage } from './PlayerPage'
 import { addHistory } from '../lib/history'
-import { getTranslationType, invokeEpisodes, invokeLinks, openProviderEpisode, type CatalogProvider, type TranslationType } from '../lib/api'
+import { getTranslationType, invokeEpisodes, invokeLinks, openProviderEpisode, TRANSLATION_TYPE_KEY, type CatalogProvider, type TranslationType } from '../lib/api'
 
 interface StreamLink {
   url: string
@@ -28,31 +28,34 @@ export function AnimePage({
   initialResumeSeconds,
 }: AnimePageProps) {
   const [episodes, setEpisodes] = useState<string[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loadedEpisodesKey, setLoadedEpisodesKey] = useState('')
   const [playingLinks, setPlayingLinks] = useState<StreamLink[]>([])
   const [playingEp, setPlayingEp] = useState<string>('')
   const [playingTranslationType, setPlayingTranslationType] = useState<TranslationType>('sub')
+  const [selectedTranslationType, setSelectedTranslationType] = useState<TranslationType>(getTranslationType)
   const [loadingEp, setLoadingEp] = useState<string | null>(null)
   const [episodeQuery, setEpisodeQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [browserFallbackEpisode, setBrowserFallbackEpisode] = useState<string | null>(null)
   const [aniListMetadata, setAniListMetadata] = useState(() => ({ mediaId: anime.aniListMediaId, coverUrl: anime.coverUrl }))
   const restoredRef = useRef<string | null>(null)
+  const supportsTranslationSwitch = anime.catalogProvider !== 'desu'
+  const episodesKey = `${anime.catalogProvider}:${anime.id}:${selectedTranslationType}`
+  const loadingEpisodes = loadedEpisodesKey !== episodesKey
 
   useEffect(() => {
     if (anime.aniListMediaId && anime.coverUrl) return
-    void window.aniPlay?.aniList.mapping.enrich(anime, getTranslationType()).then((media) => {
+    void window.aniPlay?.aniList.mapping.enrich(anime, selectedTranslationType).then((media) => {
       if (media) setAniListMetadata({ mediaId: media.id, coverUrl: media.coverUrl || undefined })
     }).catch(() => {})
-  }, [anime])
+  }, [anime, selectedTranslationType])
 
-  const handlePlay = useCallback((ep: string) => {
+  const handlePlay = useCallback((ep: string, translationType: TranslationType = selectedTranslationType) => {
     if (loadingEp === ep) return
     setLoadingEp(ep)
     setError(null)
     setBrowserFallbackEpisode(null)
 
-    const translationType = getTranslationType()
     invokeLinks(anime.id, ep, translationType, anime.catalogProvider).then((res) => {
       setLoadingEp(null)
       if (res.success && Array.isArray(res.data) && res.data.length > 0) {
@@ -82,30 +85,52 @@ export function AnimePage({
       setError(cause instanceof Error ? cause.message : 'Stream lookup failed. Please try another episode.')
       if (anime.catalogProvider === 'desu' || anime.catalogProvider === 'miruro') setBrowserFallbackEpisode(ep)
     })
-  }, [anime.id, anime.name, anime.catalogProvider, aniListMetadata.mediaId, aniListMetadata.coverUrl, initialEpisode, initialResumeSeconds, loadingEp])
+  }, [anime.id, anime.name, anime.catalogProvider, aniListMetadata.mediaId, aniListMetadata.coverUrl, initialEpisode, initialResumeSeconds, loadingEp, selectedTranslationType])
+
+  const selectTranslationType = useCallback((value: TranslationType) => {
+    if (value === selectedTranslationType) return
+    localStorage.setItem(TRANSLATION_TYPE_KEY, value)
+    setSelectedTranslationType(value)
+    setPlayingLinks([])
+    setError(null)
+    setBrowserFallbackEpisode(null)
+    if (playingEp) {
+      const episode = playingEp
+      setPlayingEp('')
+      handlePlay(episode, value)
+    }
+  }, [handlePlay, playingEp, selectedTranslationType])
 
   useEffect(() => {
-    invokeEpisodes(anime.id, anime.catalogProvider).then((res) => {
+    let cancelled = false
+    const requestKey = episodesKey
+    invokeEpisodes(anime.id, anime.catalogProvider, selectedTranslationType).then((res) => {
+      if (cancelled) return
       if (res.success && Array.isArray(res.data)) {
         setEpisodes(res.data)
+        setError(null)
       } else {
+        setEpisodes([])
         setError(res.error || 'Could not load the episode list.')
       }
-      setLoading(false)
+      setLoadedEpisodesKey(requestKey)
     }).catch((cause: unknown) => {
-      setLoading(false)
+      if (cancelled) return
+      setEpisodes([])
       setError(cause instanceof Error ? cause.message : 'Could not load the episode list.')
+      setLoadedEpisodesKey(requestKey)
     })
-  }, [anime.id, anime.catalogProvider])
+    return () => { cancelled = true }
+  }, [anime.id, anime.catalogProvider, selectedTranslationType, episodesKey])
 
   useEffect(() => {
-    if (!initialEpisode || loading) return
+    if (!initialEpisode || loadingEpisodes) return
     if (!episodes.includes(initialEpisode)) return
-    const key = `${anime.id}:${initialEpisode}`
+    const key = `${anime.id}:${initialEpisode}:${selectedTranslationType}`
     if (restoredRef.current === key) return
     restoredRef.current = key
     handlePlay(initialEpisode)
-  }, [initialEpisode, episodes, loading, anime.id, handlePlay])
+  }, [initialEpisode, episodes, loadingEpisodes, anime.id, handlePlay, selectedTranslationType])
 
   const visibleEpisodes = episodeQuery.trim()
     ? episodes.filter((episode) => episode.includes(episodeQuery.trim()))
@@ -153,14 +178,30 @@ export function AnimePage({
             <span className="text-xs bg-m3-primary/10 text-m3-primary px-2.5 py-1 rounded-full">{episodes.length || anime.episodes}</span>
           </h3>
 
-          {!loading && episodes.length > 12 && (
+          {supportsTranslationSwitch && (
+            <div className="mb-3 inline-flex rounded-xl border border-m3-outline/30 p-1" role="group" aria-label="Audio version">
+              {(['sub', 'dub'] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => selectTranslationType(value)}
+                  aria-pressed={selectedTranslationType === value}
+                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-bold transition-colors ${selectedTranslationType === value ? 'bg-m3-primary text-m3-on-primary' : 'hover:bg-m3-on-surface/10'}`}
+                >
+                  {value === 'sub' ? 'Subbed' : 'Dubbed'}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {!loadingEpisodes && episodes.length > 12 && (
             <div className="relative mb-3">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-m3-outline" />
               <input type="search" inputMode="decimal" value={episodeQuery} onChange={(event) => setEpisodeQuery(event.target.value)} placeholder="Find episode" aria-label="Find episode" className="w-full rounded-xl border border-m3-outline/20 bg-m3-surface/45 py-2 pl-9 pr-3 text-sm outline-none focus:border-m3-primary/60" />
             </div>
           )}
 
-          {loading ? (
+          {loadingEpisodes ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="animate-m3-pulsate p-3 rounded-full bg-m3-primary/20">
                 <MonitorPlay className="text-m3-primary animate-pulse" size={28} />

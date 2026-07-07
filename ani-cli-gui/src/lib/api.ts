@@ -32,8 +32,8 @@ export async function invokeSearch(query: string, catalogProvider: CatalogProvid
   throw new Error('AniPlay API is only available in the Electron application')
 }
 
-export async function invokeEpisodes(id: string, catalogProvider: CatalogProvider = 'allanime'): Promise<IpcResponse<string[]>> {
-  if (window.aniPlay) return window.aniPlay.getEpisodes(id, getTranslationType(), catalogProvider)
+export async function invokeEpisodes(id: string, catalogProvider: CatalogProvider = 'allanime', translationType: TranslationType = getTranslationType()): Promise<IpcResponse<string[]>> {
+  if (window.aniPlay) return window.aniPlay.getEpisodes(id, translationType, catalogProvider)
   throw new Error('AniPlay API is only available in the Electron application')
 }
 
