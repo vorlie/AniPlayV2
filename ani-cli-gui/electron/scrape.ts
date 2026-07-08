@@ -106,6 +106,7 @@ const ALLANIME_BASE = 'allanime.day'
 const ALLANIME_API = `https://api.${ALLANIME_BASE}`
 const ALLANIME_REFR = 'https://youtu-chan.com'
 const AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0'
+const DEBUG_ALLANIME = /^(1|true|yes|full)$/i.test(process.env.ANIPLAY_DEBUG_ALLANIME ?? '')
 export type TranslationType = 'sub' | 'dub'
 
 export interface SearchResult {
@@ -208,6 +209,25 @@ function createAllAnimeRequestToken(queryHash: string): string {
   return Buffer.concat([Buffer.from([1]), iv, encrypted, cipher.getAuthTag()]).toString('base64')
 }
 
+function classifyAllAnimeEpisodeResponse(body: string): string {
+  const lower = body.toLowerCase()
+  if (body.includes('AA_CRYPTO_MISSING')) return 'AA_CRYPTO_MISSING'
+  if (lower.includes('stale')) return 'stale'
+  if (body.includes('"tobeparsed"')) return 'tobeparsed'
+  if (body.includes('"sourceUrls"')) return 'sourceUrls'
+  if (body.includes('"errors"')) return 'graphql-errors'
+  if (!body.trim()) return 'empty'
+  return 'unknown'
+}
+
+function debugAllAnimeEpisodeResponse(label: string, body: string): void {
+  if (!DEBUG_ALLANIME) return
+  const full = /^full$/i.test(process.env.ANIPLAY_DEBUG_ALLANIME ?? '')
+  const preview = full || body.length <= 4000 ? body : `${body.slice(0, 4000)}... [truncated ${body.length - 4000} chars]`
+  console.log(`[scrape:allanime] ${label}: ${classifyAllAnimeEpisodeResponse(body)} (${body.length} bytes)`)
+  console.log(preview)
+}
+
 function processResponse(responseRaw: string): unknown {
   let parsed: unknown = responseRaw
   try {
@@ -279,6 +299,7 @@ export async function getEpisodeLinks(showId: string, epNo: string, mode: Transl
         }
       })
       rawText = await response.text()
+      debugAllAnimeEpisodeResponse('persisted episode query raw response', rawText)
     } catch (error: unknown) {
       console.warn('[scrape] Persisted episode query failed, trying full query:', errorMessage(error))
     }
@@ -299,8 +320,10 @@ export async function getEpisodeLinks(showId: string, epNo: string, mode: Transl
           }),
         })
         rawText = await response.text()
+        debugAllAnimeEpisodeResponse('fallback episode query raw response', rawText)
     }
   
+    debugAllAnimeEpisodeResponse('episode response before processing', rawText)
     const result = processResponse(rawText)
     const resultObject = isObject(result) ? result : null
     const resultData = resultObject && isObject(resultObject.data) ? resultObject.data : null
