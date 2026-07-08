@@ -7,7 +7,7 @@ import type { DiscordActivityPayload, DiscordPlaybackPresence, DiscordPresenceSe
 const DEFAULT_CLIENT_ID = '1440472840578142381'
 const SETTINGS_FILE = 'discord-presence.json'
 const FALLBACK_ASSET = 'aniplay'
-const APP_NAME = 'on AniPlay'
+// const APP_NAME = 'on AniPlay'
 const MAX_TEXT = 128
 
 interface RpcClient {
@@ -56,7 +56,7 @@ export function buildDiscordActivity(playback: DiscordPlaybackPresence, now = Da
   const cover = forceFallback ? undefined : validCoverUrl(playback.coverUrl)
   const mediaId = playback.aniListMediaId
   const activity: DiscordActivityPayload = {
-    name: APP_NAME,
+    name: truncate(playback.animeName),
     type: 3,
     details: truncate(playback.animeName),
     state: playback.playing
