@@ -1,29 +1,31 @@
-# AniPlayV2 v1.9.4 Release Notes
+# AniPlayV2 v1.9.6 Release Notes
 
 ## Highlights
 
-- Added Miruro as a new English anime catalog provider.
-- Restored AllAnime episode source lookup after the latest upstream crypto change.
-- Miruro entries can be opened directly in the browser when native stream extraction is blocked by provider-side protections.
+- Added Anikoto as a new selectable English provider candidate.
+- Anikoto uses embedded MegaPlay playback while staying separate from the current default provider.
 
 ## Provider Updates
 
-- Added Miruro to the catalog selector as `Miruro · EN`.
-- Added Miruro search, episode listing, source probing, playback history, notice targeting, and browser fallback wiring.
-- Added Miruro and UltraCloud request headers for embedded playback.
-- Added support for AllAnime `aaReq` tokens on persisted episode-source requests.
-- Updated AllAnime encrypted episode payload handling to support the new AES-GCM format and derived key.
-- Kept a legacy AllAnime AES-CTR fallback for older payloads.
+- Added `Anikoto · EN` to the catalog selector.
+- Added Anikoto search through AniList, with recent Anikoto matches merged in when available.
+- Added episode loading from Anikoto series data when catalog IDs are known, with AniList episode counts as fallback.
+- Added MegaPlay embed lookup through Anikoto embed IDs, AniList IDs, and MAL IDs.
+- Added browser fallback for Anikoto episodes using the selected Subbed/Dubbed mode.
+- Added MegaPlay, MewStream, and subtitle host request headers for playback.
+- Added EasyList-powered embedded-player ad blocking for MegaPlay embeds.
 
 ## Reliability
 
-- AllAnime still resolves supported existing providers such as Mp4Upload, fast4speed, and AllAnime internal proxy links.
-- Miruro source lookup fails closed and keeps the browser fallback available when Cloudflare or provider-side protections block native requests.
+- Download jobs now keep the original catalog provider, so non-AllAnime downloads resolve against the correct source.
+- FFmpeg downloads now send MegaPlay referer headers for MegaPlay-backed streams.
+- Native MegaPlay source unwrapping is disabled by default because provider segment CDNs may Cloudflare-block direct HLS requests.
+- Embedded playback blocks EasyList ad requests and denies popup windows inside AniPlay.
+- Anikoto is selectable first and is not the default provider yet.
 
 ## Validation
 
-- Verified the AllAnime `aaReq` placement against the live API.
-- Confirmed live AllAnime AES-GCM episode payload decryption.
-- Passed TypeScript production build and all automated tests.
+- Added unit tests for Anikoto search normalization, episode parsing, MegaPlay source ID extraction, stream parsing, and subtitle parsing.
+- Passed ESLint, TypeScript production build, and all automated tests.
 
-**Full changelog:** https://github.com/vorlie/AniPlayV2/compare/1.9.3...1.9.4
+**Full changelog:** https://github.com/vorlie/AniPlayV2/compare/1.9.4...1.9.6

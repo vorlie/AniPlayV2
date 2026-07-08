@@ -10,6 +10,7 @@ interface StreamLink {
   hls: boolean
   provider: string
   downloadable: boolean
+  embed?: boolean
 }
 
 
@@ -78,12 +79,12 @@ export function AnimePage({
         })
       } else {
         setError(res.error || 'No working streams were found for this episode.')
-        if (anime.catalogProvider === 'desu' || anime.catalogProvider === 'miruro') setBrowserFallbackEpisode(ep)
+        if (anime.catalogProvider === 'desu' || anime.catalogProvider === 'miruro' || anime.catalogProvider === 'anikoto') setBrowserFallbackEpisode(ep)
       }
     }).catch((cause: unknown) => {
       setLoadingEp(null)
       setError(cause instanceof Error ? cause.message : 'Stream lookup failed. Please try another episode.')
-      if (anime.catalogProvider === 'desu' || anime.catalogProvider === 'miruro') setBrowserFallbackEpisode(ep)
+      if (anime.catalogProvider === 'desu' || anime.catalogProvider === 'miruro' || anime.catalogProvider === 'anikoto') setBrowserFallbackEpisode(ep)
     })
   }, [anime.id, anime.name, anime.catalogProvider, aniListMetadata.mediaId, aniListMetadata.coverUrl, initialEpisode, initialResumeSeconds, loadingEp, selectedTranslationType])
 
@@ -159,7 +160,7 @@ export function AnimePage({
           {browserFallbackEpisode && (
             <button
               type="button"
-              onClick={() => void openProviderEpisode(anime.id, browserFallbackEpisode, anime.catalogProvider).then((result) => {
+              onClick={() => void openProviderEpisode(anime.id, browserFallbackEpisode, anime.catalogProvider, selectedTranslationType).then((result) => {
                 if (!result.success) setError(result.error || 'Could not open the episode in your browser.')
               })}
               className="inline-flex shrink-0 items-center gap-1.5 font-bold hover:underline"

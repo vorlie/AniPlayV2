@@ -9,6 +9,8 @@ interface SearchResult {
   id: string
   name: string
   episodes: number
+  aniListMediaId?: number
+  coverUrl?: string
   catalogProvider: CatalogProvider
 }
 
@@ -18,6 +20,8 @@ interface StreamLink {
   hls: boolean
   provider: string
   downloadable: boolean
+  subtitles?: { label: string; url: string }[]
+  embed?: boolean
 }
 
 interface CiphermapInfo {
@@ -52,7 +56,7 @@ interface AniPlayApi {
   search(query: string, translationType: TranslationType, catalogProvider: CatalogProvider): Promise<IpcResponse<SearchResult[]>>
   getEpisodes(showId: string, translationType: TranslationType, catalogProvider: CatalogProvider): Promise<IpcResponse<string[]>>
   getEpisodeLinks(showId: string, episode: string, translationType: TranslationType, catalogProvider: CatalogProvider): Promise<IpcResponse<StreamLink[]>>
-  openProviderEpisode(showId: string, episode: string, catalogProvider: CatalogProvider): Promise<IpcResponse<void>>
+  openProviderEpisode(showId: string, episode: string, catalogProvider: CatalogProvider, translationType?: TranslationType): Promise<IpcResponse<void>>
   getCiphermapInfo(): Promise<IpcResponse<CiphermapInfo | null>>
   syncCiphermap(): Promise<CiphermapSyncResponse>
   openProjectPage(page: 'repository' | 'issues' | 'pulls'): Promise<{ success: boolean }>

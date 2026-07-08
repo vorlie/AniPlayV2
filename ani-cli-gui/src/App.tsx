@@ -8,6 +8,7 @@ import type { HistoryEntry } from './lib/history'
 import type { DownloadState } from './download-types'
 import { DownloadsPage } from './pages/DownloadsPage'
 import { RemoteNoticeBanner } from './components/RemoteNoticeBanner'
+import type { CatalogProvider } from './catalog-types'
 
 interface AnimeSelection {
   id: string
@@ -15,7 +16,7 @@ interface AnimeSelection {
   episodes: number
   aniListMediaId?: number
   coverUrl?: string
-  catalogProvider: 'allanime' | 'desu' | 'miruro'
+  catalogProvider: CatalogProvider
 }
 
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))

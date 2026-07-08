@@ -160,7 +160,7 @@ export class DownloadManager {
     job.updatedAt = Date.now()
     this.changed()
     try {
-      const links = await getEpisodeLinks(job.request.animeId, job.request.episode, job.request.translationType)
+      const links = await getEpisodeLinks(job.request.animeId, job.request.episode, job.request.translationType, job.request.catalogProvider)
       if (this.wasAborted(job)) return
       const link = links.find((item) => item.provider === job.request.provider && item.resolution === job.request.resolution)
       if (!link) throw new Error(`The selected ${job.request.provider} ${job.request.resolution} source is no longer available`)

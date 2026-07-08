@@ -3,7 +3,9 @@ import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { dirname } from 'node:path'
 import fs from 'node:fs'
+import { promises as fsp } from 'node:fs'
 import { searchAnime, getEpisodes, getEpisodeLinks, reloadCipherMap, type TranslationType } from './scrape'
+import { ElectronBlocker } from '@ghostery/adblocker-electron'
 import { DownloadManager } from './download-manager'
 import type { DownloadRequest } from '../src/download-types'
 import { AniListService } from './anilist'
@@ -15,6 +17,7 @@ import { getDesuEpisodePageUrl } from './desu'
 import { UpdateService } from './updater'
 import { RemoteNoticeService } from './remote-notices'
 import { getMiruroEpisodePageUrl } from './miruro'
+import { getAnikotoEpisodePageUrl } from './anikoto'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -38,6 +41,33 @@ const PROJECT_PAGES = {
   issues: 'https://github.com/vorlie/AniPlayV2/issues',
   pulls: 'https://github.com/vorlie/AniPlayV2/pulls',
 } as const
+
+const EASYLIST_URL = 'https://ublockorigin.pages.dev/thirdparties/easylist.txt'
+
+const BLOCKED_EMBED_HOST_PATTERNS = [
+  /(^|\.)doubleclick\.net$/i,
+  /(^|\.)googlesyndication\.com$/i,
+  /(^|\.)googleadservices\.com$/i,
+  /(^|\.)adservice\.google\./i,
+  /(^|\.)adnxs\.com$/i,
+  /(^|\.)adsystem\.com$/i,
+  /(^|\.)exoclick\.com$/i,
+  /(^|\.)exosrv\.com$/i,
+  /(^|\.)popcash\.net$/i,
+  /(^|\.)popads\.net$/i,
+  /(^|\.)propellerads\.com$/i,
+  /(^|\.)propellerclick\.com$/i,
+  /(^|\.)onclickads\.net$/i,
+  /(^|\.)adsterra\.com$/i,
+  /(^|\.)highperformanceformat\.com$/i,
+  /(^|\.)highperformancecpmgate\.com$/i,
+  /(^|\.)statlytic\.net$/i,
+  /(^|\.)b7510\.com$/i,
+]
+
+const BLOCKED_EMBED_PATH_PATTERNS = [
+  /(^|[/?&_.-])(ad|ads|advert|banner|popunder|popup|prebid|vast|vpaid)([/?&_.=-]|$)/i,
+]
 
 function isTrustedSender(event: IpcMainInvokeEvent): boolean {
   const frameUrl = event.senderFrame?.url
@@ -73,7 +103,7 @@ function requireTranslationType(value: unknown): TranslationType {
 }
 
 function requireCatalogProvider(value: unknown): CatalogProvider {
-  if (value !== 'allanime' && value !== 'desu' && value !== 'miruro') throw new TypeError('catalogProvider must be allanime, desu, or miruro')
+  if (value !== 'allanime' && value !== 'desu' && value !== 'miruro' && value !== 'anikoto') throw new TypeError('catalogProvider must be allanime, desu, miruro, or anikoto')
   return value
 }
 
@@ -90,10 +120,11 @@ function requireDownloadRequest(value: unknown): DownloadRequest {
     throw new TypeError('durationSeconds must be a positive number')
   }
   return {
-    animeId: requireString(request.animeId, 'animeId', 200),
+    animeId: requireString(request.animeId, 'animeId', 1000),
     animeName: requireString(request.animeName, 'animeName', 300),
     episode: requireString(request.episode, 'episode', 32),
     translationType: requireTranslationType(request.translationType),
+    catalogProvider: requireCatalogProvider(request.catalogProvider),
     provider: requireString(request.provider, 'provider', 100),
     resolution: requireString(request.resolution, 'resolution', 32),
     durationSeconds: duration as number | undefined,
@@ -102,6 +133,38 @@ function requireDownloadRequest(value: unknown): DownloadRequest {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Unknown error'
+}
+
+function shouldBlockEmbeddedRequest(rawUrl: string): boolean {
+  try {
+    const url = new URL(rawUrl)
+    const hostname = url.hostname.toLowerCase()
+    if (BLOCKED_EMBED_HOST_PATTERNS.some((pattern) => pattern.test(hostname))) return true
+    return BLOCKED_EMBED_PATH_PATTERNS.some((pattern) => pattern.test(`${url.pathname}${url.search}`))
+  } catch {
+    return false
+  }
+}
+
+function configureEmbeddedContentBlocking() {
+  session.defaultSession.webRequest.onBeforeRequest({ urls: ['*://*/*'] }, (details, callback) => {
+    callback({ cancel: shouldBlockEmbeddedRequest(details.url) })
+  })
+}
+
+async function configureEasyListBlocking() {
+  try {
+    const cachePath = join(app.getPath('userData'), 'easylist-engine.bin')
+    const blocker = await ElectronBlocker.fromLists(fetch, [EASYLIST_URL], {}, {
+      path: cachePath,
+      read: fsp.readFile,
+      write: fsp.writeFile,
+    })
+    blocker.enableBlockingInSession(session.defaultSession)
+    console.log('[adblock] EasyList blocking enabled')
+  } catch (error: unknown) {
+    console.warn('[adblock] EasyList blocking could not be enabled:', errorMessage(error))
+  }
 }
 
 function configureMediaRequestHeaders() {
@@ -122,6 +185,14 @@ function configureMediaRequestHeaders() {
     '*://*.miruro.to/*',
     '*://ultracloud.cc/*',
     '*://*.ultracloud.cc/*',
+    '*://megaplay.buzz/*',
+    '*://*.megaplay.buzz/*',
+    '*://mewstream.buzz/*',
+    '*://*.mewstream.buzz/*',
+    '*://lostproject.club/*',
+    '*://*.lostproject.club/*',
+    '*://voltara.click/*',
+    '*://*.voltara.click/*',
   ]
 
   session.defaultSession.webRequest.onBeforeSendHeaders({ urls }, (details, callback) => {
@@ -130,7 +201,8 @@ function configureMediaRequestHeaders() {
     const isMp4Upload = hostname === 'mp4upload.com' || hostname.endsWith('.mp4upload.com')
     const isDailymotion = hostname === 'dailymotion.com' || hostname.endsWith('.dailymotion.com') || hostname.endsWith('.dmcdn.net')
     const isMiruro = hostname === 'miruro.to' || hostname.endsWith('.miruro.to') || hostname === 'ultracloud.cc' || hostname.endsWith('.ultracloud.cc')
-    const requestReferer = isMiruro ? 'https://www.miruro.to/' : isDailymotion ? 'https://www.dailymotion.com/' : isMp4Upload ? 'https://www.mp4upload.com/' : referer
+    const isMegaPlay = hostname === 'megaplay.buzz' || hostname.endsWith('.megaplay.buzz') || hostname === 'mewstream.buzz' || hostname.endsWith('.mewstream.buzz') || hostname === 'lostproject.club' || hostname.endsWith('.lostproject.club') || hostname === 'voltara.click' || hostname.endsWith('.voltara.click')
+    const requestReferer = isMegaPlay ? 'https://megaplay.buzz/' : isMiruro ? 'https://www.miruro.to/' : isDailymotion ? 'https://www.dailymotion.com/' : isMp4Upload ? 'https://www.mp4upload.com/' : referer
     headers['Referer'] = requestReferer
     headers['Origin'] = new URL(requestReferer).origin
     if (!headers['User-Agent']) {
@@ -144,6 +216,14 @@ function configureMediaRequestHeaders() {
     '*://*.dmcdn.net/*',
     '*://ultracloud.cc/*',
     '*://*.ultracloud.cc/*',
+    '*://megaplay.buzz/*',
+    '*://*.megaplay.buzz/*',
+    '*://mewstream.buzz/*',
+    '*://*.mewstream.buzz/*',
+    '*://lostproject.club/*',
+    '*://*.lostproject.club/*',
+    '*://voltara.click/*',
+    '*://*.voltara.click/*',
   ]
   session.defaultSession.webRequest.onHeadersReceived({ urls: dailymotionMediaUrls }, (details, callback) => {
     const responseHeaders = { ...details.responseHeaders }
@@ -178,12 +258,19 @@ function createWindow() {
     win?.webContents.send('main-process-message', (new Date).toLocaleString())
   })
 
-  win.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
-    console.error('Renderer failed to load:', { errorCode, errorDescription, validatedURL })
+  win.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+    if (!isMainFrame && errorCode === -3) return
+    console.error(isMainFrame ? 'Renderer failed to load:' : 'Subframe failed to load:', { errorCode, errorDescription, validatedURL })
   })
 
   win.webContents.on('render-process-gone', (_event, details) => {
     console.error('Renderer process gone:', details)
+  })
+
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (shouldBlockEmbeddedRequest(url)) return { action: 'deny' }
+    shell.openExternal(url).catch((error: unknown) => console.warn('Could not open external URL:', errorMessage(error)))
+    return { action: 'deny' }
   })
 
   // Register the scraping handlers
@@ -231,7 +318,7 @@ function createWindow() {
       id: requireString(value.id, 'animeId', 200),
       name: requireString(value.name, 'animeName', 300),
       episodes: typeof value.episodes === 'number' && Number.isInteger(value.episodes) && value.episodes >= 0 ? value.episodes : 0,
-      catalogProvider: value.catalogProvider === 'desu' || value.catalogProvider === 'miruro' ? value.catalogProvider : 'allanime',
+      catalogProvider: value.catalogProvider === 'desu' || value.catalogProvider === 'miruro' || value.catalogProvider === 'anikoto' ? value.catalogProvider : 'allanime',
     }
     return aniListService.resolveAniListMetadata(normalized, mode)
   })
@@ -248,7 +335,7 @@ function createWindow() {
   ipcMain.handle('episodes', async (event, showId: unknown, translationType: unknown, catalogProvider: unknown) => {
     try {
       assertTrustedSender(event)
-      const eps = await getEpisodes(requireString(showId, 'showId', 300), requireTranslationType(translationType), requireCatalogProvider(catalogProvider))
+      const eps = await getEpisodes(requireString(showId, 'showId', 1000), requireTranslationType(translationType), requireCatalogProvider(catalogProvider))
       return { success: true, data: eps }
     } catch (error: unknown) {
       return { success: false, error: errorMessage(error) }
@@ -259,7 +346,7 @@ function createWindow() {
     try {
       assertTrustedSender(event)
       const links = await getEpisodeLinks(
-        requireString(showId, 'showId', 300),
+        requireString(showId, 'showId', 1000),
         requireString(epNo, 'episode', 32),
         requireTranslationType(translationType),
         requireCatalogProvider(catalogProvider),
@@ -270,17 +357,20 @@ function createWindow() {
     }
   })
 
-  ipcMain.handle('open-provider-episode', async (event, showId: unknown, epNo: unknown, catalogProvider: unknown) => {
+  ipcMain.handle('open-provider-episode', async (event, showId: unknown, epNo: unknown, catalogProvider: unknown, translationType: unknown) => {
     try {
       assertTrustedSender(event)
       const provider = requireCatalogProvider(catalogProvider)
-      const animeId = requireString(showId, 'showId', 300)
+      const animeId = requireString(showId, 'showId', 1000)
       const episode = requireString(epNo, 'episode', 32)
+      const mode = translationType === undefined ? 'sub' : requireTranslationType(translationType)
       const url = provider === 'desu'
         ? await getDesuEpisodePageUrl(animeId, episode)
         : provider === 'miruro'
           ? await getMiruroEpisodePageUrl(animeId, episode)
-          : null
+          : provider === 'anikoto'
+            ? await getAnikotoEpisodePageUrl(animeId, episode, mode)
+            : null
       if (!url) throw new Error('Browser fallback is not available for this provider')
       await shell.openExternal(url)
       return { success: true }
@@ -501,6 +591,8 @@ app.whenReady().then(() => {
     if (win && !win.isDestroyed()) win.webContents.send('downloads:changed', state)
   })
   downloadManager.initialize()
+  configureEmbeddedContentBlocking()
+  void configureEasyListBlocking()
   configureMediaRequestHeaders()
   createWindow()
 })

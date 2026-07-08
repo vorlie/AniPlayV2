@@ -10,7 +10,7 @@ contextBridge.exposeInMainWorld('aniPlay', {
   search: (query: string, translationType: TranslationType, catalogProvider: CatalogProvider) => ipcRenderer.invoke('search', query, translationType, catalogProvider),
   getEpisodes: (showId: string, translationType: TranslationType, catalogProvider: CatalogProvider) => ipcRenderer.invoke('episodes', showId, translationType, catalogProvider),
   getEpisodeLinks: (showId: string, episode: string, translationType: TranslationType, catalogProvider: CatalogProvider) => ipcRenderer.invoke('links', showId, episode, translationType, catalogProvider),
-  openProviderEpisode: (showId: string, episode: string, catalogProvider: CatalogProvider) => ipcRenderer.invoke('open-provider-episode', showId, episode, catalogProvider),
+  openProviderEpisode: (showId: string, episode: string, catalogProvider: CatalogProvider, translationType?: TranslationType) => ipcRenderer.invoke('open-provider-episode', showId, episode, catalogProvider, translationType),
   getCiphermapInfo: () => ipcRenderer.invoke('get-ciphermap-info'),
   syncCiphermap: () => ipcRenderer.invoke('sync-ciphermap'),
   openProjectPage: (page: 'repository' | 'issues' | 'pulls') => ipcRenderer.invoke('open-project-page', page),

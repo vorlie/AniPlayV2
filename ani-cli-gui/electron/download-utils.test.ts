@@ -8,7 +8,7 @@ import { buildFfmpegArgs, createDownloadFileName, findAvailablePath, mediaHeader
 function job(id: string, status: DownloadJob['status'], createdAt: number): DownloadJob {
   return {
     id,
-    request: { animeId: 'show', animeName: 'Anime', episode: '1', translationType: 'sub', provider: 'Default', resolution: '1080p' },
+    request: { animeId: 'show', animeName: 'Anime', episode: '1', translationType: 'sub', catalogProvider: 'allanime', provider: 'Default', resolution: '1080p' },
     status,
     progress: { percent: 0, processedSeconds: 0 },
     fileName: null,

@@ -7,7 +7,7 @@
     "url": "https://github.com/vorlie/AniPlayV2.git"
   },
   "private": true,
-  "version": "1.9.5",
+  "version": "1.9.6",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -87,6 +87,7 @@
   "dependencies": {
     "@emnapi/core": "^1.11.2",
     "@emnapi/runtime": "^1.11.2",
+    "@ghostery/adblocker-electron": "^2.18.1",
     "@material/material-color-utilities": "^0.4.0",
     "cheerio": "^1.2.0",
     "clsx": "^2.1.1",

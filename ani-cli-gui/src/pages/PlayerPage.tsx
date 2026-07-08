@@ -11,6 +11,8 @@ interface StreamLink {
   hls: boolean
   provider: string
   downloadable: boolean
+  subtitles?: { label: string; url: string }[]
+  embed?: boolean
 }
 
 interface PlayerPageProps {
@@ -105,6 +107,7 @@ export function PlayerPage({
 
   const activeLink = links[activeIdx]
   const resumeSeconds = useMemo(() => toResumeSeconds(initialResumeSeconds), [initialResumeSeconds])
+  const isEmbedLink = Boolean(activeLink?.embed)
 
   const saveProgress = useCallback((force = false) => {
     if (!animeId || !animeName || !episode) return
@@ -161,7 +164,7 @@ export function PlayerPage({
 
   useEffect(() => {
     const video = videoRef.current
-    if (!video || !activeLink) return
+    if (!video || !activeLink || activeLink.embed) return
     setFailed((prev) => {
       const next = new Set(prev)
       next.delete(activeIdx)
@@ -373,6 +376,7 @@ export function PlayerPage({
       animeName,
       episode,
       translationType,
+      catalogProvider,
       provider: activeLink.provider,
       resolution: activeLink.resolution,
       durationSeconds: duration > 0 ? duration : undefined,
@@ -427,32 +431,21 @@ export function PlayerPage({
 
       {isOverlay ? (
         <div className="flex-1 flex items-center justify-center bg-black">
-          <video
-            ref={videoRef}
-            className="w-full h-full object-contain"
-            controls={useNativeControls}
-            autoPlay
-            onError={tryNextServer}
-            onPlay={(e) => handlePlaying(e.currentTarget)}
-            onPause={(e) => handlePause(e.currentTarget)}
-            onEnded={(e) => handleEnded(e.currentTarget)}
-            onTimeUpdate={(e) => handleTimeUpdate(e.currentTarget)}
-            onDurationChange={(e) => handleDurationChange(e.currentTarget)}
-            onVolumeChange={(e) => {
-              const v = e.target as HTMLVideoElement
-              setVolume(v.volume)
-              setMuted(v.muted)
-            }}
-          />
-        </div>
-      ) : (
-        <div className="w-full mx-auto" style={{ maxWidth: 'min(100%, calc(62vh * 1.7778))' }}>
-          <div className="aspect-video rounded-2xl overflow-hidden bg-black border border-m3-outline/20">
+          {isEmbedLink ? (
+            <iframe
+              src={activeLink.url}
+              className="h-full w-full border-0"
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+              title={title}
+            />
+          ) : (
             <video
               ref={videoRef}
               className="w-full h-full object-contain"
               controls={useNativeControls}
               autoPlay
+              crossOrigin="anonymous"
               onError={tryNextServer}
               onPlay={(e) => handlePlaying(e.currentTarget)}
               onPause={(e) => handlePause(e.currentTarget)}
@@ -464,12 +457,53 @@ export function PlayerPage({
                 setVolume(v.volume)
                 setMuted(v.muted)
               }}
-            />
+            >
+              {activeLink?.subtitles?.map((track, index) => (
+                <track key={`${track.url}:${index}`} src={track.url} label={track.label} kind="captions" default={index === 0} />
+              ))}
+            </video>
+          )}
+        </div>
+      ) : (
+        <div className="w-full mx-auto" style={{ maxWidth: 'min(100%, calc(62vh * 1.7778))' }}>
+          <div className="aspect-video rounded-2xl overflow-hidden bg-black border border-m3-outline/20">
+            {isEmbedLink ? (
+              <iframe
+                src={activeLink.url}
+                className="h-full w-full border-0"
+                allow="autoplay; fullscreen; picture-in-picture"
+                allowFullScreen
+                title={title}
+              />
+            ) : (
+              <video
+                ref={videoRef}
+                className="w-full h-full object-contain"
+                controls={useNativeControls}
+                autoPlay
+                crossOrigin="anonymous"
+                onError={tryNextServer}
+                onPlay={(e) => handlePlaying(e.currentTarget)}
+                onPause={(e) => handlePause(e.currentTarget)}
+                onEnded={(e) => handleEnded(e.currentTarget)}
+                onTimeUpdate={(e) => handleTimeUpdate(e.currentTarget)}
+                onDurationChange={(e) => handleDurationChange(e.currentTarget)}
+                onVolumeChange={(e) => {
+                  const v = e.target as HTMLVideoElement
+                  setVolume(v.volume)
+                  setMuted(v.muted)
+                }}
+              >
+                {activeLink?.subtitles?.map((track, index) => (
+                  <track key={`${track.url}:${index}`} src={track.url} label={track.label} kind="captions" default={index === 0} />
+                ))}
+              </video>
+            )}
           </div>
         </div>
       )}
 
-      {!useNativeControls && (
+      {!isEmbedLink && !useNativeControls && (
         <div className={isOverlay ? 'absolute left-3 right-3 bottom-1 z-20' : 'mt-2'}>
           <div className="rounded-2xl border border-m3-outline/25 bg-m3-surface/75 backdrop-blur-xl px-3 py-3 shadow-2xl">
             <div className="flex items-center gap-2 text-m3-on-surface text-xs mb-2">

@@ -13,6 +13,8 @@ export interface StreamLink {
   hls: boolean
   provider: string
   downloadable: boolean
+  subtitles?: { label: string; url: string }[]
+  embed?: boolean
 }
 
 export const TRANSLATION_TYPE_KEY = 'playback.translationType'
@@ -24,7 +26,7 @@ export function getTranslationType(): TranslationType {
 
 export function getCatalogProvider(): CatalogProvider {
   const provider = localStorage.getItem(CATALOG_PROVIDER_KEY)
-  return provider === 'desu' || provider === 'miruro' ? provider : 'allanime'
+  return provider === 'desu' || provider === 'miruro' || provider === 'anikoto' ? provider : 'allanime'
 }
 
 export async function invokeSearch(query: string, catalogProvider: CatalogProvider = getCatalogProvider()): Promise<IpcResponse<AnimeSearchResult[]>> {
@@ -42,7 +44,7 @@ export async function invokeLinks(id: string, ep: string, translationType: Trans
   throw new Error('AniPlay API is only available in the Electron application')
 }
 
-export async function openProviderEpisode(id: string, ep: string, catalogProvider: CatalogProvider): Promise<IpcResponse<void>> {
-  if (window.aniPlay) return window.aniPlay.openProviderEpisode(id, ep, catalogProvider)
+export async function openProviderEpisode(id: string, ep: string, catalogProvider: CatalogProvider, translationType: TranslationType = getTranslationType()): Promise<IpcResponse<void>> {
+  if (window.aniPlay) return window.aniPlay.openProviderEpisode(id, ep, catalogProvider, translationType)
   throw new Error('AniPlay API is only available in the Electron application')
 }

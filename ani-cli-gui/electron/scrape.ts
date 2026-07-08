@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { app } from 'electron'
 import { getDesuEpisodeLinks, getDesuEpisodes, searchDesu } from './desu'
 import { getMiruroEpisodeLinks, getMiruroEpisodes, searchMiruro } from './miruro'
+import { getAnikotoEpisodeLinks, getAnikotoEpisodes, searchAnikoto } from './anikoto'
 import type { CatalogProvider } from '../src/catalog-types'
 
 const DEFAULT_TIMEOUT_MS = 10_000
@@ -27,6 +28,8 @@ export interface StreamLink {
   hls: boolean
   provider: string
   downloadable: boolean
+  subtitles?: { label: string; url: string }[]
+  embed?: boolean
 }
 
 function isObject(value: unknown): value is JsonObject {
@@ -113,12 +116,15 @@ export interface SearchResult {
   id: string
   name: string
   episodes: number
+  aniListMediaId?: number
+  coverUrl?: string
   catalogProvider: CatalogProvider
 }
 
 export async function searchAnime(query: string, mode: TranslationType, catalogProvider: CatalogProvider = 'allanime'): Promise<SearchResult[]> {
   if (catalogProvider === 'desu') return searchDesu(query)
   if (catalogProvider === 'miruro') return searchMiruro(query)
+  if (catalogProvider === 'anikoto') return searchAnikoto(query)
   const searchGql = `query( $search: SearchInput $limit: Int $page: Int $translationType: VaildTranslationTypeEnumType $countryOrigin: VaildCountryOriginEnumType ) { shows( search: $search limit: $limit page: $page translationType: $translationType countryOrigin: $countryOrigin ) { edges { _id name availableEpisodes __typename } }}`
 
   const variables = {
@@ -160,6 +166,7 @@ export async function searchAnime(query: string, mode: TranslationType, catalogP
 export async function getEpisodes(showId: string, mode: TranslationType, catalogProvider: CatalogProvider = 'allanime'): Promise<string[]> {
   if (catalogProvider === 'desu') return getDesuEpisodes(showId)
   if (catalogProvider === 'miruro') return getMiruroEpisodes(showId)
+  if (catalogProvider === 'anikoto') return getAnikotoEpisodes(showId)
   const episodesListGql = `query ($showId: String!) { show( _id: $showId ) { _id availableEpisodesDetail }}`
   const json = await fetchJson(`${ALLANIME_API}/api`, {
     method: 'POST',
@@ -280,6 +287,7 @@ function processResponse(responseRaw: string): unknown {
 export async function getEpisodeLinks(showId: string, epNo: string, mode: TranslationType, catalogProvider: CatalogProvider = 'allanime'): Promise<StreamLink[]> {
     if (catalogProvider === 'desu') return getDesuEpisodeLinks(showId, epNo)
     if (catalogProvider === 'miruro') return getMiruroEpisodeLinks(showId, epNo)
+    if (catalogProvider === 'anikoto') return getAnikotoEpisodeLinks(showId, epNo, mode)
     const queryHash = ALLANIME_QUERY_HASH
     const queryVars = { showId, translationType: mode, episodeString: epNo }
     const extensions = { persistedQuery: { version: 1, sha256Hash: queryHash }, aaReq: createAllAnimeRequestToken(queryHash) }

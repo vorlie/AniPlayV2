@@ -1,9 +1,10 @@
-feat: add Miruro provider and restore AllAnime sources
+feat: add Anikoto provider candidate
 
-- add Miruro as an English catalog provider with search, episodes, source lookup, and browser fallback
-- wire Miruro through catalog selection, IPC validation, history, remote notices, and player metadata
-- add Miruro and UltraCloud request headers for embedded playback
-- generate AllAnime aaReq tokens for persisted episode-source queries
-- decrypt new AllAnime AES-GCM episode payloads with the updated derived key while keeping legacy CTR fallback
-- keep AllAnime provider resolution for Mp4Upload, fast4speed, and internal proxy links
-- validate with production UI build and automated tests
+- add Anikoto as a selectable English catalog provider backed by embedded MegaPlay playback
+- resolve MegaPlay embeds through s-2, AniList, and MAL episode endpoints
+- keep native MegaPlay source parsing available for opt-in debugging
+- add Anikoto browser fallback with the selected sub/dub mode
+- carry catalog provider metadata through download jobs so non-AllAnime downloads resolve correctly
+- add MegaPlay request headers for in-app playback and FFmpeg downloads
+- enable EasyList-powered ad blocking for embedded MegaPlay playback
+- cover Anikoto and MegaPlay parsers with unit tests

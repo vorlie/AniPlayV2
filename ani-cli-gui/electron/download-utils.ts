@@ -55,7 +55,9 @@ export function parseFfmpegProgress(text: string, durationSeconds?: number): { p
 
 export function mediaHeaders(url: string): Record<string, string> {
   const host = new URL(url).hostname.toLowerCase()
-  const referer = host.endsWith('mp4upload.com')
+  const referer = host.endsWith('megaplay.buzz') || host.endsWith('mewstream.buzz') || host.endsWith('lostproject.club') || host.endsWith('voltara.click')
+    ? 'https://megaplay.buzz/'
+    : host.endsWith('mp4upload.com')
     ? 'https://www.mp4upload.com/'
     : 'https://youtu-chan.com/'
   return {

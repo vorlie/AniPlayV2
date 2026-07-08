@@ -47,17 +47,21 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
     ? 'Searching Desu Online for Polish-subtitled anime.'
     : catalogProvider === 'miruro'
       ? 'Searching Miruro for English sub and dub anime.'
-      : `Searching the ${translationType === 'dub' ? 'dubbed' : 'subbed'} AllAnime catalog.`
+      : catalogProvider === 'anikoto'
+        ? 'Searching Anikoto for English sub and dub anime.'
+        : `Searching the ${translationType === 'dub' ? 'dubbed' : 'subbed'} AllAnime catalog.`
 
   const providerLabel = (provider: CatalogProvider) => {
     if (provider === 'allanime') return `AllAnime · ${translationType.toUpperCase()}`
     if (provider === 'desu') return 'Desu · PL SUB'
-    return 'Miruro · EN'
+    if (provider === 'miruro') return 'Miruro · EN'
+    return 'Anikoto · EN'
   }
 
   const resultMeta = (anime: AnimeSearchResult) => {
     if (anime.catalogProvider === 'desu') return 'Polish subtitles'
     if (anime.catalogProvider === 'miruro') return `${anime.episodes || '—'} episodes · English`
+    if (anime.catalogProvider === 'anikoto') return `${anime.episodes || '—'} episodes · English`
     return `${anime.episodes || '—'} episodes`
   }
 
@@ -71,7 +75,7 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
             <p className="mt-1 text-sm text-m3-on-surface-variant">{providerDescription}</p>
           </div>
           <div className="self-start inline-flex rounded-xl border border-m3-outline/30 p-1" role="group" aria-label="Catalog provider">
-            {(['allanime', 'desu', 'miruro'] as const).map((provider) => <button key={provider} type="button" onClick={() => selectCatalog(provider)} aria-pressed={catalogProvider === provider} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${catalogProvider === provider ? 'bg-m3-primary text-m3-on-primary' : 'hover:bg-m3-on-surface/10'}`}>{providerLabel(provider)}</button>)}
+            {(['allanime', 'desu', 'miruro', 'anikoto'] as const).map((provider) => <button key={provider} type="button" onClick={() => selectCatalog(provider)} aria-pressed={catalogProvider === provider} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${catalogProvider === provider ? 'bg-m3-primary text-m3-on-primary' : 'hover:bg-m3-on-surface/10'}`}>{providerLabel(provider)}</button>)}
           </div>
         </div>
 

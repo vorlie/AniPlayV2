@@ -8,4 +8,4 @@ export interface AnimeSearchResult {
 }
 
 export type TranslationType = 'sub' | 'dub'
-export type CatalogProvider = 'allanime' | 'desu' | 'miruro'
+export type CatalogProvider = 'allanime' | 'desu' | 'miruro' | 'anikoto'

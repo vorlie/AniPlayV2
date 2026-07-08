@@ -1,3 +1,5 @@
+import type { CatalogProvider } from './catalog-types'
+
 export type TranslationType = 'sub' | 'dub'
 
 export type DownloadStatus =
@@ -14,6 +16,7 @@ export interface DownloadRequest {
   animeName: string
   episode: string
   translationType: TranslationType
+  catalogProvider: CatalogProvider
   provider: string
   resolution: string
   durationSeconds?: number
