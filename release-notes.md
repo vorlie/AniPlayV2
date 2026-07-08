@@ -7,4 +7,4 @@
 - AniList playback mappings now remember their catalog provider, so old AllAnime mappings are not reused for Anikoto playback.
 
 
-**Full changelog:** https://github.com/vorlie/AniPlayV2/compare/1.9.6...1.9.7
+**Full changelog:** https://github.com/vorlie/AniPlayV2/compare/1.9.6...1.9.8
