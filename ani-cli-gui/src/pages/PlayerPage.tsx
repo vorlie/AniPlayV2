@@ -99,7 +99,7 @@ export function PlayerPage({
   initialResumeSeconds,
   aniListMediaId,
   coverUrl,
-  catalogProvider = 'allanime',
+  catalogProvider = 'anikoto',
 }: PlayerPageProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const hlsRef = useRef<Hls | null>(null)

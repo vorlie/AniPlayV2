@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { CalendarClock, ChevronLeft, Flame, ListPlus, Loader2, LogIn, LogOut, Play, Sparkles, Star, TrendingUp, UserRound } from 'lucide-react'
-import { getTranslationType, invokeSearch, type AnimeSearchResult } from '../lib/api'
+import { getCatalogProvider, getTranslationType, invokeSearch, type AnimeSearchResult } from '../lib/api'
 import { readHistory, type HistoryEntry } from '../lib/history'
 import type { AnimeDetails, AnimeSummary, AniListStatus, CatalogCandidate, DashboardData, ListUpdateInput } from '../anilist-types'
 
@@ -92,17 +92,18 @@ export function HomePage({ setSearchQuery, setResults, onSelectAnime, onResume }
   const logout = async () => { await window.aniPlay!.aniList.auth.logout(); load() }
 
   const openMapped = (media: AnimeSummary, anime: AnimeSearchResult) => {
-    const selection = { ...anime, catalogProvider: 'allanime' as const, aniListMediaId: media.id, coverUrl: media.coverUrl || undefined }
+    const selection = { ...anime, aniListMediaId: media.id, coverUrl: media.coverUrl || undefined }
     setSearchQuery(anime.name); setResults([selection]); onSelectAnime(selection)
   }
   const watch = async (media: AnimeSummary) => {
     setError(null)
     try {
       const queries = [...new Set([media.titleEnglish, media.titleRomaji, media.title, ...media.synonyms].filter((item): item is string => Boolean(item)))].slice(0, 3)
+      const provider = getCatalogProvider()
       let results: AnimeSearchResult[] = []
-      for (const query of queries) { const response = await invokeSearch(query, 'allanime'); if (response.success && response.data?.length) { results = response.data; break } }
+      for (const query of queries) { const response = await invokeSearch(query, provider); if (response.success && response.data?.length) { results = response.data; break } }
       const resolution = await window.aniPlay!.aniList.mapping.resolve(media, results, getTranslationType())
-      if (resolution.mapping) { openMapped(media, { id: resolution.mapping.scraperId, name: resolution.mapping.scraperName, episodes: resolution.mapping.episodes, catalogProvider: 'allanime' }); return }
+      if (resolution.mapping) { openMapped(media, { id: resolution.mapping.scraperId, name: resolution.mapping.scraperName, episodes: resolution.mapping.episodes, catalogProvider: resolution.mapping.catalogProvider }); return }
       if (!resolution.candidates.length) throw new Error(`No playable catalog result found for “${media.title}”.`)
       setCandidates({ media, items: resolution.candidates.slice(0, 8) })
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not find this anime in the playback catalog') }

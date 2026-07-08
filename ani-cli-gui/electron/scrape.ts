@@ -121,7 +121,7 @@ export interface SearchResult {
   catalogProvider: CatalogProvider
 }
 
-export async function searchAnime(query: string, mode: TranslationType, catalogProvider: CatalogProvider = 'allanime'): Promise<SearchResult[]> {
+export async function searchAnime(query: string, mode: TranslationType, catalogProvider: CatalogProvider = 'anikoto'): Promise<SearchResult[]> {
   if (catalogProvider === 'desu') return searchDesu(query)
   if (catalogProvider === 'miruro') return searchMiruro(query)
   if (catalogProvider === 'anikoto') return searchAnikoto(query)
@@ -163,7 +163,7 @@ export async function searchAnime(query: string, mode: TranslationType, catalogP
   })
 }
 
-export async function getEpisodes(showId: string, mode: TranslationType, catalogProvider: CatalogProvider = 'allanime'): Promise<string[]> {
+export async function getEpisodes(showId: string, mode: TranslationType, catalogProvider: CatalogProvider = 'anikoto'): Promise<string[]> {
   if (catalogProvider === 'desu') return getDesuEpisodes(showId)
   if (catalogProvider === 'miruro') return getMiruroEpisodes(showId)
   if (catalogProvider === 'anikoto') return getAnikotoEpisodes(showId)
@@ -284,7 +284,7 @@ function processResponse(responseRaw: string): unknown {
   return parsed
 }
 
-export async function getEpisodeLinks(showId: string, epNo: string, mode: TranslationType, catalogProvider: CatalogProvider = 'allanime'): Promise<StreamLink[]> {
+export async function getEpisodeLinks(showId: string, epNo: string, mode: TranslationType, catalogProvider: CatalogProvider = 'anikoto'): Promise<StreamLink[]> {
     if (catalogProvider === 'desu') return getDesuEpisodeLinks(showId, epNo)
     if (catalogProvider === 'miruro') return getMiruroEpisodeLinks(showId, epNo)
     if (catalogProvider === 'anikoto') return getAnikotoEpisodeLinks(showId, epNo, mode)

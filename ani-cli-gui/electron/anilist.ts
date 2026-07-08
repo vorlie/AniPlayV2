@@ -3,7 +3,7 @@ import { createServer, type Server } from 'node:http'
 import { randomBytes } from 'node:crypto'
 import fs from 'node:fs'
 import { join } from 'node:path'
-import type { AnimeSearchResult, TranslationType } from '../src/catalog-types'
+import type { AnimeSearchResult, CatalogProvider, TranslationType } from '../src/catalog-types'
 import type { AnimeDetails, AnimeSummary, AniListSession, CatalogMapping, CatalogResolution, DashboardData, ListUpdateInput, MediaListState } from '../src/anilist-types'
 
 const API = 'https://graphql.anilist.co'
@@ -39,6 +39,7 @@ function record(value: unknown): JsonObject { return value && typeof value === '
 function array(value: unknown): unknown[] { return Array.isArray(value) ? value : [] }
 function text(value: unknown): string | undefined { return typeof value === 'string' && value.trim() ? value.trim() : undefined }
 function number(value: unknown): number | undefined { return typeof value === 'number' && Number.isFinite(value) ? value : undefined }
+function catalogProvider(value: unknown): CatalogProvider { return value === 'desu' || value === 'miruro' || value === 'anikoto' ? value : 'allanime' }
 
 export function descriptionToPlainText(value: unknown): string {
   const source = text(value)
@@ -142,7 +143,12 @@ export class AniListService {
   }
   private loadJsonCache() { try { const saved = JSON.parse(fs.readFileSync(this.path(CACHE_FILE), 'utf8')) as Record<string, CacheRecord>; for (const [key, value] of Object.entries(saved)) this.cache.set(key, value) } catch { /* empty */ } }
   private saveCache() { const recent = [...this.cache.entries()].filter(([, item]) => item.expiresAt > Date.now() - 24 * 60 * 60_000).slice(-30); fs.writeFileSync(this.path(CACHE_FILE), JSON.stringify(Object.fromEntries(recent)), 'utf8') }
-  private loadMappings() { try { const items = JSON.parse(fs.readFileSync(this.path(MAPPING_FILE), 'utf8')) as CatalogMapping[]; items.forEach((item) => this.mappings.set(item.mediaId, item)) } catch { /* empty */ } }
+  private loadMappings() {
+    try {
+      const items = JSON.parse(fs.readFileSync(this.path(MAPPING_FILE), 'utf8')) as CatalogMapping[]
+      items.forEach((item) => this.mappings.set(item.mediaId, { ...item, catalogProvider: catalogProvider(item.catalogProvider) }))
+    } catch { /* empty */ }
+  }
   private saveMappings() { fs.writeFileSync(this.path(MAPPING_FILE), JSON.stringify([...this.mappings.values()]), 'utf8') }
 
   async validateSession() {
@@ -221,14 +227,16 @@ export class AniListService {
   }
   async deleteList(entryId: number) { await this.request('mutation Delete($id: Int!) { DeleteMediaListEntry(id: $id) { deleted } }', { id: entryId }, true, false); this.cache.clear(); return true }
   resolveMapping(media: AnimeSummary, candidates: AnimeSearchResult[], translationType: TranslationType): CatalogResolution {
-    const saved = this.mappings.get(media.id); if (saved && saved.translationType === translationType) return { mapping: saved, candidates: [], autoMatched: true }
+    const activeProvider = candidates[0]?.catalogProvider
+    const saved = this.mappings.get(media.id)
+    if (saved && saved.translationType === translationType && (!activeProvider || saved.catalogProvider === activeProvider)) return { mapping: saved, candidates: [], autoMatched: true }
     const ranked = candidates.map((anime) => ({ anime, ...scoreCandidate(media, anime) })).sort((a, b) => b.confidence - a.confidence)
     const first = ranked[0]; const second = ranked[1]; const auto = Boolean(first && first.confidence >= .86 && (!second || first.confidence - second.confidence >= .12))
     if (auto) { const mapping = this.confirmMapping(media.id, first.anime, translationType); return { mapping, candidates: ranked, autoMatched: true } }
     return { candidates: ranked, autoMatched: false }
   }
   async resolveAniListMetadata(scraperAnime: AnimeSearchResult, translationType: TranslationType): Promise<AnimeSummary | null> {
-    const saved = [...this.mappings.values()].find((mapping) => mapping.scraperId === scraperAnime.id && mapping.translationType === translationType)
+    const saved = [...this.mappings.values()].find((mapping) => mapping.scraperId === scraperAnime.id && mapping.translationType === translationType && mapping.catalogProvider === scraperAnime.catalogProvider)
     if (saved) {
       try { return await this.details(saved.mediaId) } catch { /* fall through to title search */ }
     }
@@ -245,6 +253,6 @@ export class AniListService {
     this.confirmMapping(first.media.id, scraperAnime, translationType)
     return first.media
   }
-  confirmMapping(mediaId: number, anime: AnimeSearchResult, translationType: TranslationType) { const mapping: CatalogMapping = { mediaId, scraperId: anime.id, scraperName: anime.name, episodes: anime.episodes, translationType, confirmedAt: Date.now() }; this.mappings.set(mediaId, mapping); this.saveMappings(); return mapping }
+  confirmMapping(mediaId: number, anime: AnimeSearchResult, translationType: TranslationType) { const mapping: CatalogMapping = { mediaId, scraperId: anime.id, scraperName: anime.name, episodes: anime.episodes, catalogProvider: anime.catalogProvider, translationType, confirmedAt: Date.now() }; this.mappings.set(mediaId, mapping); this.saveMappings(); return mapping }
   forgetMapping(mediaId: number) { const removed = this.mappings.delete(mediaId); this.saveMappings(); return removed }
 }

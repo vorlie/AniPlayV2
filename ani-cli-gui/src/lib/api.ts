@@ -19,6 +19,7 @@ export interface StreamLink {
 
 export const TRANSLATION_TYPE_KEY = 'playback.translationType'
 export const CATALOG_PROVIDER_KEY = 'catalog.provider'
+export const DEFAULT_CATALOG_PROVIDER: CatalogProvider = 'anikoto'
 
 export function getTranslationType(): TranslationType {
   return localStorage.getItem(TRANSLATION_TYPE_KEY) === 'dub' ? 'dub' : 'sub'
@@ -26,7 +27,7 @@ export function getTranslationType(): TranslationType {
 
 export function getCatalogProvider(): CatalogProvider {
   const provider = localStorage.getItem(CATALOG_PROVIDER_KEY)
-  return provider === 'desu' || provider === 'miruro' || provider === 'anikoto' ? provider : 'allanime'
+  return provider === 'allanime' || provider === 'desu' || provider === 'miruro' || provider === 'anikoto' ? provider : DEFAULT_CATALOG_PROVIDER
 }
 
 export async function invokeSearch(query: string, catalogProvider: CatalogProvider = getCatalogProvider()): Promise<IpcResponse<AnimeSearchResult[]>> {
@@ -34,12 +35,12 @@ export async function invokeSearch(query: string, catalogProvider: CatalogProvid
   throw new Error('AniPlay API is only available in the Electron application')
 }
 
-export async function invokeEpisodes(id: string, catalogProvider: CatalogProvider = 'allanime', translationType: TranslationType = getTranslationType()): Promise<IpcResponse<string[]>> {
+export async function invokeEpisodes(id: string, catalogProvider: CatalogProvider = DEFAULT_CATALOG_PROVIDER, translationType: TranslationType = getTranslationType()): Promise<IpcResponse<string[]>> {
   if (window.aniPlay) return window.aniPlay.getEpisodes(id, translationType, catalogProvider)
   throw new Error('AniPlay API is only available in the Electron application')
 }
 
-export async function invokeLinks(id: string, ep: string, translationType: TranslationType = getTranslationType(), catalogProvider: CatalogProvider = 'allanime'): Promise<IpcResponse<StreamLink[]>> {
+export async function invokeLinks(id: string, ep: string, translationType: TranslationType = getTranslationType(), catalogProvider: CatalogProvider = DEFAULT_CATALOG_PROVIDER): Promise<IpcResponse<StreamLink[]>> {
   if (window.aniPlay) return window.aniPlay.getEpisodeLinks(id, ep, translationType, catalogProvider)
   throw new Error('AniPlay API is only available in the Electron application')
 }

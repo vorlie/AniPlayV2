@@ -315,7 +315,7 @@ function createWindow() {
     if (!anime || typeof anime !== 'object') throw new TypeError('Invalid catalog anime')
     const value = anime as Record<string, unknown>
     const normalized: AnimeSearchResult = {
-      id: requireString(value.id, 'animeId', 200),
+      id: requireString(value.id, 'animeId', 1000),
       name: requireString(value.name, 'animeName', 300),
       episodes: typeof value.episodes === 'number' && Number.isInteger(value.episodes) && value.episodes >= 0 ? value.episodes : 0,
       catalogProvider: value.catalogProvider === 'desu' || value.catalogProvider === 'miruro' || value.catalogProvider === 'anikoto' ? value.catalogProvider : 'allanime',

@@ -1,4 +1,4 @@
-import type { AnimeSearchResult, TranslationType } from './catalog-types'
+import type { AnimeSearchResult, CatalogProvider, TranslationType } from './catalog-types'
 
 export type AniListStatus = 'CURRENT' | 'PLANNING' | 'COMPLETED' | 'PAUSED' | 'DROPPED' | 'REPEATING'
 
@@ -73,6 +73,7 @@ export interface CatalogMapping {
   scraperId: string
   scraperName: string
   episodes: number
+  catalogProvider: CatalogProvider
   translationType: TranslationType
   confirmedAt: number
 }

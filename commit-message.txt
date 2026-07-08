@@ -1,1 +1,5 @@
-patch: bridge MegaPlay player events into watch history and Discord Rich Presence
+patch: make Anikoto the default provider
+
+- default fresh searches and AniList dashboard playback to Anikoto
+- keep AllAnime selectable as a non-default provider
+- store catalog provider metadata in AniList playback mappings
