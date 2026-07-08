@@ -65,6 +65,28 @@ function seekToResumePosition(video: HTMLVideoElement, progressSeconds: number, 
   }
 }
 
+function embedOrigin(link: StreamLink | undefined) {
+  if (!link?.embed) return null
+  try {
+    return new URL(link.url).origin
+  } catch {
+    return null
+  }
+}
+
+function parseEmbedMessage(value: unknown): unknown {
+  if (typeof value !== 'string') return value
+  try {
+    return JSON.parse(value) as unknown
+  } catch {
+    return null
+  }
+}
+
+function finiteSeconds(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null
+}
+
 export function PlayerPage({
   links,
   title,
@@ -108,6 +130,7 @@ export function PlayerPage({
   const activeLink = links[activeIdx]
   const resumeSeconds = useMemo(() => toResumeSeconds(initialResumeSeconds), [initialResumeSeconds])
   const isEmbedLink = Boolean(activeLink?.embed)
+  const activeEmbedOrigin = useMemo(() => embedOrigin(activeLink), [activeLink])
 
   const saveProgress = useCallback((force = false) => {
     if (!animeId || !animeName || !episode) return
@@ -151,6 +174,45 @@ export function PlayerPage({
     if (!videoRef.current) return
     updatePresence(!videoRef.current.paused, true)
   }, [updatePresence])
+
+  useEffect(() => {
+    if (!isEmbedLink || !activeEmbedOrigin) return
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== activeEmbedOrigin) return
+      const data = parseEmbedMessage(event.data)
+      if (!data || typeof data !== 'object') return
+      const payload = data as Record<string, unknown>
+      const time = finiteSeconds(payload.time ?? payload.currentTime)
+      const nextDuration = finiteSeconds(payload.duration)
+
+      if (time !== null) {
+        latestTimeRef.current = time
+        if (nextDuration !== null && nextDuration > 0) latestDurationRef.current = nextDuration
+        setCurrentTime(latestTimeRef.current)
+        setDuration(latestDurationRef.current)
+        setIsPlaying(true)
+        saveProgress(false)
+        updatePresence(true, false)
+      }
+
+      if (payload.event === 'complete') {
+        if (nextDuration !== null && nextDuration > 0) {
+          latestTimeRef.current = nextDuration
+          latestDurationRef.current = nextDuration
+        }
+        setCurrentTime(latestTimeRef.current)
+        setDuration(latestDurationRef.current)
+        setIsPlaying(false)
+        saveProgress(true)
+        void window.aniPlay?.discordPresence.clear().catch(() => {})
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    updatePresence(true, true)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [activeEmbedOrigin, isEmbedLink, saveProgress, updatePresence])
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {

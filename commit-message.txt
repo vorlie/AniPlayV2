@@ -1,10 +1,1 @@
-feat: add Anikoto provider candidate
-
-- add Anikoto as a selectable English catalog provider backed by embedded MegaPlay playback
-- resolve MegaPlay embeds through s-2, AniList, and MAL episode endpoints
-- keep native MegaPlay source parsing available for opt-in debugging
-- add Anikoto browser fallback with the selected sub/dub mode
-- carry catalog provider metadata through download jobs so non-AllAnime downloads resolve correctly
-- add MegaPlay request headers for in-app playback and FFmpeg downloads
-- enable EasyList-powered ad blocking for embedded MegaPlay playback
-- cover Anikoto and MegaPlay parsers with unit tests
+patch: bridge MegaPlay player events into watch history and Discord Rich Presence
