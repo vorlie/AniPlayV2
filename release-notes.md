@@ -1,4 +1,4 @@
-# AniPlayV2 Next Release Notes
+# AniPlayV2 v1.10.0 Notes
 
 ## AniList UX
 
