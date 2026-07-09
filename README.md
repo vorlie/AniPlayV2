@@ -2,6 +2,14 @@
 
 This repo is set up so users can package the app themselves on Windows.
 
+## Community
+
+Need quick help, provider status updates, or test build discussion? Join the AniPlay Discord:
+
+[https://discord.gg/9SXX6ddpNR](https://discord.gg/9SXX6ddpNR)
+
+Confirmed bugs and provider breakage should still be tracked with GitHub issues.
+
 ## Project Structure
 
 - `ani-cli-gui/` - main Electron app (UI + scraper + packaging config)
