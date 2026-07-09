@@ -102,8 +102,8 @@ async function anilist(query: string, variables: JsonObject): Promise<unknown> {
   })
 }
 
-export async function searchAnikoto(query: string): Promise<SearchResult[]> {
-  return cached(`search:${query.toLowerCase()}`, async () => {
+export async function searchAnikoto(query: string, aniListFirst = false): Promise<SearchResult[]> {
+  return cached(`search:${aniListFirst ? 'anilist' : 'default'}:${query.toLowerCase()}`, async () => {
     const recentPromise = fetchJson(`${ANIKOTO_API}/recent-anime?page=1&per_page=40`)
       .then((value) => {
         const needle = query.toLowerCase()
@@ -126,15 +126,18 @@ export async function searchAnikoto(query: string): Promise<SearchResult[]> {
       }
     `, { search: query })
 
-    const recent = await recentPromise
-    const fallback = parseAnikotoSearchPayload(json)
-    const seen = new Set<string>()
-    return [...recent, ...fallback].filter((item) => {
-      const key = item.aniListMediaId ? `ani:${item.aniListMediaId}` : item.name.toLowerCase()
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
+    return mergeAnikotoSearchResults(await recentPromise, parseAnikotoSearchPayload(json), aniListFirst)
+  })
+}
+
+export function mergeAnikotoSearchResults(recent: SearchResult[], aniList: SearchResult[], aniListFirst: boolean): SearchResult[] {
+  const seen = new Set<string>()
+  const ordered = aniListFirst ? [...aniList, ...recent] : [...recent, ...aniList]
+  return ordered.filter((item) => {
+    const key = item.aniListMediaId ? `ani:${item.aniListMediaId}` : item.name.toLowerCase()
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
   })
 }
 

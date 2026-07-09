@@ -52,9 +52,9 @@ function App() {
     setResumeProgressSeconds(item.progressSeconds)
   }
 
-  const handleSelectAnime = (anime: AnimeSelection) => {
-    setResumeEpisode(null)
-    setResumeProgressSeconds(null)
+  const handleSelectAnime = (anime: AnimeSelection, options?: { episode?: string | null; resumeSeconds?: number | null }) => {
+    setResumeEpisode(options?.episode ?? null)
+    setResumeProgressSeconds(options?.resumeSeconds ?? null)
     setActiveTab('player')
     setActiveAnime(anime)
   }

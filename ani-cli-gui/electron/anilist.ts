@@ -41,6 +41,10 @@ function text(value: unknown): string | undefined { return typeof value === 'str
 function number(value: unknown): number | undefined { return typeof value === 'number' && Number.isFinite(value) ? value : undefined }
 function catalogProvider(value: unknown): CatalogProvider { return value === 'desu' || value === 'miruro' || value === 'anikoto' ? value : 'allanime' }
 
+export function normalizeCatalogMapping(value: CatalogMapping): CatalogMapping {
+  return { ...value, catalogProvider: catalogProvider(value.catalogProvider) }
+}
+
 export function descriptionToPlainText(value: unknown): string {
   const source = text(value)
   if (!source) return 'No description available.'
@@ -124,12 +128,17 @@ export class AniListService {
   private mappings = new Map<number, CatalogMapping>()
   private authServer?: Server
   private readonly clientId = process.env.ANILIST_CLIENT_ID ?? process.env.VITE_ANILIST_CLIENT_ID ?? DEFAULT_CLIENT_ID
+  private readonly basePath: string
+
+  constructor(basePath = app.getPath('userData')) {
+    this.basePath = basePath
+  }
 
   initialize() { this.loadToken(); this.loadJsonCache(); this.loadMappings() }
   shutdown() { this.authServer?.close(); this.authServer = undefined }
   getSession(): AniListSession { return { authenticated: Boolean(this.token && this.user), configured: Boolean(this.clientId), user: this.user, expiresAt: this.expiresAt } }
 
-  private path(name: string) { return join(app.getPath('userData'), name) }
+  private path(name: string) { return join(this.basePath, name) }
   private loadToken() {
     try {
       const saved = JSON.parse(fs.readFileSync(this.path(TOKEN_FILE), 'utf8')) as { token: string; expiresAt: number; user?: AniListSession['user'] }
@@ -146,7 +155,7 @@ export class AniListService {
   private loadMappings() {
     try {
       const items = JSON.parse(fs.readFileSync(this.path(MAPPING_FILE), 'utf8')) as CatalogMapping[]
-      items.forEach((item) => this.mappings.set(item.mediaId, { ...item, catalogProvider: catalogProvider(item.catalogProvider) }))
+      items.forEach((item) => this.mappings.set(item.mediaId, normalizeCatalogMapping(item)))
     } catch { /* empty */ }
   }
   private saveMappings() { fs.writeFileSync(this.path(MAPPING_FILE), JSON.stringify([...this.mappings.values()]), 'utf8') }

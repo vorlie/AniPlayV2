@@ -274,10 +274,10 @@ function createWindow() {
   })
 
   // Register the scraping handlers
-  ipcMain.handle('search', async (event, query: unknown, translationType: unknown, catalogProvider: unknown) => {
+  ipcMain.handle('search', async (event, query: unknown, translationType: unknown, catalogProvider: unknown, aniListFirstSearch: unknown) => {
     try {
       assertTrustedSender(event)
-      const results = await searchAnime(requireString(query, 'query', 200), requireTranslationType(translationType), requireCatalogProvider(catalogProvider))
+      const results = await searchAnime(requireString(query, 'query', 200), requireTranslationType(translationType), requireCatalogProvider(catalogProvider), aniListFirstSearch === true)
       return { success: true, data: results }
     } catch (error: unknown) {
       return { success: false, error: errorMessage(error) }

@@ -7,7 +7,7 @@ import type { UpdateState } from '../src/updater-types'
 import type { RemoteNoticeState } from '../src/remote-notice-types'
 
 contextBridge.exposeInMainWorld('aniPlay', {
-  search: (query: string, translationType: TranslationType, catalogProvider: CatalogProvider) => ipcRenderer.invoke('search', query, translationType, catalogProvider),
+  search: (query: string, translationType: TranslationType, catalogProvider: CatalogProvider, aniListFirstSearch?: boolean) => ipcRenderer.invoke('search', query, translationType, catalogProvider, aniListFirstSearch),
   getEpisodes: (showId: string, translationType: TranslationType, catalogProvider: CatalogProvider) => ipcRenderer.invoke('episodes', showId, translationType, catalogProvider),
   getEpisodeLinks: (showId: string, episode: string, translationType: TranslationType, catalogProvider: CatalogProvider) => ipcRenderer.invoke('links', showId, episode, translationType, catalogProvider),
   openProviderEpisode: (showId: string, episode: string, catalogProvider: CatalogProvider, translationType?: TranslationType) => ipcRenderer.invoke('open-provider-episode', showId, episode, catalogProvider, translationType),

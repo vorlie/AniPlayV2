@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { descriptionToPlainText, normalizeMedia, scoreCandidate } from './anilist'
+import { AniListService, descriptionToPlainText, normalizeCatalogMapping, normalizeMedia, scoreCandidate } from './anilist'
+import type { CatalogMapping } from '../src/anilist-types'
+import { mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 describe('AniList normalization', () => {
   it('prefers English titles and normalizes optional metadata', () => {
@@ -41,5 +45,36 @@ describe('catalog candidate scoring', () => {
     const matching = scoreCandidate(media, { id: 'a', name: 'Example', episodes: 12, catalogProvider: 'allanime' })
     const conflicting = scoreCandidate(media, { id: 'b', name: 'Example', episodes: 120, catalogProvider: 'allanime' })
     expect(matching.confidence).toBeGreaterThan(conflicting.confidence)
+  })
+})
+
+describe('catalog mapping providers', () => {
+  it('normalizes old provider-less mappings to AllAnime', () => {
+    const legacy = {
+      mediaId: 1,
+      scraperId: 'legacy-id',
+      scraperName: 'Legacy',
+      episodes: 12,
+      translationType: 'sub',
+      confirmedAt: 1,
+    } as CatalogMapping
+
+    expect(normalizeCatalogMapping(legacy).catalogProvider).toBe('allanime')
+  })
+
+  it('stores Anikoto mappings with provider metadata', () => {
+    const service = new AniListService(mkdtempSync(join(tmpdir(), 'aniplay-anilist-')))
+    const mapping = service.confirmMapping(1, { id: 'anikoto:test', name: 'Example', episodes: 12, catalogProvider: 'anikoto' }, 'sub')
+    expect(mapping.catalogProvider).toBe('anikoto')
+  })
+
+  it('does not reuse a saved mapping for a different active provider', () => {
+    const service = new AniListService(mkdtempSync(join(tmpdir(), 'aniplay-anilist-')))
+    service.confirmMapping(1, { id: 'old-allanime-id', name: 'Example', episodes: 12, catalogProvider: 'allanime' }, 'sub')
+
+    const media = normalizeMedia({ id: 1, title: { english: 'Example' }, episodes: 12 })
+    const resolution = service.resolveMapping(media, [{ id: 'anikoto:test', name: 'Example', episodes: 12, catalogProvider: 'anikoto' }], 'sub')
+
+    expect(resolution.mapping?.catalogProvider).toBe('anikoto')
   })
 })

@@ -121,10 +121,10 @@ export interface SearchResult {
   catalogProvider: CatalogProvider
 }
 
-export async function searchAnime(query: string, mode: TranslationType, catalogProvider: CatalogProvider = 'anikoto'): Promise<SearchResult[]> {
+export async function searchAnime(query: string, mode: TranslationType, catalogProvider: CatalogProvider = 'anikoto', aniListFirstSearch = false): Promise<SearchResult[]> {
   if (catalogProvider === 'desu') return searchDesu(query)
   if (catalogProvider === 'miruro') return searchMiruro(query)
-  if (catalogProvider === 'anikoto') return searchAnikoto(query)
+  if (catalogProvider === 'anikoto') return searchAnikoto(query, aniListFirstSearch)
   const searchGql = `query( $search: SearchInput $limit: Int $page: Int $translationType: VaildTranslationTypeEnumType $countryOrigin: VaildCountryOriginEnumType ) { shows( search: $search limit: $limit page: $page translationType: $translationType countryOrigin: $countryOrigin ) { edges { _id name availableEpisodes __typename } }}`
 
   const variables = {

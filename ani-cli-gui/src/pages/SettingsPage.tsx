@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { Bug, FolderOpen, Gamepad2, GitPullRequest, Globe, Palette, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
 import { argbFromRgb, hexFromArgb, themeFromSourceColor } from '@material/material-color-utilities'
-import { getTranslationType, TRANSLATION_TYPE_KEY, type TranslationType } from '../lib/api'
+import { ANILIST_SEARCH_KEY, getAniListFirstSearch, getTranslationType, TRANSLATION_TYPE_KEY, type TranslationType } from '../lib/api'
 import type { UpdateState } from '../updater-types'
 
 const DEFAULT_PRIMARY = '#D0BCFF'
@@ -68,6 +68,7 @@ export function SettingsPage() {
   const [primary, setPrimary] = useState(DEFAULT_PRIMARY)
   const [useNativeControls, setUseNativeControls] = useState(true)
   const [translationType, setTranslationType] = useState<TranslationType>(getTranslationType)
+  const [aniListFirstSearch, setAniListFirstSearch] = useState(getAniListFirstSearch)
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
   const [syncError, setSyncError] = useState<string | null>(null)
   const [ciphermapInfo, setCiphermapInfo] = useState<CiphermapInfo | null>(null)
@@ -146,6 +147,14 @@ export function SettingsPage() {
   const selectTranslationType = (value: TranslationType) => {
     setTranslationType(value)
     localStorage.setItem(TRANSLATION_TYPE_KEY, value)
+  }
+
+  const toggleAniListFirstSearch = () => {
+    setAniListFirstSearch((prev) => {
+      const next = !prev
+      localStorage.setItem(ANILIST_SEARCH_KEY, String(next))
+      return next
+    })
   }
 
   const toggleDiscordPresence = async () => {
@@ -267,6 +276,24 @@ export function SettingsPage() {
             aria-label="Enable Discord Rich Presence"
           >
             <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${discordPresenceEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+          </button>
+        </div>
+      </div>
+      <div className="mt-8 pt-6 border-t border-m3-outline/20">
+        <h3 className="font-sans font-bold text-xl mb-3">Search</h3>
+        <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="font-bold text-sm">Experimental AniList-first search</p>
+            <p className="text-xs text-m3-on-surface-variant">Prioritize AniList metadata for Anikoto search results, then fall back to provider catalog matches.</p>
+          </div>
+          <button
+            type="button"
+            onClick={toggleAniListFirstSearch}
+            className={`w-14 h-8 shrink-0 rounded-full p-1 transition-colors ${aniListFirstSearch ? 'bg-m3-primary' : 'bg-m3-surface-variant/60'}`}
+            aria-pressed={aniListFirstSearch}
+            aria-label="Enable experimental AniList-first search"
+          >
+            <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${aniListFirstSearch ? 'translate-x-6' : 'translate-x-0'}`} />
           </button>
         </div>
       </div>

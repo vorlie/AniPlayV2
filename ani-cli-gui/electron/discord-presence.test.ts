@@ -20,7 +20,7 @@ describe('Discord presence payload', () => {
   it('builds a watching activity with remaining time and AniList metadata', () => {
     const activity = buildDiscordActivity(playback, 1_000_000)
     expect(activity).toMatchObject({
-      name: 'on AniPlay',
+      name: playback.animeName,
       type: 3,
       details: playback.animeName,
       state: 'Episode 12 · Subbed',

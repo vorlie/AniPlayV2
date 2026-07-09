@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getAnikotoEpisodePageUrl, parseAnikotoEpisodesPayload, parseAnikotoSearchPayload, parseMegaPlayDataId, parseMegaPlaySources } from './anikoto'
+import { getAnikotoEpisodePageUrl, mergeAnikotoSearchResults, parseAnikotoEpisodesPayload, parseAnikotoSearchPayload, parseMegaPlayDataId, parseMegaPlaySources } from './anikoto'
 
 describe('Anikoto provider parsing', () => {
   it('normalizes AniList search results for the Anikoto provider', () => {
@@ -46,6 +46,14 @@ describe('Anikoto provider parsing', () => {
       aniListMediaId: 184356,
       catalogProvider: 'anikoto',
     })
+  })
+
+  it('can rank AniList metadata before provider recent rows', () => {
+    const recent = [{ id: 'recent', name: 'Recent Title', episodes: 12, aniListMediaId: 1, catalogProvider: 'anikoto' as const }]
+    const aniList = [{ id: 'anilist', name: 'AniList Title', episodes: 12, aniListMediaId: 1, catalogProvider: 'anikoto' as const }]
+
+    expect(mergeAnikotoSearchResults(recent, aniList, true)[0].name).toBe('AniList Title')
+    expect(mergeAnikotoSearchResults(recent, aniList, false)[0].name).toBe('Recent Title')
   })
 
   it('extracts episodes and embed metadata from Anikoto series responses', () => {
