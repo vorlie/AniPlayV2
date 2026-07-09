@@ -13,4 +13,4 @@
 - Added a persisted search result view switch with Compact and Poster Grid modes.
 
 
-**Full changelog:** TBD
+**Full changelog:** https://github.com/vorlie/AniPlayV2/compare/1.9.8...1.10.0
