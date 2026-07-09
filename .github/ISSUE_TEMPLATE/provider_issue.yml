@@ -1,0 +1,74 @@
+name: Provider playback/search issue
+description: Report a broken provider, failed search, missing episodes, or playback source problem.
+title: "[Provider]: "
+labels: ["provider"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: AniPlay version
+      placeholder: "1.10.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Provider
+      options:
+        - Anikoto
+        - AllAnime
+        - Miruro
+        - Desu
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Playback mode
+      options:
+        - Sub
+        - Dub
+        - Both
+        - Not playback-related
+    validations:
+      required: true
+  - type: input
+    id: title
+    attributes:
+      label: Anime title
+      placeholder: "Example: Frieren"
+    validations:
+      required: true
+  - type: input
+    id: episode
+    attributes:
+      label: Episode
+      placeholder: "Example: 1"
+  - type: textarea
+    id: problem
+    attributes:
+      label: What failed?
+      placeholder: Search returned no results, episode list is wrong, source loading failed, player is blank, etc.
+    validations:
+      required: true
+  - type: textarea
+    id: comparison
+    attributes:
+      label: Provider/site comparison
+      description: If you checked the source website or another provider, note what works there.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Paste Electron/main-process logs if available. Remove cookies, tokens, and private data.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I tested the same title again before opening this issue.
+          required: true
+        - label: I removed private cookies, tokens, or account data from logs.
+          required: true
