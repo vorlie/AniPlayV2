@@ -1,10 +1,3 @@
-feat: improve AniList watch flow
+feat: improve AniList watch flow v2
 
-- add an AniList watch preflight panel with provider, match, and episode details
-- choose the starting episode from local history, AniList progress, or episode 1
-- add match recovery actions for changing, forgetting, and retrying playback matches
-- redesign the match picker with provider labels, confidence, reasons, and empty states
-- keep playback mappings provider-aware across AllAnime and Anikoto
-- add an experimental AniList-first search toggle for Anikoto
-- show cover thumbnails in search results when artwork is available
-- add compact and poster-grid search result view modes
+- open AniList-first search results in the AniList detail preflight when possible

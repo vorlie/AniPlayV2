@@ -29,6 +29,7 @@ function App() {
   const [resumeEpisode, setResumeEpisode] = useState<string | null>(null)
   const [resumeProgressSeconds, setResumeProgressSeconds] = useState<number | null>(null)
   const [downloadState, setDownloadState] = useState<DownloadState | null>(null)
+  const [homeAniListOpenRequest, setHomeAniListOpenRequest] = useState<{ id: number; nonce: number } | null>(null)
 
   useEffect(() => {
     if (!window.aniPlay) return
@@ -59,6 +60,11 @@ function App() {
     setActiveAnime(anime)
   }
 
+  const handleOpenAniListMedia = (id: number) => {
+    setHomeAniListOpenRequest({ id, nonce: Date.now() })
+    setActiveTab('home')
+  }
+
   return (
     <div className="min-h-screen bg-m3-surface text-m3-on-surface p-3 md:p-5 relative overflow-hidden flex flex-col">
       {/* Background Floats */}
@@ -87,10 +93,13 @@ function App() {
 
         {activeTab === 'home' && (
           <HomePage
+            key={homeAniListOpenRequest ? `anilist-${homeAniListOpenRequest.nonce}` : 'home'}
             setSearchQuery={setSearchQuery}
             setResults={setResults}
             onSelectAnime={handleSelectAnime}
             onResume={handleResumeFromHistory}
+            initialSelectedId={homeAniListOpenRequest?.id ?? null}
+            onClearInitialSelection={() => setHomeAniListOpenRequest(null)}
           />
         )}
 
@@ -101,6 +110,7 @@ function App() {
             results={results}
             setResults={setResults}
             onSelectAnime={handleSelectAnime}
+            onOpenAniListMedia={handleOpenAniListMedia}
           />
         )}
 

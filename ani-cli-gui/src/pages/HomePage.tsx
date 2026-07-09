@@ -9,6 +9,8 @@ interface HomePageProps {
   setResults: (val: AnimeSearchResult[]) => void
   onSelectAnime: (anime: AnimeSearchResult, options?: { episode?: string | null; resumeSeconds?: number | null }) => void
   onResume: (item: HistoryEntry) => void
+  initialSelectedId?: number | null
+  onClearInitialSelection?: () => void
 }
 
 interface EpisodeSuggestion {
@@ -303,9 +305,9 @@ function CandidateModal({ dialog, setDialog, onRetry, onChoose }: { dialog: Cand
   )
 }
 
-export function HomePage({ setSearchQuery, setResults, onSelectAnime, onResume }: HomePageProps) {
+export function HomePage({ setSearchQuery, setResults, onSelectAnime, onResume, initialSelectedId = null, onClearInitialSelection }: HomePageProps) {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null)
-  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [selectedId, setSelectedId] = useState<number | null>(() => initialSelectedId)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [authBusy, setAuthBusy] = useState(false)
@@ -322,7 +324,7 @@ export function HomePage({ setSearchQuery, setResults, onSelectAnime, onResume }
     onSelectAnime(selection, { episode: suggestion.episode, resumeSeconds: suggestion.resumeSeconds ?? null })
   }
 
-  if (selectedId) return <DetailsView id={selectedId} onBack={() => setSelectedId(null)} onOpenAnime={openMapped} onChanged={load} />
+  if (selectedId) return <DetailsView id={selectedId} onBack={() => { setSelectedId(null); onClearInitialSelection?.() }} onOpenAnime={openMapped} onChanged={load} />
   const history = readHistory().slice(0, 4)
   return <div className="flex-1 flex flex-col gap-5">
     <section className="m3-card p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4"><div><p className="section-label"><Flame size={14}/> AniList discovery</p><h2 className="mt-2 text-3xl md:text-4xl font-black">Your anime dashboard.</h2><p className="mt-1 text-sm text-m3-on-surface-variant">Discover, track, and open titles in AniPlay’s playback catalog.</p></div>{dashboard?.session.authenticated ? <div className="flex items-center gap-3"><div className="text-right"><p className="text-xs text-m3-on-surface-variant">Signed in as</p><p className="font-bold">{dashboard.session.user?.name}</p></div>{dashboard.session.user?.avatar ? <img src={dashboard.session.user.avatar} className="size-10 rounded-full" alt=""/> : <UserRound/>}<button onClick={() => void logout()} className="icon-button" title="Sign out"><LogOut size={18}/></button></div> : <button disabled={authBusy || !dashboard?.session.configured} onClick={() => void signIn()} className="primary-action px-4 py-2.5" title={dashboard?.session.configured ? undefined : 'Set ANILIST_CLIENT_ID to enable sign-in'}>{authBusy ? <Loader2 className="animate-spin" size={18}/> : <LogIn size={18}/>} Sign in with AniList</button>}</section>

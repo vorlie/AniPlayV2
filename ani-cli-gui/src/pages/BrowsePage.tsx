@@ -8,6 +8,7 @@ interface BrowsePageProps {
   results: AnimeSearchResult[]
   setResults: (value: AnimeSearchResult[]) => void
   onSelectAnime: (anime: AnimeSearchResult) => void
+  onOpenAniListMedia: (id: number) => void
 }
 
 type SearchViewMode = 'compact' | 'posters'
@@ -21,7 +22,7 @@ function getSearchViewMode(): SearchViewMode {
   }
 }
 
-export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, onSelectAnime }: BrowsePageProps) {
+export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, onSelectAnime, onOpenAniListMedia }: BrowsePageProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasSearched, setHasSearched] = useState(results.length > 0)
@@ -81,6 +82,14 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
   const selectViewMode = (mode: SearchViewMode) => {
     setViewMode(mode)
     localStorage.setItem(SEARCH_VIEW_MODE_KEY, mode)
+  }
+
+  const selectResult = (anime: AnimeSearchResult) => {
+    if (aniListFirstSearch && anime.aniListMediaId) {
+      onOpenAniListMedia(anime.aniListMediaId)
+      return
+    }
+    onSelectAnime(anime)
   }
 
   const fallbackIndex = (index: number, className = 'size-12') => (
@@ -144,7 +153,7 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
           viewMode === 'posters' ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
             {results.map((anime, index) => (
-              <button type="button" key={`${anime.catalogProvider}:${anime.id}`} className="group overflow-hidden rounded-2xl border border-m3-outline/15 bg-m3-surface/40 text-left hover:-translate-y-0.5 hover:border-m3-primary/40 hover:bg-m3-primary/5 transition-all" onClick={() => onSelectAnime(anime)}>
+              <button type="button" key={`${anime.catalogProvider}:${anime.id}`} className="group overflow-hidden rounded-2xl border border-m3-outline/15 bg-m3-surface/40 text-left hover:-translate-y-0.5 hover:border-m3-primary/40 hover:bg-m3-primary/5 transition-all" onClick={() => selectResult(anime)}>
                 <span className="block aspect-[2/3] w-full overflow-hidden bg-m3-surface-variant/30">
                   {anime.coverUrl ? <img src={anime.coverUrl} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" /> : <span className="flex h-full w-full items-center justify-center text-2xl font-black text-m3-primary">{String(index + 1).padStart(2, '0')}</span>}
                 </span>
@@ -158,7 +167,7 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
           ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
             {results.map((anime, index) => (
-              <button type="button" key={`${anime.catalogProvider}:${anime.id}`} className="group rounded-2xl border border-m3-outline/15 bg-m3-surface/40 p-3.5 text-left flex items-center gap-3 hover:-translate-y-0.5 hover:border-m3-primary/40 hover:bg-m3-primary/5 transition-all" onClick={() => onSelectAnime(anime)}>
+              <button type="button" key={`${anime.catalogProvider}:${anime.id}`} className="group rounded-2xl border border-m3-outline/15 bg-m3-surface/40 p-3.5 text-left flex items-center gap-3 hover:-translate-y-0.5 hover:border-m3-primary/40 hover:bg-m3-primary/5 transition-all" onClick={() => selectResult(anime)}>
                 {anime.coverUrl ? (
                   <span className="size-12 shrink-0 overflow-hidden rounded-xl bg-m3-surface-variant/30">
                     <img src={anime.coverUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
