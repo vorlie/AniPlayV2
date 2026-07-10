@@ -84,6 +84,9 @@ export function SettingsPage() {
   const [updateState, setUpdateState] = useState<UpdateState | null>(null)
   const [notificationSoundMode, setNotificationSoundModeState] = useState<NotificationSoundMode>(getNotificationSoundMode)
   const [notificationSoundPreset, setNotificationSoundPresetState] = useState<NotificationSoundPreset>(getNotificationSoundPreset)
+  const [safeGraphicsMode, setSafeGraphicsMode] = useState(false)
+  const [safeGraphicsRestartRequired, setSafeGraphicsRestartRequired] = useState(false)
+  const [safeGraphicsLaunchOverride, setSafeGraphicsLaunchOverride] = useState(false)
   const [language, setLanguage] = useState<AppLanguage>(i18n.language === 'pl' ? 'pl' : 'en')
 
   useEffect(() => {
@@ -118,6 +121,14 @@ export function SettingsPage() {
     if (!window.aniPlay) return
     void window.aniPlay.downloads.getState().then((state) => setDownloadDirectory(state.settings.directory))
     return window.aniPlay.downloads.onChanged((state) => setDownloadDirectory(state.settings.directory))
+  }, [])
+
+  useEffect(() => {
+    void window.aniPlay?.graphics.getSettings().then((settings) => {
+      setSafeGraphicsMode(settings.safeGraphicsMode)
+      setSafeGraphicsRestartRequired(settings.restartRequired)
+      setSafeGraphicsLaunchOverride(settings.launchOverride)
+    }).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -208,6 +219,14 @@ export function SettingsPage() {
   const selectLanguage = (value: AppLanguage) => {
     setLanguage(value)
     setAppLanguage(value)
+  }
+
+  const toggleSafeGraphicsMode = async () => {
+    const settings = await window.aniPlay?.graphics.setSafeMode(!safeGraphicsMode)
+    if (!settings) return
+    setSafeGraphicsMode(settings.safeGraphicsMode)
+    setSafeGraphicsRestartRequired(settings.restartRequired)
+    setSafeGraphicsLaunchOverride(settings.launchOverride)
   }
 
   const sections: Array<{ id: SettingsSection; label: string; icon: React.ReactNode }> = [
@@ -462,6 +481,23 @@ export function SettingsPage() {
                   <select value={language} onChange={(event) => selectLanguage(event.target.value as AppLanguage)} className="rounded-xl border border-m3-outline/30 bg-m3-surface px-3 py-2 text-sm font-bold text-m3-on-surface">
                     {supportedLanguages.map((item) => <option key={item.code} value={item.code}>{item.label}</option>)}
                   </select>
+                </div>
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <p className="font-bold text-sm">{t('settings.advanced.safeGraphics')}</p>
+                    <p className="text-xs text-m3-on-surface-variant">{t('settings.advanced.safeGraphicsDescription')}</p>
+                    {safeGraphicsRestartRequired && <p className="mt-1 text-xs text-amber-200">{t('settings.advanced.safeGraphicsRestart')}</p>}
+                    {safeGraphicsLaunchOverride && <p className="mt-1 text-xs text-m3-primary">{t('settings.advanced.safeGraphicsOverride')}</p>}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void toggleSafeGraphicsMode()}
+                    className={`w-14 h-8 shrink-0 rounded-full p-1 transition-colors ${safeGraphicsMode ? 'bg-m3-primary' : 'bg-m3-surface-variant/60'}`}
+                    aria-pressed={safeGraphicsMode}
+                    aria-label={t('settings.advanced.safeGraphics')}
+                  >
+                    <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${safeGraphicsMode ? 'translate-x-6' : 'translate-x-0'}`} />
+                  </button>
                 </div>
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>

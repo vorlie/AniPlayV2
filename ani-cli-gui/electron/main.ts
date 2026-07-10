@@ -43,6 +43,40 @@ const PROJECT_PAGES = {
   discord: 'https://discord.gg/9SXX6ddpNR',
 } as const
 
+const GRAPHICS_SETTINGS_FILE = 'graphics-settings.json'
+
+interface GraphicsSettings {
+  safeGraphicsMode: boolean
+}
+
+function readGraphicsSettings(): GraphicsSettings {
+  try {
+    const raw = fs.readFileSync(join(app.getPath('userData'), GRAPHICS_SETTINGS_FILE), 'utf8')
+    const data = JSON.parse(raw) as Partial<GraphicsSettings>
+    return { safeGraphicsMode: data.safeGraphicsMode === true }
+  } catch {
+    return { safeGraphicsMode: false }
+  }
+}
+
+async function writeGraphicsSettings(settings: GraphicsSettings): Promise<GraphicsSettings> {
+  const directory = app.getPath('userData')
+  await fsp.mkdir(directory, { recursive: true })
+  await fsp.writeFile(join(directory, GRAPHICS_SETTINGS_FILE), JSON.stringify(settings, null, 2), 'utf8')
+  return settings
+}
+
+function hasSafeGraphicsOverride(): boolean {
+  return process.argv.includes('--safe-graphics') || process.env.ANIPLAY_SAFE_GRAPHICS === '1'
+}
+
+const graphicsSettingsAtStartup = readGraphicsSettings()
+const safeGraphicsModeActive = graphicsSettingsAtStartup.safeGraphicsMode || hasSafeGraphicsOverride()
+if (safeGraphicsModeActive) {
+  app.disableHardwareAcceleration()
+  app.commandLine.appendSwitch('disable-gpu-compositing')
+}
+
 const EASYLIST_URL = 'https://ublockorigin.pages.dev/thirdparties/easylist.txt'
 
 const BLOCKED_EMBED_HOST_PATTERNS = [
@@ -388,6 +422,29 @@ function createWindow() {
       return { success: true }
     } catch {
       return { success: false }
+    }
+  })
+
+  ipcMain.handle('graphics:get-settings', (event) => {
+    assertTrustedSender(event)
+    const settings = readGraphicsSettings()
+    return {
+      ...settings,
+      active: safeGraphicsModeActive,
+      restartRequired: settings.safeGraphicsMode !== graphicsSettingsAtStartup.safeGraphicsMode,
+      launchOverride: hasSafeGraphicsOverride(),
+    }
+  })
+
+  ipcMain.handle('graphics:set-safe-mode', async (event, enabled: unknown) => {
+    assertTrustedSender(event)
+    if (typeof enabled !== 'boolean') throw new TypeError('enabled must be boolean')
+    const settings = await writeGraphicsSettings({ safeGraphicsMode: enabled })
+    return {
+      ...settings,
+      active: safeGraphicsModeActive,
+      restartRequired: settings.safeGraphicsMode !== graphicsSettingsAtStartup.safeGraphicsMode,
+      launchOverride: hasSafeGraphicsOverride(),
     }
   })
 

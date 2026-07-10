@@ -39,6 +39,10 @@ contextBridge.exposeInMainWorld('aniPlay', {
     update: (playback: DiscordPlaybackPresence) => ipcRenderer.invoke('discord-presence:update', playback),
     clear: () => ipcRenderer.invoke('discord-presence:clear'),
   },
+  graphics: {
+    getSettings: () => ipcRenderer.invoke('graphics:get-settings'),
+    setSafeMode: (enabled: boolean) => ipcRenderer.invoke('graphics:set-safe-mode', enabled),
+  },
   updater: {
     getState: (): Promise<UpdateState> => ipcRenderer.invoke('updater:get-state'),
     check: (): Promise<UpdateState> => ipcRenderer.invoke('updater:check'),

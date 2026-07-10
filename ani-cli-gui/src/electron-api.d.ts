@@ -52,6 +52,13 @@ interface DownloadsApi {
   onChanged(callback: (state: DownloadState) => void): () => void
 }
 
+interface GraphicsSettings {
+  safeGraphicsMode: boolean
+  active: boolean
+  restartRequired: boolean
+  launchOverride: boolean
+}
+
 interface AniPlayApi {
   search(query: string, translationType: TranslationType, catalogProvider: CatalogProvider, aniListFirstSearch?: boolean): Promise<IpcResponse<SearchResult[]>>
   getEpisodes(showId: string, translationType: TranslationType, catalogProvider: CatalogProvider): Promise<IpcResponse<string[]>>
@@ -77,6 +84,10 @@ interface AniPlayApi {
     setEnabled(enabled: boolean): Promise<DiscordPresenceSettings>
     update(playback: DiscordPlaybackPresence): Promise<DiscordPresenceSettings>
     clear(): Promise<void>
+  }
+  graphics: {
+    getSettings(): Promise<GraphicsSettings>
+    setSafeMode(enabled: boolean): Promise<GraphicsSettings>
   }
   updater: {
     getState(): Promise<UpdateState>

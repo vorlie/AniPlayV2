@@ -54,6 +54,14 @@
       {
         "from": "THIRD_PARTY_NOTICES.md",
         "to": "legal/THIRD_PARTY_NOTICES.md"
+      },
+      {
+        "from": "scripts/launch-safe-graphics.ps1",
+        "to": "safe-graphics/launch-safe-graphics.ps1"
+      },
+      {
+        "from": "scripts/launch-safe-graphics.cmd",
+        "to": "safe-graphics/launch-safe-graphics.cmd"
       }
     ],
     "win": {
