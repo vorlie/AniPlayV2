@@ -20,13 +20,22 @@ interface AnimePageProps {
   onBack: () => void
   initialEpisode?: string | null
   initialResumeSeconds?: number | null
+  onEpisodeStarted?: (animeId: string, episode: string) => void
 }
+
+const IDLE_PLAYER_QUOTES = [
+  'Choose an episode. The servers are waiting.',
+  'No episode selected. The watch queue is suspiciously quiet.',
+  'Ready when you are. One episode is never just one episode.',
+  'The player is idle. Your next opening theme is standing by.',
+]
 
 export function AnimePage({
   anime,
   onBack,
   initialEpisode,
   initialResumeSeconds,
+  onEpisodeStarted,
 }: AnimePageProps) {
   const [episodes, setEpisodes] = useState<string[]>([])
   const [loadedEpisodesKey, setLoadedEpisodesKey] = useState('')
@@ -39,6 +48,7 @@ export function AnimePage({
   const [error, setError] = useState<string | null>(null)
   const [browserFallbackEpisode, setBrowserFallbackEpisode] = useState<string | null>(null)
   const [aniListMetadata, setAniListMetadata] = useState(() => ({ mediaId: anime.aniListMediaId, coverUrl: anime.coverUrl }))
+  const [idleQuoteIndex, setIdleQuoteIndex] = useState<number | null>(null)
   const restoredRef = useRef<string | null>(null)
   const supportsTranslationSwitch = anime.catalogProvider !== 'desu'
   const episodesKey = `${anime.catalogProvider}:${anime.id}:${selectedTranslationType}`
@@ -68,6 +78,7 @@ export function AnimePage({
         setPlayingLinks(res.data)
         setPlayingEp(ep)
         setPlayingTranslationType(translationType)
+        onEpisodeStarted?.(anime.id, ep)
         addHistory({
           animeId: anime.id,
           animeName: anime.name,
@@ -86,7 +97,7 @@ export function AnimePage({
       setError(cause instanceof Error ? cause.message : 'Stream lookup failed. Please try another episode.')
       if (anime.catalogProvider === 'desu' || anime.catalogProvider === 'miruro' || anime.catalogProvider === 'anikoto') setBrowserFallbackEpisode(ep)
     })
-  }, [anime.id, anime.name, anime.catalogProvider, aniListMetadata.mediaId, aniListMetadata.coverUrl, initialEpisode, initialResumeSeconds, loadingEp, selectedTranslationType])
+  }, [anime.id, anime.name, anime.catalogProvider, aniListMetadata.mediaId, aniListMetadata.coverUrl, initialEpisode, initialResumeSeconds, loadingEp, onEpisodeStarted, selectedTranslationType])
 
   const selectTranslationType = useCallback((value: TranslationType) => {
     if (value === selectedTranslationType) return
@@ -132,6 +143,27 @@ export function AnimePage({
     restoredRef.current = key
     handlePlay(initialEpisode)
   }, [initialEpisode, episodes, loadingEpisodes, anime.id, handlePlay, selectedTranslationType])
+
+  useEffect(() => {
+    const shouldShowIdleQuote = !loadingEpisodes && !loadingEp && playingLinks.length === 0
+    if (!shouldShowIdleQuote) {
+      setIdleQuoteIndex(null)
+      return
+    }
+
+    let rotateTimer: number | undefined
+    const startTimer = window.setTimeout(() => {
+      setIdleQuoteIndex((current) => current === null ? 0 : (current + 1) % IDLE_PLAYER_QUOTES.length)
+      rotateTimer = window.setInterval(() => {
+        setIdleQuoteIndex((current) => current === null ? 0 : (current + 1) % IDLE_PLAYER_QUOTES.length)
+      }, 30_000)
+    }, 45_000)
+
+    return () => {
+      window.clearTimeout(startTimer)
+      if (rotateTimer !== undefined) window.clearInterval(rotateTimer)
+    }
+  }, [loadingEp, loadingEpisodes, playingLinks.length])
 
   const visibleEpisodes = episodeQuery.trim()
     ? episodes.filter((episode) => episode.includes(episodeQuery.trim()))
@@ -250,7 +282,7 @@ export function AnimePage({
             <div className="m3-card flex-1 min-h-[280px] flex flex-col items-center justify-center text-center px-6">
               <span className="flex size-16 items-center justify-center rounded-2xl bg-m3-primary/10 text-m3-primary"><MonitorPlay size={28} /></span>
               <p className="mt-4 font-bold">Ready when you are</p>
-              <p className="mt-1 text-sm text-m3-on-surface-variant">Choose an episode. AniPlay will gather every available server before playback starts.</p>
+              <p className="mt-1 min-h-5 text-sm text-m3-on-surface-variant">{idleQuoteIndex === null ? 'Choose an episode. AniPlay will gather every available server before playback starts.' : IDLE_PLAYER_QUOTES[idleQuoteIndex]}</p>
             </div>
           )}
         </section>

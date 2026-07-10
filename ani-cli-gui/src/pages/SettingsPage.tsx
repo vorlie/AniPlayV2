@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Bug, FolderOpen, Gamepad2, GitPullRequest, Globe, Palette, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
 import { argbFromRgb, hexFromArgb, themeFromSourceColor } from '@material/material-color-utilities'
 import { ANILIST_SEARCH_KEY, getAniListFirstSearch, getTranslationType, TRANSLATION_TYPE_KEY, type TranslationType } from '../lib/api'
+import { getNotificationSoundMode, getNotificationSoundPreset, playNotificationSound, setNotificationSoundMode, setNotificationSoundPreset, type NotificationSoundMode, type NotificationSoundPreset } from '../lib/notification-sounds'
 import type { UpdateState } from '../updater-types'
 
 const DEFAULT_PRIMARY = '#D0BCFF'
@@ -76,6 +77,8 @@ export function SettingsPage() {
   const [discordPresenceEnabled, setDiscordPresenceEnabled] = useState(false)
   const [discordPresenceConnected, setDiscordPresenceConnected] = useState(false)
   const [updateState, setUpdateState] = useState<UpdateState | null>(null)
+  const [notificationSoundMode, setNotificationSoundModeState] = useState<NotificationSoundMode>(getNotificationSoundMode)
+  const [notificationSoundPreset, setNotificationSoundPresetState] = useState<NotificationSoundPreset>(getNotificationSoundPreset)
 
   useEffect(() => {
     const saved = localStorage.getItem('theme.primary')
@@ -184,6 +187,16 @@ export function SettingsPage() {
 
   const openProjectPage = (page: 'repository' | 'issues' | 'pulls') => {
     void window.aniPlay?.openProjectPage(page)
+  }
+
+  const selectNotificationSoundMode = (mode: NotificationSoundMode) => {
+    setNotificationSoundMode(mode)
+    setNotificationSoundModeState(mode)
+  }
+
+  const selectNotificationSoundPreset = (preset: NotificationSoundPreset) => {
+    setNotificationSoundPreset(preset)
+    setNotificationSoundPresetState(preset)
   }
 
   return (
@@ -381,6 +394,60 @@ export function SettingsPage() {
             </div>
             <p className="text-xs text-m3-on-surface-variant">Create or review pull requests.</p>
           </button>
+        </div>
+      </div>
+      <div className="mt-8 pt-6 border-t border-m3-outline/20">
+        <h3 className="font-sans font-bold text-xl mb-3">Advanced</h3>
+        <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 space-y-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="font-bold text-sm">Notification sounds</p>
+              <p className="text-xs text-m3-on-surface-variant">Sounds are used for important app events like available updates.</p>
+            </div>
+            <div className="inline-flex rounded-xl border border-m3-outline/30 p-1" role="group" aria-label="Notification sound mode">
+              {([
+                ['off', 'Off'],
+                ['important', 'Important'],
+                ['all', 'All'],
+              ] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => selectNotificationSoundMode(value)}
+                  aria-pressed={notificationSoundMode === value}
+                  className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors ${notificationSoundMode === value ? 'bg-m3-primary text-m3-on-primary' : 'hover:bg-m3-on-surface/10'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="font-bold text-sm">Sound preset</p>
+              <p className="text-xs text-m3-on-surface-variant">Fine-tune the notification tone while keeping it quiet.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={notificationSoundPreset}
+                disabled={notificationSoundMode === 'off'}
+                onChange={(event) => selectNotificationSoundPreset(event.target.value as NotificationSoundPreset)}
+                className="rounded-xl border border-m3-outline/30 bg-m3-surface px-3 py-2 text-sm font-bold text-m3-on-surface disabled:opacity-50"
+              >
+                <option value="soft">Soft chime</option>
+                <option value="crystal">Crystal</option>
+                <option value="arcade">Arcade</option>
+              </select>
+              <button
+                type="button"
+                disabled={notificationSoundMode === 'off'}
+                onClick={() => playNotificationSound(notificationSoundPreset)}
+                className="rounded-xl border border-m3-outline/30 px-4 py-2 text-sm font-bold hover:bg-m3-on-surface/10 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Test sound
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       <div className="mt-8 pt-6 border-t border-m3-outline/20">

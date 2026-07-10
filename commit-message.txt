@@ -1,4 +1,5 @@
-fix: preserve AniList detail state while playing
+feat: add in-app notifications and polish
 
-- keep the AniList home/detail page mounted when switching to the player
-- preserve loaded anime details, playback match, and unsaved progress form values
+- show in-app notifications for available and ready-to-install updates
+- add advanced notification sound settings with generated chime presets
+- add small hidden seasonal/session polish without affecting playback or logs
