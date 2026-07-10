@@ -278,6 +278,8 @@ const resources = {
           issuesDescription: 'Open a bug report or request.',
           contribute: 'Contribute',
           contributeDescription: 'Create or review pull requests.',
+          discord: 'Discord Community',
+          discordDescription: 'Join support, updates, and discussion.',
         },
         advanced: {
           title: 'Advanced',
@@ -578,6 +580,8 @@ const resources = {
           issuesDescription: 'Otwórz zgłoszenie błędu lub propozycję.',
           contribute: 'Współpraca',
           contributeDescription: 'Twórz lub przeglądaj pull requesty.',
+          discord: 'Społeczność Discord',
+          discordDescription: 'Dołącz po wsparcie, aktualizacje i dyskusje.',
         },
         advanced: {
           title: 'Zaawansowane',

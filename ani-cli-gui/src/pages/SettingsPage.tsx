@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Bug, Download, FolderOpen, Gamepad2, GitPullRequest, Globe, Palette, RefreshCw, RotateCcw, Search, ShieldCheck, SlidersHorizontal } from 'lucide-react'
+import { Bug, Download, FolderOpen, Gamepad2, GitPullRequest, Globe, MessageCircle, Palette, RefreshCw, RotateCcw, Search, ShieldCheck, SlidersHorizontal } from 'lucide-react'
 import { argbFromRgb, hexFromArgb, themeFromSourceColor } from '@material/material-color-utilities'
 import { ANILIST_SEARCH_KEY, getAniListFirstSearch, getTranslationType, TRANSLATION_TYPE_KEY, type TranslationType } from '../lib/api'
 import { getNotificationSoundMode, getNotificationSoundPreset, playNotificationSound, setNotificationSoundMode, setNotificationSoundPreset, type NotificationSoundMode, type NotificationSoundPreset } from '../lib/notification-sounds'
@@ -191,7 +191,7 @@ export function SettingsPage() {
     }
   }
 
-  const openProjectPage = (page: 'repository' | 'issues' | 'pulls') => {
+  const openProjectPage = (page: 'repository' | 'issues' | 'pulls' | 'discord') => {
     void window.aniPlay?.openProjectPage(page)
   }
 
@@ -429,7 +429,7 @@ export function SettingsPage() {
           {activeSection === 'project' && (
             <section>
               <h3 className="font-sans font-bold text-xl mb-4">{t('settings.project.title')}</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
                 <button onClick={() => openProjectPage('repository')} className="rounded-xl border border-m3-outline/20 bg-m3-surface-container/40 hover:bg-m3-on-surface/10 transition-all px-4 py-3 text-left">
                   <div className="flex items-center gap-2 mb-1"><Globe size={16} /><span className="font-bold text-sm">{t('settings.project.repo')}</span></div>
                   <p className="text-xs text-m3-on-surface-variant">{t('settings.project.repoDescription')}</p>
@@ -441,6 +441,10 @@ export function SettingsPage() {
                 <button onClick={() => openProjectPage('pulls')} className="rounded-xl border border-m3-outline/20 bg-m3-surface-container/40 hover:bg-m3-on-surface/10 transition-all px-4 py-3 text-left">
                   <div className="flex items-center gap-2 mb-1"><GitPullRequest size={16} /><span className="font-bold text-sm">{t('settings.project.contribute')}</span></div>
                   <p className="text-xs text-m3-on-surface-variant">{t('settings.project.contributeDescription')}</p>
+                </button>
+                <button onClick={() => openProjectPage('discord')} className="rounded-xl border border-m3-outline/20 bg-m3-surface-container/40 hover:bg-m3-on-surface/10 transition-all px-4 py-3 text-left">
+                  <div className="flex items-center gap-2 mb-1"><MessageCircle size={16} /><span className="font-bold text-sm">{t('settings.project.discord')}</span></div>
+                  <p className="text-xs text-m3-on-surface-variant">{t('settings.project.discordDescription')}</p>
                 </button>
               </div>
             </section>

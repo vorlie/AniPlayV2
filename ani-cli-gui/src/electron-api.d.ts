@@ -59,7 +59,7 @@ interface AniPlayApi {
   openProviderEpisode(showId: string, episode: string, catalogProvider: CatalogProvider, translationType?: TranslationType): Promise<IpcResponse<void>>
   getCiphermapInfo(): Promise<IpcResponse<CiphermapInfo | null>>
   syncCiphermap(): Promise<CiphermapSyncResponse>
-  openProjectPage(page: 'repository' | 'issues' | 'pulls'): Promise<{ success: boolean }>
+  openProjectPage(page: 'repository' | 'issues' | 'pulls' | 'discord'): Promise<{ success: boolean }>
   aniList: {
     auth: { status(): Promise<AniListSession>; start(): Promise<AniListSession>; logout(): Promise<AniListSession> }
     dashboard: { get(): Promise<DashboardData> }

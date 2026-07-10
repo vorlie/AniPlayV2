@@ -40,6 +40,7 @@ const PROJECT_PAGES = {
   repository: 'https://github.com/vorlie/AniPlayV2',
   issues: 'https://github.com/vorlie/AniPlayV2/issues',
   pulls: 'https://github.com/vorlie/AniPlayV2/pulls',
+  discord: 'https://discord.gg/9SXX6ddpNR',
 } as const
 
 const EASYLIST_URL = 'https://ublockorigin.pages.dev/thirdparties/easylist.txt'

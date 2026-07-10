@@ -13,7 +13,7 @@ contextBridge.exposeInMainWorld('aniPlay', {
   openProviderEpisode: (showId: string, episode: string, catalogProvider: CatalogProvider, translationType?: TranslationType) => ipcRenderer.invoke('open-provider-episode', showId, episode, catalogProvider, translationType),
   getCiphermapInfo: () => ipcRenderer.invoke('get-ciphermap-info'),
   syncCiphermap: () => ipcRenderer.invoke('sync-ciphermap'),
-  openProjectPage: (page: 'repository' | 'issues' | 'pulls') => ipcRenderer.invoke('open-project-page', page),
+  openProjectPage: (page: 'repository' | 'issues' | 'pulls' | 'discord') => ipcRenderer.invoke('open-project-page', page),
   aniList: {
     auth: {
       status: () => ipcRenderer.invoke('anilist:auth-status'),
