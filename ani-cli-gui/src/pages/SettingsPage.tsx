@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Bug, FolderOpen, Gamepad2, GitPullRequest, Globe, Palette, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
+import { Bug, Download, FolderOpen, Gamepad2, GitPullRequest, Globe, Palette, RefreshCw, RotateCcw, Search, ShieldCheck, SlidersHorizontal } from 'lucide-react'
 import { argbFromRgb, hexFromArgb, themeFromSourceColor } from '@material/material-color-utilities'
 import { ANILIST_SEARCH_KEY, getAniListFirstSearch, getTranslationType, TRANSLATION_TYPE_KEY, type TranslationType } from '../lib/api'
 import { getNotificationSoundMode, getNotificationSoundPreset, playNotificationSound, setNotificationSoundMode, setNotificationSoundPreset, type NotificationSoundMode, type NotificationSoundPreset } from '../lib/notification-sounds'
@@ -59,6 +59,7 @@ function applyThemeFromPrimary(primary: string) {
 }
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
+type SettingsSection = 'theme' | 'player' | 'search' | 'downloads' | 'updates' | 'project' | 'advanced' | 'scraper'
 
 interface CiphermapInfo {
   generatedAt: string
@@ -69,6 +70,7 @@ interface CiphermapInfo {
 
 export function SettingsPage() {
   const { t, i18n } = useTranslation()
+  const [activeSection, setActiveSection] = useState<SettingsSection>('theme')
   const [primary, setPrimary] = useState(DEFAULT_PRIMARY)
   const [useNativeControls, setUseNativeControls] = useState(true)
   const [translationType, setTranslationType] = useState<TranslationType>(getTranslationType)
@@ -208,306 +210,322 @@ export function SettingsPage() {
     setAppLanguage(value)
   }
 
+  const sections: Array<{ id: SettingsSection; label: string; icon: React.ReactNode }> = [
+    { id: 'theme', label: t('settings.theme.title'), icon: <Palette size={16} /> },
+    { id: 'player', label: t('settings.player.title'), icon: <Gamepad2 size={16} /> },
+    { id: 'search', label: t('settings.search.title'), icon: <Search size={16} /> },
+    { id: 'downloads', label: t('settings.downloads.title'), icon: <Download size={16} /> },
+    { id: 'updates', label: t('settings.updates.title'), icon: <RefreshCw size={16} /> },
+    { id: 'project', label: t('settings.project.title'), icon: <Globe size={16} /> },
+    { id: 'advanced', label: t('settings.advanced.title'), icon: <SlidersHorizontal size={16} /> },
+    { id: 'scraper', label: t('settings.scraper.title'), icon: <ShieldCheck size={16} /> },
+  ]
+
   return (
     <div className="m3-card p-6 md:p-7 flex-1">
-      <h2 className="font-sans font-bold text-2xl mb-5 flex items-center gap-2">
-        <Palette size={22} />
-        {t('settings.theme.title')}
-      </h2>
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-5 items-start">
-        <div className="space-y-3">
-          <p className="text-sm text-m3-on-surface-variant">{t('settings.theme.description')}</p>
-          <div className="flex items-center gap-3">
-            <input
-              type="color"
-              value={primary}
-              onChange={(e) => handleColor(e.target.value)}
-              className="h-10 w-16 rounded-lg border border-m3-outline/30 bg-transparent cursor-pointer"
-            />
-            <input
-              type="text"
-              value={primary}
-              onChange={(e) => {
-                const v = e.target.value.trim()
-                setPrimary(v)
-                if (/^#[0-9a-fA-F]{6}$/.test(v)) handleColor(v)
-              }}
-              className="bg-m3-on-surface/5 border border-m3-outline/20 rounded-xl px-3 py-2 text-sm w-36"
-            />
-            <button onClick={reset} className="px-3 py-2 rounded-xl text-sm border border-m3-outline/30 hover:bg-m3-on-surface/10 flex items-center gap-2">
-              <RotateCcw size={14} />
-              {t('settings.theme.reset')}
-            </button>
-          </div>
-        </div>
-        <div className="w-full lg:w-52 rounded-2xl border border-m3-outline/20 p-3 bg-m3-surface-container/40">
-          <p className="text-xs text-m3-on-surface-variant mb-2">{t('settings.theme.preview')}</p>
-          <button className="w-full rounded-xl px-3 py-2 font-bold" style={{ backgroundColor: 'var(--color-m3-primary)', color: 'var(--color-m3-on-primary)' }}>
-            {t('settings.theme.primaryButton')}
-          </button>
-        </div>
-      </div>
-      <div className="mt-8 pt-6 border-t border-m3-outline/20">
-        <h3 className="font-sans font-bold text-xl mb-3">{t('settings.player.title')}</h3>
-        <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex items-center justify-between mb-3">
-          <div>
-            <p className="font-bold text-sm">{t('settings.player.nativeControls')}</p>
-            <p className="text-xs text-m3-on-surface-variant">{t('settings.player.nativeDescription')}</p>
-          </div>
-          <button
-            onClick={toggleNativeControls}
-            className={`w-14 h-8 rounded-full p-1 transition-colors ${useNativeControls ? 'bg-m3-primary' : 'bg-m3-surface-variant/60'}`}
-            aria-pressed={useNativeControls}
-          >
-            <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${useNativeControls ? 'translate-x-6' : 'translate-x-0'}`} />
-          </button>
-        </div>
-        <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <p className="font-bold text-sm">{t('settings.player.audioVersion')}</p>
-            <p className="text-xs text-m3-on-surface-variant">{t('settings.player.audioDescription')}</p>
-          </div>
-          <div className="inline-flex rounded-xl border border-m3-outline/30 p-1" role="group" aria-label="Audio version">
-            {(['sub', 'dub'] as const).map((value) => (
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+        <aside className="lg:sticky lg:top-5 lg:w-56 shrink-0">
+          <h2 className="font-sans font-bold text-2xl mb-3">{t('nav.settings')}</h2>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-1">
+            {sections.map((section) => (
               <button
-                key={value}
+                key={section.id}
                 type="button"
-                onClick={() => selectTranslationType(value)}
-                aria-pressed={translationType === value}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${translationType === value ? 'bg-m3-primary text-m3-on-primary' : 'hover:bg-m3-on-surface/10'}`}
+                onClick={() => setActiveSection(section.id)}
+                aria-pressed={activeSection === section.id}
+                className={`flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm font-bold transition-colors ${
+                  activeSection === section.id
+                    ? 'border-m3-primary bg-m3-primary/15 text-m3-primary'
+                    : 'border-m3-outline/20 bg-m3-surface-container/35 text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface'
+                }`}
               >
-                {value === 'sub' ? t('settings.player.subbed') : t('settings.player.dubbed')}
+                {section.icon}
+                <span className="truncate">{section.label}</span>
               </button>
             ))}
           </div>
-        </div>
-        <div className="mt-3 rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex items-center justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <Gamepad2 size={19} className="mt-0.5 shrink-0 text-m3-primary" />
-            <div>
-              <p className="font-bold text-sm">{t('settings.player.discord')}</p>
-              <p className="text-xs text-m3-on-surface-variant">{t('settings.player.discordDescription')}</p>
-              {discordPresenceEnabled && <p className={`mt-1 text-xs ${discordPresenceConnected ? 'text-green-400' : 'text-m3-on-surface-variant'}`}>{discordPresenceConnected ? t('settings.player.connected') : t('settings.player.waiting')}</p>}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => void toggleDiscordPresence()}
-            className={`w-14 h-8 shrink-0 rounded-full p-1 transition-colors ${discordPresenceEnabled ? 'bg-m3-primary' : 'bg-m3-surface-variant/60'}`}
-            aria-pressed={discordPresenceEnabled}
-            aria-label={t('settings.player.enableDiscord')}
-          >
-            <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${discordPresenceEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
-          </button>
-        </div>
-      </div>
-      <div className="mt-8 pt-6 border-t border-m3-outline/20">
-        <h3 className="font-sans font-bold text-xl mb-3">{t('settings.search.title')}</h3>
-        <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex items-center justify-between gap-3">
-          <div>
-            <p className="font-bold text-sm">{t('settings.search.aniListFirst')}</p>
-            <p className="text-xs text-m3-on-surface-variant">{t('settings.search.aniListFirstDescription')}</p>
-          </div>
-          <button
-            type="button"
-            onClick={toggleAniListFirstSearch}
-            className={`w-14 h-8 shrink-0 rounded-full p-1 transition-colors ${aniListFirstSearch ? 'bg-m3-primary' : 'bg-m3-surface-variant/60'}`}
-            aria-pressed={aniListFirstSearch}
-            aria-label={t('settings.search.enableAniListFirst')}
-          >
-            <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${aniListFirstSearch ? 'translate-x-6' : 'translate-x-0'}`} />
-          </button>
-        </div>
-      </div>
-      <div className="mt-8 pt-6 border-t border-m3-outline/20">
-        <h3 className="font-sans font-bold text-xl mb-3">{t('settings.downloads.title')}</h3>
-        <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="font-bold text-sm">{t('settings.downloads.folder')}</p>
-            <p className="mt-1 truncate text-xs text-m3-on-surface-variant" title={downloadDirectory}>{downloadDirectory}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => void window.aniPlay?.downloads.chooseDirectory().then((state) => setDownloadDirectory(state.settings.directory))}
-            className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border border-m3-outline/30 hover:bg-m3-on-surface/10"
-          >
-            <FolderOpen size={16} /> {t('settings.downloads.choose')}
-          </button>
-        </div>
-      </div>
-      <div className="mt-8 pt-6 border-t border-m3-outline/20">
-        <h3 className="font-sans font-bold text-xl mb-3">{t('settings.updates.title')}</h3>
-        <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="font-bold text-sm">AniPlay {updateState?.currentVersion ?? ''}</p>
-            <p className="mt-1 text-xs text-m3-on-surface-variant">
-              {updateState?.phase === 'available' && t('settings.updates.available', { version: updateState.availableVersion })}
-              {updateState?.phase === 'downloading' && t('settings.updates.downloading', { version: updateState.availableVersion ?? '', progress: Math.round(updateState.progress ?? 0) })}
-              {updateState?.phase === 'downloaded' && t('settings.updates.downloaded', { version: updateState.availableVersion })}
-              {updateState?.phase === 'checking' && t('settings.updates.checking')}
-              {(updateState?.phase === 'idle' || updateState?.phase === 'error' || updateState?.phase === 'unavailable') && (updateState.message ?? t('settings.updates.fallback'))}
-              {!updateState && t('settings.updates.loading')}
-            </p>
-            {updateState?.phase === 'downloading' && (
-              <div className="mt-2 h-1.5 max-w-sm overflow-hidden rounded-full bg-m3-on-surface/10">
-                <div className="h-full bg-m3-primary transition-[width]" style={{ width: `${updateState.progress ?? 0}%` }} />
+        </aside>
+
+        <div className="min-w-0 flex-1">
+          {activeSection === 'theme' && (
+            <section>
+              <h3 className="font-sans font-bold text-xl mb-4 flex items-center gap-2">
+                <Palette size={20} />
+                {t('settings.theme.title')}
+              </h3>
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-5 items-start">
+                <div className="space-y-3">
+                  <p className="text-sm text-m3-on-surface-variant">{t('settings.theme.description')}</p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <input
+                      type="color"
+                      value={primary}
+                      onChange={(e) => handleColor(e.target.value)}
+                      className="h-10 w-16 rounded-lg border border-m3-outline/30 bg-transparent cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={primary}
+                      onChange={(e) => {
+                        const v = e.target.value.trim()
+                        setPrimary(v)
+                        if (/^#[0-9a-fA-F]{6}$/.test(v)) handleColor(v)
+                      }}
+                      className="bg-m3-on-surface/5 border border-m3-outline/20 rounded-xl px-3 py-2 text-sm w-36"
+                    />
+                    <button onClick={reset} className="px-3 py-2 rounded-xl text-sm border border-m3-outline/30 hover:bg-m3-on-surface/10 flex items-center gap-2">
+                      <RotateCcw size={14} />
+                      {t('settings.theme.reset')}
+                    </button>
+                  </div>
+                </div>
+                <div className="w-full lg:w-52 rounded-2xl border border-m3-outline/20 p-3 bg-m3-surface-container/40">
+                  <p className="text-xs text-m3-on-surface-variant mb-2">{t('settings.theme.preview')}</p>
+                  <button className="w-full rounded-xl px-3 py-2 font-bold" style={{ backgroundColor: 'var(--color-m3-primary)', color: 'var(--color-m3-on-primary)' }}>
+                    {t('settings.theme.primaryButton')}
+                  </button>
+                </div>
               </div>
-            )}
-          </div>
-          <button
-            type="button"
-            disabled={!updateState || updateState.phase === 'unavailable' || updateState.phase === 'checking' || updateState.phase === 'downloading'}
-            onClick={() => {
-              if (!window.aniPlay || !updateState) return
-              if (updateState.phase === 'available') void window.aniPlay.updater.download().then(setUpdateState)
-              else if (updateState.phase === 'downloaded') void window.aniPlay.updater.install()
-              else void window.aniPlay.updater.check().then(setUpdateState)
-            }}
-            className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border border-m3-outline/30 hover:bg-m3-on-surface/10 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <RefreshCw size={14} className={updateState?.phase === 'checking' || updateState?.phase === 'downloading' ? 'animate-spin' : ''} />
-            {updateState?.phase === 'available' ? t('settings.updates.download') : updateState?.phase === 'downloaded' ? t('settings.updates.install') : t('settings.updates.check')}
-          </button>
-        </div>
-      </div>
-      <div className="mt-8 pt-6 border-t border-m3-outline/20">
-        <h3 className="font-sans font-bold text-xl mb-3">{t('settings.project.title')}</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <button
-            onClick={() => openProjectPage('repository')}
-            className="rounded-xl border border-m3-outline/20 bg-m3-surface-container/40 hover:bg-m3-on-surface/10 transition-all px-4 py-3 text-left"
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <Globe size={16} />
-              <span className="font-bold text-sm">{t('settings.project.repo')}</span>
-            </div>
-            <p className="text-xs text-m3-on-surface-variant">{t('settings.project.repoDescription')}</p>
-          </button>
-          <button
-            onClick={() => openProjectPage('issues')}
-            className="rounded-xl border border-m3-outline/20 bg-m3-surface-container/40 hover:bg-m3-on-surface/10 transition-all px-4 py-3 text-left"
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <Bug size={16} />
-              <span className="font-bold text-sm">{t('settings.project.issues')}</span>
-            </div>
-            <p className="text-xs text-m3-on-surface-variant">{t('settings.project.issuesDescription')}</p>
-          </button>
-          <button
-            onClick={() => openProjectPage('pulls')}
-            className="rounded-xl border border-m3-outline/20 bg-m3-surface-container/40 hover:bg-m3-on-surface/10 transition-all px-4 py-3 text-left"
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <GitPullRequest size={16} />
-              <span className="font-bold text-sm">{t('settings.project.contribute')}</span>
-            </div>
-            <p className="text-xs text-m3-on-surface-variant">{t('settings.project.contributeDescription')}</p>
-          </button>
-        </div>
-      </div>
-      <div className="mt-8 pt-6 border-t border-m3-outline/20">
-        <h3 className="font-sans font-bold text-xl mb-3">{t('settings.advanced.title')}</h3>
-        <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 space-y-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="font-bold text-sm">{t('settings.advanced.language')}</p>
-              <p className="text-xs text-m3-on-surface-variant">{t('settings.advanced.languageDescription')}</p>
-            </div>
-            <select
-              value={language}
-              onChange={(event) => selectLanguage(event.target.value as AppLanguage)}
-              className="rounded-xl border border-m3-outline/30 bg-m3-surface px-3 py-2 text-sm font-bold text-m3-on-surface"
-            >
-              {supportedLanguages.map((item) => <option key={item.code} value={item.code}>{item.label}</option>)}
-            </select>
-          </div>
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="font-bold text-sm">{t('settings.advanced.notificationSounds')}</p>
-              <p className="text-xs text-m3-on-surface-variant">{t('settings.advanced.notificationSoundsDescription')}</p>
-            </div>
-            <div className="inline-flex rounded-xl border border-m3-outline/30 p-1" role="group" aria-label={t('settings.advanced.soundMode')}>
-              {([
-                ['off', t('settings.advanced.modes.off')],
-                ['important', t('settings.advanced.modes.important')],
-                ['all', t('settings.advanced.modes.all')],
-              ] as const).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => selectNotificationSoundMode(value)}
-                  aria-pressed={notificationSoundMode === value}
-                  className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors ${notificationSoundMode === value ? 'bg-m3-primary text-m3-on-primary' : 'hover:bg-m3-on-surface/10'}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="font-bold text-sm">{t('settings.advanced.soundPreset')}</p>
-              <p className="text-xs text-m3-on-surface-variant">{t('settings.advanced.soundPresetDescription')}</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <select
-                value={notificationSoundPreset}
-                disabled={notificationSoundMode === 'off'}
-                onChange={(event) => selectNotificationSoundPreset(event.target.value as NotificationSoundPreset)}
-                className="rounded-xl border border-m3-outline/30 bg-m3-surface px-3 py-2 text-sm font-bold text-m3-on-surface disabled:opacity-50"
-              >
-                <option value="soft">{t('settings.advanced.presets.soft')}</option>
-                <option value="crystal">{t('settings.advanced.presets.crystal')}</option>
-                <option value="arcade">{t('settings.advanced.presets.arcade')}</option>
-              </select>
-              <button
-                type="button"
-                disabled={notificationSoundMode === 'off'}
-                onClick={() => playNotificationSound(notificationSoundPreset)}
-                className="rounded-xl border border-m3-outline/30 px-4 py-2 text-sm font-bold hover:bg-m3-on-surface/10 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {t('settings.advanced.testSound')}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="mt-8 pt-6 border-t border-m3-outline/20">
-        <h3 className="font-sans font-bold text-xl mb-3 flex items-center gap-2">
-          <ShieldCheck size={18} />
-          {t('settings.scraper.title')}
-        </h3>
-        <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <p className="font-bold text-sm">{t('settings.scraper.cipherMap')}</p>
-              <p className="text-xs text-m3-on-surface-variant mt-0.5">
-                {t('settings.scraper.cipherDescription')}
-              </p>
-              {ciphermapInfo ? (
-                <p className="text-xs text-m3-on-surface-variant/70 mt-1">
-                  {t('settings.scraper.lastSynced', { date: new Date(ciphermapInfo.generatedAt).toLocaleString() })}{' '}
-                  {ciphermapInfo.tag && <span className="ml-1 px-1.5 py-0.5 rounded bg-m3-primary/20 text-m3-primary font-mono">{ciphermapInfo.tag}</span>}
-                  {' '}&middot; {t('settings.scraper.entries', { count: ciphermapInfo.entries })}
-                </p>
-              ) : (
-                <p className="text-xs text-m3-on-surface-variant/50 mt-1">{t('settings.scraper.fallback')}</p>
-              )}
-            </div>
-            <button
-              onClick={syncCiphermap}
-              disabled={syncStatus === 'syncing'}
-              className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border border-m3-outline/30 hover:bg-m3-on-surface/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              <RefreshCw size={14} className={syncStatus === 'syncing' ? 'animate-spin' : ''} />
-              {syncStatus === 'syncing' ? t('settings.scraper.updating') : t('settings.scraper.update')}
-            </button>
-          </div>
-          {syncStatus === 'success' && (
-            <p className="text-xs text-green-400">✓ {t('settings.scraper.success')}</p>
+            </section>
           )}
-          {syncStatus === 'error' && (
-            <p className="text-xs text-red-400">✗ {t('settings.scraper.error', { error: syncError })}</p>
+
+          {activeSection === 'player' && (
+            <section>
+              <h3 className="font-sans font-bold text-xl mb-4">{t('settings.player.title')}</h3>
+              <div className="grid gap-3">
+                <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-bold text-sm">{t('settings.player.nativeControls')}</p>
+                    <p className="text-xs text-m3-on-surface-variant">{t('settings.player.nativeDescription')}</p>
+                  </div>
+                  <button
+                    onClick={toggleNativeControls}
+                    className={`w-14 h-8 shrink-0 rounded-full p-1 transition-colors ${useNativeControls ? 'bg-m3-primary' : 'bg-m3-surface-variant/60'}`}
+                    aria-pressed={useNativeControls}
+                  >
+                    <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${useNativeControls ? 'translate-x-6' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+                <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <p className="font-bold text-sm">{t('settings.player.audioVersion')}</p>
+                    <p className="text-xs text-m3-on-surface-variant">{t('settings.player.audioDescription')}</p>
+                  </div>
+                  <div className="inline-flex rounded-xl border border-m3-outline/30 p-1" role="group" aria-label={t('settings.player.audioVersion')}>
+                    {(['sub', 'dub'] as const).map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => selectTranslationType(value)}
+                        aria-pressed={translationType === value}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${translationType === value ? 'bg-m3-primary text-m3-on-primary' : 'hover:bg-m3-on-surface/10'}`}
+                      >
+                        {value === 'sub' ? t('settings.player.subbed') : t('settings.player.dubbed')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <Gamepad2 size={19} className="mt-0.5 shrink-0 text-m3-primary" />
+                    <div>
+                      <p className="font-bold text-sm">{t('settings.player.discord')}</p>
+                      <p className="text-xs text-m3-on-surface-variant">{t('settings.player.discordDescription')}</p>
+                      {discordPresenceEnabled && <p className={`mt-1 text-xs ${discordPresenceConnected ? 'text-green-400' : 'text-m3-on-surface-variant'}`}>{discordPresenceConnected ? t('settings.player.connected') : t('settings.player.waiting')}</p>}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void toggleDiscordPresence()}
+                    className={`w-14 h-8 shrink-0 rounded-full p-1 transition-colors ${discordPresenceEnabled ? 'bg-m3-primary' : 'bg-m3-surface-variant/60'}`}
+                    aria-pressed={discordPresenceEnabled}
+                    aria-label={t('settings.player.enableDiscord')}
+                  >
+                    <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${discordPresenceEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {activeSection === 'search' && (
+            <section>
+              <h3 className="font-sans font-bold text-xl mb-4">{t('settings.search.title')}</h3>
+              <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-bold text-sm">{t('settings.search.aniListFirst')}</p>
+                  <p className="text-xs text-m3-on-surface-variant">{t('settings.search.aniListFirstDescription')}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleAniListFirstSearch}
+                  className={`w-14 h-8 shrink-0 rounded-full p-1 transition-colors ${aniListFirstSearch ? 'bg-m3-primary' : 'bg-m3-surface-variant/60'}`}
+                  aria-pressed={aniListFirstSearch}
+                  aria-label={t('settings.search.enableAniListFirst')}
+                >
+                  <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${aniListFirstSearch ? 'translate-x-6' : 'translate-x-0'}`} />
+                </button>
+              </div>
+            </section>
+          )}
+
+          {activeSection === 'downloads' && (
+            <section>
+              <h3 className="font-sans font-bold text-xl mb-4">{t('settings.downloads.title')}</h3>
+              <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-bold text-sm">{t('settings.downloads.folder')}</p>
+                  <p className="mt-1 truncate text-xs text-m3-on-surface-variant" title={downloadDirectory}>{downloadDirectory}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void window.aniPlay?.downloads.chooseDirectory().then((state) => setDownloadDirectory(state.settings.directory))}
+                  className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border border-m3-outline/30 hover:bg-m3-on-surface/10"
+                >
+                  <FolderOpen size={16} /> {t('settings.downloads.choose')}
+                </button>
+              </div>
+            </section>
+          )}
+
+          {activeSection === 'updates' && (
+            <section>
+              <h3 className="font-sans font-bold text-xl mb-4">{t('settings.updates.title')}</h3>
+              <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-bold text-sm">AniPlay {updateState?.currentVersion ?? ''}</p>
+                  <p className="mt-1 text-xs text-m3-on-surface-variant">
+                    {updateState?.phase === 'available' && t('settings.updates.available', { version: updateState.availableVersion })}
+                    {updateState?.phase === 'downloading' && t('settings.updates.downloading', { version: updateState.availableVersion ?? '', progress: Math.round(updateState.progress ?? 0) })}
+                    {updateState?.phase === 'downloaded' && t('settings.updates.downloaded', { version: updateState.availableVersion })}
+                    {updateState?.phase === 'checking' && t('settings.updates.checking')}
+                    {(updateState?.phase === 'idle' || updateState?.phase === 'error' || updateState?.phase === 'unavailable') && (updateState.message ?? t('settings.updates.fallback'))}
+                    {!updateState && t('settings.updates.loading')}
+                  </p>
+                  {updateState?.phase === 'downloading' && (
+                    <div className="mt-2 h-1.5 max-w-sm overflow-hidden rounded-full bg-m3-on-surface/10">
+                      <div className="h-full bg-m3-primary transition-[width]" style={{ width: `${updateState.progress ?? 0}%` }} />
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  disabled={!updateState || updateState.phase === 'unavailable' || updateState.phase === 'checking' || updateState.phase === 'downloading'}
+                  onClick={() => {
+                    if (!window.aniPlay || !updateState) return
+                    if (updateState.phase === 'available') void window.aniPlay.updater.download().then(setUpdateState)
+                    else if (updateState.phase === 'downloaded') void window.aniPlay.updater.install()
+                    else void window.aniPlay.updater.check().then(setUpdateState)
+                  }}
+                  className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border border-m3-outline/30 hover:bg-m3-on-surface/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <RefreshCw size={14} className={updateState?.phase === 'checking' || updateState?.phase === 'downloading' ? 'animate-spin' : ''} />
+                  {updateState?.phase === 'available' ? t('settings.updates.download') : updateState?.phase === 'downloaded' ? t('settings.updates.install') : t('settings.updates.check')}
+                </button>
+              </div>
+            </section>
+          )}
+
+          {activeSection === 'project' && (
+            <section>
+              <h3 className="font-sans font-bold text-xl mb-4">{t('settings.project.title')}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <button onClick={() => openProjectPage('repository')} className="rounded-xl border border-m3-outline/20 bg-m3-surface-container/40 hover:bg-m3-on-surface/10 transition-all px-4 py-3 text-left">
+                  <div className="flex items-center gap-2 mb-1"><Globe size={16} /><span className="font-bold text-sm">{t('settings.project.repo')}</span></div>
+                  <p className="text-xs text-m3-on-surface-variant">{t('settings.project.repoDescription')}</p>
+                </button>
+                <button onClick={() => openProjectPage('issues')} className="rounded-xl border border-m3-outline/20 bg-m3-surface-container/40 hover:bg-m3-on-surface/10 transition-all px-4 py-3 text-left">
+                  <div className="flex items-center gap-2 mb-1"><Bug size={16} /><span className="font-bold text-sm">{t('settings.project.issues')}</span></div>
+                  <p className="text-xs text-m3-on-surface-variant">{t('settings.project.issuesDescription')}</p>
+                </button>
+                <button onClick={() => openProjectPage('pulls')} className="rounded-xl border border-m3-outline/20 bg-m3-surface-container/40 hover:bg-m3-on-surface/10 transition-all px-4 py-3 text-left">
+                  <div className="flex items-center gap-2 mb-1"><GitPullRequest size={16} /><span className="font-bold text-sm">{t('settings.project.contribute')}</span></div>
+                  <p className="text-xs text-m3-on-surface-variant">{t('settings.project.contributeDescription')}</p>
+                </button>
+              </div>
+            </section>
+          )}
+
+          {activeSection === 'advanced' && (
+            <section>
+              <h3 className="font-sans font-bold text-xl mb-4">{t('settings.advanced.title')}</h3>
+              <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 space-y-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <p className="font-bold text-sm">{t('settings.advanced.language')}</p>
+                    <p className="text-xs text-m3-on-surface-variant">{t('settings.advanced.languageDescription')}</p>
+                  </div>
+                  <select value={language} onChange={(event) => selectLanguage(event.target.value as AppLanguage)} className="rounded-xl border border-m3-outline/30 bg-m3-surface px-3 py-2 text-sm font-bold text-m3-on-surface">
+                    {supportedLanguages.map((item) => <option key={item.code} value={item.code}>{item.label}</option>)}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <p className="font-bold text-sm">{t('settings.advanced.notificationSounds')}</p>
+                    <p className="text-xs text-m3-on-surface-variant">{t('settings.advanced.notificationSoundsDescription')}</p>
+                  </div>
+                  <div className="inline-flex rounded-xl border border-m3-outline/30 p-1" role="group" aria-label={t('settings.advanced.soundMode')}>
+                    {([
+                      ['off', t('settings.advanced.modes.off')],
+                      ['important', t('settings.advanced.modes.important')],
+                      ['all', t('settings.advanced.modes.all')],
+                    ] as const).map(([value, label]) => (
+                      <button key={value} type="button" onClick={() => selectNotificationSoundMode(value)} aria-pressed={notificationSoundMode === value} className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors ${notificationSoundMode === value ? 'bg-m3-primary text-m3-on-primary' : 'hover:bg-m3-on-surface/10'}`}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <p className="font-bold text-sm">{t('settings.advanced.soundPreset')}</p>
+                    <p className="text-xs text-m3-on-surface-variant">{t('settings.advanced.soundPresetDescription')}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <select value={notificationSoundPreset} disabled={notificationSoundMode === 'off'} onChange={(event) => selectNotificationSoundPreset(event.target.value as NotificationSoundPreset)} className="rounded-xl border border-m3-outline/30 bg-m3-surface px-3 py-2 text-sm font-bold text-m3-on-surface disabled:opacity-50">
+                      <option value="soft">{t('settings.advanced.presets.soft')}</option>
+                      <option value="crystal">{t('settings.advanced.presets.crystal')}</option>
+                      <option value="arcade">{t('settings.advanced.presets.arcade')}</option>
+                    </select>
+                    <button type="button" disabled={notificationSoundMode === 'off'} onClick={() => playNotificationSound(notificationSoundPreset)} className="rounded-xl border border-m3-outline/30 px-4 py-2 text-sm font-bold hover:bg-m3-on-surface/10 disabled:opacity-50 disabled:cursor-not-allowed">
+                      {t('settings.advanced.testSound')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {activeSection === 'scraper' && (
+            <section>
+              <h3 className="font-sans font-bold text-xl mb-4 flex items-center gap-2">
+                <ShieldCheck size={18} />
+                {t('settings.scraper.title')}
+              </h3>
+              <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="font-bold text-sm">{t('settings.scraper.cipherMap')}</p>
+                    <p className="text-xs text-m3-on-surface-variant mt-0.5">{t('settings.scraper.cipherDescription')}</p>
+                    {ciphermapInfo ? (
+                      <p className="text-xs text-m3-on-surface-variant/70 mt-1">
+                        {t('settings.scraper.lastSynced', { date: new Date(ciphermapInfo.generatedAt).toLocaleString() })}{' '}
+                        {ciphermapInfo.tag && <span className="ml-1 px-1.5 py-0.5 rounded bg-m3-primary/20 text-m3-primary font-mono">{ciphermapInfo.tag}</span>}
+                        {' '}&middot; {t('settings.scraper.entries', { count: ciphermapInfo.entries })}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-m3-on-surface-variant/50 mt-1">{t('settings.scraper.fallback')}</p>
+                    )}
+                  </div>
+                  <button onClick={syncCiphermap} disabled={syncStatus === 'syncing'} className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border border-m3-outline/30 hover:bg-m3-on-surface/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                    <RefreshCw size={14} className={syncStatus === 'syncing' ? 'animate-spin' : ''} />
+                    {syncStatus === 'syncing' ? t('settings.scraper.updating') : t('settings.scraper.update')}
+                  </button>
+                </div>
+                {syncStatus === 'success' && <p className="text-xs text-green-400">✓ {t('settings.scraper.success')}</p>}
+                {syncStatus === 'error' && <p className="text-xs text-red-400">✗ {t('settings.scraper.error', { error: syncError })}</p>}
+              </div>
+            </section>
           )}
         </div>
       </div>
