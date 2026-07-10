@@ -91,7 +91,7 @@ function App() {
           <RemoteNoticeBanner provider={activeAnime?.catalogProvider} />
         </div>
 
-        {activeTab === 'home' && (
+        <div className={activeTab === 'home' ? 'flex flex-1 flex-col' : 'hidden'} aria-hidden={activeTab !== 'home'}>
           <HomePage
             key={homeAniListOpenRequest ? `anilist-${homeAniListOpenRequest.nonce}` : 'home'}
             setSearchQuery={setSearchQuery}
@@ -101,7 +101,7 @@ function App() {
             initialSelectedId={homeAniListOpenRequest?.id ?? null}
             onClearInitialSelection={() => setHomeAniListOpenRequest(null)}
           />
-        )}
+        </div>
 
         {activeTab === 'search' && (
           <BrowsePage

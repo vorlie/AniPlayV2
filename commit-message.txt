@@ -1,3 +1,4 @@
-feat: improve AniList watch flow v2
+fix: preserve AniList detail state while playing
 
-- open AniList-first search results in the AniList detail preflight when possible
+- keep the AniList home/detail page mounted when switching to the player
+- preserve loaded anime details, playback match, and unsaved progress form values
