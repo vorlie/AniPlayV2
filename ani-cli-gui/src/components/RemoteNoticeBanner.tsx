@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, ExternalLink, Info, RefreshCw, ShieldAlert, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { CatalogProvider } from '../catalog-types'
 import type { RemoteNotice, RemoteNoticeState } from '../remote-notice-types'
 
@@ -24,6 +25,7 @@ function NoticeIcon({ notice }: { notice: RemoteNotice }) {
 }
 
 export function RemoteNoticeBanner({ provider }: RemoteNoticeBannerProps) {
+  const { t } = useTranslation()
   const [state, setState] = useState<RemoteNoticeState>(emptyState)
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export function RemoteNoticeBanner({ provider }: RemoteNoticeBannerProps) {
   if (!notices.length) return null
 
   return (
-    <section className="flex flex-col gap-2" aria-label="Service notices">
+    <section className="flex flex-col gap-2" aria-label={t('remoteNotices.label')}>
       {notices.map((notice) => (
         <article key={notice.id} role="status" className={`rounded-2xl border px-4 py-3 shadow-sm backdrop-blur-xl ${noticeClasses(notice)}`}>
           <div className="flex items-start gap-3">
@@ -53,18 +55,18 @@ export function RemoteNoticeBanner({ provider }: RemoteNoticeBannerProps) {
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 {notice.link ? (
                   <button type="button" className="inline-flex items-center gap-1.5 rounded-full border border-current/20 px-3 py-1 text-xs font-bold transition-colors hover:bg-white/10" onClick={() => void window.aniPlay?.notices.open(notice.id)}>
-                    View details <ExternalLink size={13} aria-hidden="true" />
+                    {t('remoteNotices.viewDetails')} <ExternalLink size={13} aria-hidden="true" />
                   </button>
                 ) : null}
                 {state.stale ? (
                   <button type="button" className="inline-flex items-center gap-1.5 rounded-full border border-current/20 px-3 py-1 text-xs font-bold transition-colors hover:bg-white/10" onClick={() => void window.aniPlay?.notices.refresh().then(setState)}>
-                    Retry check <RefreshCw size={13} aria-hidden="true" />
+                    {t('remoteNotices.retry')} <RefreshCw size={13} aria-hidden="true" />
                   </button>
                 ) : null}
               </div>
             </div>
             {notice.dismissible ? (
-              <button type="button" className="inline-flex size-8 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/10" aria-label={`Dismiss ${notice.title}`} onClick={() => void window.aniPlay?.notices.dismiss(notice.id).then(setState)}>
+              <button type="button" className="inline-flex size-8 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/10" aria-label={t('remoteNotices.dismiss', { title: notice.title })} onClick={() => void window.aniPlay?.notices.dismiss(notice.id).then(setState)}>
                 <X size={16} aria-hidden="true" />
               </button>
             ) : null}

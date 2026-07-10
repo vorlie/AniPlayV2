@@ -5,6 +5,7 @@ import { AnimePage } from './pages/AnimePage'
 import { HomePage } from './pages/HomePage'
 import { Navigation } from './components/Navigation'
 import { AppNotifications, type AppNotification, type AppNotificationKind } from './components/AppNotifications'
+import { useTranslation } from 'react-i18next'
 import type { HistoryEntry } from './lib/history'
 import type { DownloadState } from './download-types'
 import { DownloadsPage } from './pages/DownloadsPage'
@@ -41,10 +42,11 @@ function createNotification(title: string, body: string | undefined, kind: AppNo
 function initialNotifications(): AppNotification[] {
   const today = new Date()
   if (today.getMonth() !== 3 || today.getDate() !== 1) return []
-  return [createNotification('Experimental filler detector enabled', 'Accuracy may vary wildly today.', 'easter-egg', 7000)]
+  return []
 }
 
 function App() {
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState('home')
   const [searchQuery, setSearchQuery] = useState('')
   const [results, setResults] = useState<AnimeSelection[]>([])
@@ -83,18 +85,25 @@ function App() {
     updateNotificationKeysRef.current.add(key)
 
     if (state.phase === 'available') {
-      notify(`AniPlay ${version} is available`, 'Open Settings to download the update.', 'info', 8000, 'important')
+      notify(t('notifications.updateAvailableTitle', { version }), t('notifications.updateAvailableBody'), 'info', 8000, 'important')
       return
     }
 
-    notify(`AniPlay ${version} is ready`, 'Open Settings to restart and install.', 'success', 8000, 'important')
-  }, [notify])
+    notify(t('notifications.updateReadyTitle', { version }), t('notifications.updateReadyBody'), 'success', 8000, 'important')
+  }, [notify, t])
 
   useEffect(() => {
     if (!window.aniPlay) return
     void window.aniPlay.updater.getState().then(notifyUpdateState).catch(() => {})
     return window.aniPlay.updater.onChanged(notifyUpdateState)
   }, [notifyUpdateState])
+
+  useEffect(() => {
+    const today = new Date()
+    if (today.getMonth() !== 3 || today.getDate() !== 1) return
+    const timer = window.setTimeout(() => notify(t('notifications.aprilTitle'), t('notifications.aprilBody'), 'easter-egg', 7000), 0)
+    return () => window.clearTimeout(timer)
+  }, [notify, t])
 
   const activeDownloadCount = downloadState?.jobs.filter((job) => ['queued', 'resolving', 'downloading'].includes(job.status)).length ?? 0
 
@@ -131,7 +140,7 @@ function App() {
     if (logoClickTimesRef.current.length < LOGO_CLICK_TARGET) return
     logoClickTimesRef.current = []
     setSecretSakuraMode(true)
-    notify('Secret theme unlocked', 'Midnight Sakura mode enabled for this session.', 'easter-egg', 7000)
+    notify(t('notifications.secretTitle'), t('notifications.secretBody'), 'easter-egg', 7000)
   }
 
   const handleEpisodeStarted = useCallback((animeId: string, episode: string) => {
@@ -142,14 +151,14 @@ function App() {
     const count = watchedEpisodesRef.current.size
     if (count >= 6 && !watchBadgeThresholdsRef.current.has(6)) {
       watchBadgeThresholdsRef.current.add(6)
-      notify('One more episode protocol engaged', 'Six unique episodes started this session.', 'easter-egg', 7000)
+      notify(t('notifications.protocolTitle'), t('notifications.protocolBody'), 'easter-egg', 7000)
       return
     }
     if (count >= 3 && !watchBadgeThresholdsRef.current.has(3)) {
       watchBadgeThresholdsRef.current.add(3)
-      notify('Marathon mode detected', 'Three unique episodes started this session.', 'easter-egg', 6500)
+      notify(t('notifications.marathonTitle'), t('notifications.marathonBody'), 'easter-egg', 6500)
     }
-  }, [notify])
+  }, [notify, t])
 
   return (
     <div className={`min-h-screen bg-m3-surface text-m3-on-surface p-3 md:p-5 relative overflow-hidden flex flex-col ${secretSakuraMode ? 'secret-sakura-mode' : ''}`}>
@@ -166,7 +175,7 @@ function App() {
             <span className="glow-layer">AniPlay</span>
             <span className="text-layer">AniPlay</span>
           </button>
-          <span className="hidden lg:inline text-xs font-bold uppercase tracking-[0.18em] text-m3-on-surface-variant">watch without the clutter</span>
+          <span className="hidden lg:inline text-xs font-bold uppercase tracking-[0.18em] text-m3-on-surface-variant">{t('app.tagline')}</span>
         </div>
         <Navigation activeTab={activeTab} setActiveTab={setActiveTab} hasActivePlayer={activeAnime !== null} downloadCount={activeDownloadCount} />
       </header>
@@ -227,7 +236,7 @@ function App() {
         {activeTab === 'settings' && (
           <Suspense fallback={
             <div className="m3-card flex-1 min-h-[220px] flex items-center justify-center text-m3-on-surface-variant text-sm">
-              Loading settings...
+              {t('app.loadingSettings')}
             </div>
           }>
             <SettingsPage />

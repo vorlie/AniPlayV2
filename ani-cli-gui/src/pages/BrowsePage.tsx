@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ArrowRight, Grid2X2, List, Loader2, Search, Tv2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { CATALOG_PROVIDER_KEY, getAniListFirstSearch, getCatalogProvider, getTranslationType, invokeSearch, type AnimeSearchResult, type CatalogProvider } from '../lib/api'
 
 interface BrowsePageProps {
@@ -23,6 +24,7 @@ function getSearchViewMode(): SearchViewMode {
 }
 
 export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, onSelectAnime, onOpenAniListMedia }: BrowsePageProps) {
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasSearched, setHasSearched] = useState(results.length > 0)
@@ -39,11 +41,11 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
     setHasSearched(true)
     try {
       const response = await invokeSearch(query, catalogProvider)
-      if (!response.success) throw new Error(response.error || 'Search failed. Please try again.')
+      if (!response.success) throw new Error(response.error || t('browse.searchFailed'))
       setResults(response.data ?? [])
     } catch (cause: unknown) {
       setResults([])
-      setError(cause instanceof Error ? cause.message : 'Search failed. Please try again.')
+      setError(cause instanceof Error ? cause.message : t('browse.searchFailed'))
     } finally {
       setLoading(false)
     }
@@ -58,12 +60,12 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
   }
 
   const providerDescription = catalogProvider === 'desu'
-    ? 'Searching Desu Online for Polish-subtitled anime.'
+    ? t('browse.providerDescriptions.desu')
     : catalogProvider === 'miruro'
-      ? 'Searching Miruro for English sub and dub anime.'
+      ? t('browse.providerDescriptions.miruro')
       : catalogProvider === 'anikoto'
-        ? aniListFirstSearch ? 'Searching AniList first, then Anikoto provider matches.' : 'Searching Anikoto for English sub and dub anime.'
-        : `Searching the ${translationType === 'dub' ? 'dubbed' : 'subbed'} AllAnime catalog.`
+        ? aniListFirstSearch ? t('browse.providerDescriptions.anikotoFirst') : t('browse.providerDescriptions.anikoto')
+        : t('browse.providerDescriptions.allanime', { mode: translationType === 'dub' ? t('browse.modeDubbed') : t('browse.modeSubbed') })
 
   const providerLabel = (provider: CatalogProvider) => {
     if (provider === 'allanime') return `AllAnime · ${translationType.toUpperCase()}`
@@ -73,10 +75,10 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
   }
 
   const resultMeta = (anime: AnimeSearchResult) => {
-    if (anime.catalogProvider === 'desu') return 'Polish subtitles'
-    if (anime.catalogProvider === 'miruro') return `${anime.episodes || '—'} episodes · English`
-    if (anime.catalogProvider === 'anikoto') return `${anime.episodes || '—'} episodes · English`
-    return `${anime.episodes || '—'} episodes`
+    if (anime.catalogProvider === 'desu') return t('browse.polishSubtitles')
+    if (anime.catalogProvider === 'miruro') return `${anime.episodes ? t('browse.episodes', { count: anime.episodes }) : t('browse.noEpisodes')} · ${t('browse.english')}`
+    if (anime.catalogProvider === 'anikoto') return `${anime.episodes ? t('browse.episodes', { count: anime.episodes }) : t('browse.noEpisodes')} · ${t('browse.english')}`
+    return anime.episodes ? t('browse.episodes', { count: anime.episodes }) : t('browse.noEpisodes')
   }
 
   const selectViewMode = (mode: SearchViewMode) => {
@@ -103,23 +105,23 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
       <section className="m3-card overflow-hidden p-5 md:p-7">
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
           <div>
-            <p className="section-label"><Search size={14} /> Library search</p>
-            <h2 className="mt-2 text-3xl md:text-4xl font-black tracking-tight">What do you want to watch?</h2>
+            <p className="section-label"><Search size={14} /> {t('browse.sectionLabel')}</p>
+            <h2 className="mt-2 text-3xl md:text-4xl font-black tracking-tight">{t('browse.heading')}</h2>
             <p className="mt-1 text-sm text-m3-on-surface-variant">{providerDescription}</p>
           </div>
-          <div className="self-start inline-flex rounded-xl border border-m3-outline/30 p-1" role="group" aria-label="Catalog provider">
+          <div className="self-start inline-flex rounded-xl border border-m3-outline/30 p-1" role="group" aria-label={t('browse.providerGroup')}>
             {(['allanime', 'desu', 'miruro', 'anikoto'] as const).map((provider) => <button key={provider} type="button" onClick={() => selectCatalog(provider)} aria-pressed={catalogProvider === provider} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${catalogProvider === provider ? 'bg-m3-primary text-m3-on-primary' : 'hover:bg-m3-on-surface/10'}`}>{providerLabel(provider)}</button>)}
           </div>
         </div>
 
         <div className="mt-5 flex items-stretch gap-2 rounded-2xl border border-m3-outline/25 bg-m3-surface/55 p-1.5 focus-within:border-m3-primary/60 focus-within:ring-4 focus-within:ring-m3-primary/10 transition-all">
           <Search aria-hidden="true" className="ml-3 self-center text-m3-outline" size={20} />
-          <label htmlFor="anime-search" className="sr-only">Anime title</label>
+          <label htmlFor="anime-search" className="sr-only">{t('browse.animeTitle')}</label>
           <input
             id="anime-search"
             type="search"
             autoFocus
-            placeholder="Try Cowboy Bebop, Frieren, One Piece…"
+            placeholder={t('browse.placeholder')}
             className="min-w-0 flex-1 bg-transparent px-2 py-3 text-m3-on-surface outline-none placeholder:text-m3-on-surface-variant/55"
             value={searchQuery}
             onKeyDown={(event) => { if (event.key === 'Enter') void search() }}
@@ -128,7 +130,7 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
           />
           <button type="button" onClick={() => void search()} disabled={!searchQuery.trim() || loading} className="primary-action px-4 md:px-6">
             {loading ? <Loader2 className="animate-spin" size={18} /> : <Search size={18} />}
-            <span className="hidden sm:inline">{loading ? 'Searching' : 'Search'}</span>
+            <span className="hidden sm:inline">{loading ? t('browse.searching') : t('browse.search')}</span>
           </button>
         </div>
         {error && <p id="search-error" role="alert" className="mt-3 rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-sm text-red-300">{error}</p>}
@@ -137,15 +139,15 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
       <section className="m3-card p-4 md:p-6 flex-1 min-h-[340px]">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h3 className="text-xl font-black">Results</h3>
-            <p className="text-xs text-m3-on-surface-variant mt-0.5">{results.length ? `${results.length} titles found` : 'Matching titles appear here'}</p>
+            <h3 className="text-xl font-black">{t('browse.results')}</h3>
+            <p className="text-xs text-m3-on-surface-variant mt-0.5">{results.length ? t('browse.titlesFound', { count: results.length }) : t('browse.matchingTitles')}</p>
           </div>
-          <div className="inline-flex rounded-xl border border-m3-outline/30 p-1" role="group" aria-label="Search result view">
-            <button type="button" onClick={() => selectViewMode('compact')} aria-pressed={viewMode === 'compact'} title="Compact view" className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${viewMode === 'compact' ? 'bg-m3-primary text-m3-on-primary' : 'hover:bg-m3-on-surface/10'}`}>
-              <List size={14} /> Compact
+          <div className="inline-flex rounded-xl border border-m3-outline/30 p-1" role="group" aria-label={t('browse.resultView')}>
+            <button type="button" onClick={() => selectViewMode('compact')} aria-pressed={viewMode === 'compact'} title={t('browse.compactView')} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${viewMode === 'compact' ? 'bg-m3-primary text-m3-on-primary' : 'hover:bg-m3-on-surface/10'}`}>
+              <List size={14} /> {t('browse.compact')}
             </button>
-            <button type="button" onClick={() => selectViewMode('posters')} aria-pressed={viewMode === 'posters'} title="Poster grid" className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${viewMode === 'posters' ? 'bg-m3-primary text-m3-on-primary' : 'hover:bg-m3-on-surface/10'}`}>
-              <Grid2X2 size={14} /> Posters
+            <button type="button" onClick={() => selectViewMode('posters')} aria-pressed={viewMode === 'posters'} title={t('browse.posterGrid')} className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${viewMode === 'posters' ? 'bg-m3-primary text-m3-on-primary' : 'hover:bg-m3-on-surface/10'}`}>
+              <Grid2X2 size={14} /> {t('browse.posters')}
             </button>
           </div>
         </div>
@@ -185,8 +187,8 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
         ) : (
           <div className="min-h-[240px] flex flex-col items-center justify-center text-center">
             <span className="flex size-14 items-center justify-center rounded-2xl bg-m3-primary/10 text-m3-primary"><Tv2 size={25} /></span>
-            <p className="mt-4 font-bold">{loading ? 'Searching the catalog…' : hasSearched && !error ? 'No matching titles' : 'Start with a title'}</p>
-            <p className="mt-1 max-w-sm text-sm text-m3-on-surface-variant">{hasSearched ? 'Check the spelling or try a shorter title.' : 'Enter an anime name above. You can choose an episode and server on the next screen.'}</p>
+            <p className="mt-4 font-bold">{loading ? t('browse.searchingCatalog') : hasSearched && !error ? t('browse.noMatches') : t('browse.startWithTitle')}</p>
+            <p className="mt-1 max-w-sm text-sm text-m3-on-surface-variant">{hasSearched ? t('browse.spellingHint') : t('browse.startHint')}</p>
           </div>
         )}
       </section>

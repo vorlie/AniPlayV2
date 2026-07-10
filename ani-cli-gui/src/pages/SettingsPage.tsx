@@ -1,9 +1,11 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Bug, FolderOpen, Gamepad2, GitPullRequest, Globe, Palette, RefreshCw, RotateCcw, ShieldCheck } from 'lucide-react'
 import { argbFromRgb, hexFromArgb, themeFromSourceColor } from '@material/material-color-utilities'
 import { ANILIST_SEARCH_KEY, getAniListFirstSearch, getTranslationType, TRANSLATION_TYPE_KEY, type TranslationType } from '../lib/api'
 import { getNotificationSoundMode, getNotificationSoundPreset, playNotificationSound, setNotificationSoundMode, setNotificationSoundPreset, type NotificationSoundMode, type NotificationSoundPreset } from '../lib/notification-sounds'
+import { setAppLanguage, supportedLanguages, type AppLanguage } from '../i18n'
 import type { UpdateState } from '../updater-types'
 
 const DEFAULT_PRIMARY = '#D0BCFF'
@@ -66,6 +68,7 @@ interface CiphermapInfo {
 }
 
 export function SettingsPage() {
+  const { t, i18n } = useTranslation()
   const [primary, setPrimary] = useState(DEFAULT_PRIMARY)
   const [useNativeControls, setUseNativeControls] = useState(true)
   const [translationType, setTranslationType] = useState<TranslationType>(getTranslationType)
@@ -79,6 +82,7 @@ export function SettingsPage() {
   const [updateState, setUpdateState] = useState<UpdateState | null>(null)
   const [notificationSoundMode, setNotificationSoundModeState] = useState<NotificationSoundMode>(getNotificationSoundMode)
   const [notificationSoundPreset, setNotificationSoundPresetState] = useState<NotificationSoundPreset>(getNotificationSoundPreset)
+  const [language, setLanguage] = useState<AppLanguage>(i18n.language === 'pl' ? 'pl' : 'en')
 
   useEffect(() => {
     const saved = localStorage.getItem('theme.primary')
@@ -177,11 +181,11 @@ export function SettingsPage() {
         setCiphermapInfo({ generatedAt: res.generatedAt, entries: res.entries, source: res.source, tag: res.tag ?? null })
       } else {
         setSyncStatus('error')
-        setSyncError(res?.error ?? 'Unknown error')
+        setSyncError(res?.error ?? t('settings.scraper.unknownError'))
       }
     } catch (e: unknown) {
       setSyncStatus('error')
-      setSyncError(e instanceof Error ? e.message : 'Unknown error')
+      setSyncError(e instanceof Error ? e.message : t('settings.scraper.unknownError'))
     }
   }
 
@@ -199,15 +203,20 @@ export function SettingsPage() {
     setNotificationSoundPresetState(preset)
   }
 
+  const selectLanguage = (value: AppLanguage) => {
+    setLanguage(value)
+    setAppLanguage(value)
+  }
+
   return (
     <div className="m3-card p-6 md:p-7 flex-1">
       <h2 className="font-sans font-bold text-2xl mb-5 flex items-center gap-2">
         <Palette size={22} />
-        Theme
+        {t('settings.theme.title')}
       </h2>
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-5 items-start">
         <div className="space-y-3">
-          <p className="text-sm text-m3-on-surface-variant">Choose your custom accent color.</p>
+          <p className="text-sm text-m3-on-surface-variant">{t('settings.theme.description')}</p>
           <div className="flex items-center gap-3">
             <input
               type="color"
@@ -227,23 +236,23 @@ export function SettingsPage() {
             />
             <button onClick={reset} className="px-3 py-2 rounded-xl text-sm border border-m3-outline/30 hover:bg-m3-on-surface/10 flex items-center gap-2">
               <RotateCcw size={14} />
-              Reset
+              {t('settings.theme.reset')}
             </button>
           </div>
         </div>
         <div className="w-full lg:w-52 rounded-2xl border border-m3-outline/20 p-3 bg-m3-surface-container/40">
-          <p className="text-xs text-m3-on-surface-variant mb-2">Preview</p>
+          <p className="text-xs text-m3-on-surface-variant mb-2">{t('settings.theme.preview')}</p>
           <button className="w-full rounded-xl px-3 py-2 font-bold" style={{ backgroundColor: 'var(--color-m3-primary)', color: 'var(--color-m3-on-primary)' }}>
-            Primary Button
+            {t('settings.theme.primaryButton')}
           </button>
         </div>
       </div>
       <div className="mt-8 pt-6 border-t border-m3-outline/20">
-        <h3 className="font-sans font-bold text-xl mb-3">Player</h3>
+        <h3 className="font-sans font-bold text-xl mb-3">{t('settings.player.title')}</h3>
         <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex items-center justify-between mb-3">
           <div>
-            <p className="font-bold text-sm">Use native video controls</p>
-            <p className="text-xs text-m3-on-surface-variant">Recommended for maximum codec and browser compatibility.</p>
+            <p className="font-bold text-sm">{t('settings.player.nativeControls')}</p>
+            <p className="text-xs text-m3-on-surface-variant">{t('settings.player.nativeDescription')}</p>
           </div>
           <button
             onClick={toggleNativeControls}
@@ -255,8 +264,8 @@ export function SettingsPage() {
         </div>
         <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <p className="font-bold text-sm">Audio version</p>
-            <p className="text-xs text-m3-on-surface-variant">Dub availability depends on the selected anime.</p>
+            <p className="font-bold text-sm">{t('settings.player.audioVersion')}</p>
+            <p className="text-xs text-m3-on-surface-variant">{t('settings.player.audioDescription')}</p>
           </div>
           <div className="inline-flex rounded-xl border border-m3-outline/30 p-1" role="group" aria-label="Audio version">
             {(['sub', 'dub'] as const).map((value) => (
@@ -267,7 +276,7 @@ export function SettingsPage() {
                 aria-pressed={translationType === value}
                 className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${translationType === value ? 'bg-m3-primary text-m3-on-primary' : 'hover:bg-m3-on-surface/10'}`}
               >
-                {value === 'sub' ? 'Subbed' : 'Dubbed'}
+                {value === 'sub' ? t('settings.player.subbed') : t('settings.player.dubbed')}
               </button>
             ))}
           </div>
@@ -276,9 +285,9 @@ export function SettingsPage() {
           <div className="flex items-start gap-3">
             <Gamepad2 size={19} className="mt-0.5 shrink-0 text-m3-primary" />
             <div>
-              <p className="font-bold text-sm">Discord Rich Presence</p>
-              <p className="text-xs text-m3-on-surface-variant">Share the anime, episode, audio version, artwork, and remaining time on your Discord profile.</p>
-              {discordPresenceEnabled && <p className={`mt-1 text-xs ${discordPresenceConnected ? 'text-green-400' : 'text-m3-on-surface-variant'}`}>{discordPresenceConnected ? 'Connected to Discord' : 'Waiting for Discord Desktop'}</p>}
+              <p className="font-bold text-sm">{t('settings.player.discord')}</p>
+              <p className="text-xs text-m3-on-surface-variant">{t('settings.player.discordDescription')}</p>
+              {discordPresenceEnabled && <p className={`mt-1 text-xs ${discordPresenceConnected ? 'text-green-400' : 'text-m3-on-surface-variant'}`}>{discordPresenceConnected ? t('settings.player.connected') : t('settings.player.waiting')}</p>}
             </div>
           </div>
           <button
@@ -286,35 +295,35 @@ export function SettingsPage() {
             onClick={() => void toggleDiscordPresence()}
             className={`w-14 h-8 shrink-0 rounded-full p-1 transition-colors ${discordPresenceEnabled ? 'bg-m3-primary' : 'bg-m3-surface-variant/60'}`}
             aria-pressed={discordPresenceEnabled}
-            aria-label="Enable Discord Rich Presence"
+            aria-label={t('settings.player.enableDiscord')}
           >
             <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${discordPresenceEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
           </button>
         </div>
       </div>
       <div className="mt-8 pt-6 border-t border-m3-outline/20">
-        <h3 className="font-sans font-bold text-xl mb-3">Search</h3>
+        <h3 className="font-sans font-bold text-xl mb-3">{t('settings.search.title')}</h3>
         <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex items-center justify-between gap-3">
           <div>
-            <p className="font-bold text-sm">Experimental AniList-first search</p>
-            <p className="text-xs text-m3-on-surface-variant">Prioritize AniList metadata for Anikoto search results, then fall back to provider catalog matches.</p>
+            <p className="font-bold text-sm">{t('settings.search.aniListFirst')}</p>
+            <p className="text-xs text-m3-on-surface-variant">{t('settings.search.aniListFirstDescription')}</p>
           </div>
           <button
             type="button"
             onClick={toggleAniListFirstSearch}
             className={`w-14 h-8 shrink-0 rounded-full p-1 transition-colors ${aniListFirstSearch ? 'bg-m3-primary' : 'bg-m3-surface-variant/60'}`}
             aria-pressed={aniListFirstSearch}
-            aria-label="Enable experimental AniList-first search"
+            aria-label={t('settings.search.enableAniListFirst')}
           >
             <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${aniListFirstSearch ? 'translate-x-6' : 'translate-x-0'}`} />
           </button>
         </div>
       </div>
       <div className="mt-8 pt-6 border-t border-m3-outline/20">
-        <h3 className="font-sans font-bold text-xl mb-3">Downloads</h3>
+        <h3 className="font-sans font-bold text-xl mb-3">{t('settings.downloads.title')}</h3>
         <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="font-bold text-sm">Download folder</p>
+            <p className="font-bold text-sm">{t('settings.downloads.folder')}</p>
             <p className="mt-1 truncate text-xs text-m3-on-surface-variant" title={downloadDirectory}>{downloadDirectory}</p>
           </div>
           <button
@@ -322,22 +331,22 @@ export function SettingsPage() {
             onClick={() => void window.aniPlay?.downloads.chooseDirectory().then((state) => setDownloadDirectory(state.settings.directory))}
             className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border border-m3-outline/30 hover:bg-m3-on-surface/10"
           >
-            <FolderOpen size={16} /> Choose folder
+            <FolderOpen size={16} /> {t('settings.downloads.choose')}
           </button>
         </div>
       </div>
       <div className="mt-8 pt-6 border-t border-m3-outline/20">
-        <h3 className="font-sans font-bold text-xl mb-3">Application updates</h3>
+        <h3 className="font-sans font-bold text-xl mb-3">{t('settings.updates.title')}</h3>
         <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="font-bold text-sm">AniPlay {updateState?.currentVersion ?? ''}</p>
             <p className="mt-1 text-xs text-m3-on-surface-variant">
-              {updateState?.phase === 'available' && `Version ${updateState.availableVersion} is available.`}
-              {updateState?.phase === 'downloading' && `Downloading version ${updateState.availableVersion ?? ''}… ${Math.round(updateState.progress ?? 0)}%`}
-              {updateState?.phase === 'downloaded' && `Version ${updateState.availableVersion} is ready to install.`}
-              {updateState?.phase === 'checking' && 'Checking GitHub for updates…'}
-              {(updateState?.phase === 'idle' || updateState?.phase === 'error' || updateState?.phase === 'unavailable') && (updateState.message ?? 'Updates are checked automatically after startup.')}
-              {!updateState && 'Loading update status…'}
+              {updateState?.phase === 'available' && t('settings.updates.available', { version: updateState.availableVersion })}
+              {updateState?.phase === 'downloading' && t('settings.updates.downloading', { version: updateState.availableVersion ?? '', progress: Math.round(updateState.progress ?? 0) })}
+              {updateState?.phase === 'downloaded' && t('settings.updates.downloaded', { version: updateState.availableVersion })}
+              {updateState?.phase === 'checking' && t('settings.updates.checking')}
+              {(updateState?.phase === 'idle' || updateState?.phase === 'error' || updateState?.phase === 'unavailable') && (updateState.message ?? t('settings.updates.fallback'))}
+              {!updateState && t('settings.updates.loading')}
             </p>
             {updateState?.phase === 'downloading' && (
               <div className="mt-2 h-1.5 max-w-sm overflow-hidden rounded-full bg-m3-on-surface/10">
@@ -357,12 +366,12 @@ export function SettingsPage() {
             className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border border-m3-outline/30 hover:bg-m3-on-surface/10 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCw size={14} className={updateState?.phase === 'checking' || updateState?.phase === 'downloading' ? 'animate-spin' : ''} />
-            {updateState?.phase === 'available' ? 'Download update' : updateState?.phase === 'downloaded' ? 'Restart and install' : 'Check for updates'}
+            {updateState?.phase === 'available' ? t('settings.updates.download') : updateState?.phase === 'downloaded' ? t('settings.updates.install') : t('settings.updates.check')}
           </button>
         </div>
       </div>
       <div className="mt-8 pt-6 border-t border-m3-outline/20">
-        <h3 className="font-sans font-bold text-xl mb-3">Project</h3>
+        <h3 className="font-sans font-bold text-xl mb-3">{t('settings.project.title')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <button
             onClick={() => openProjectPage('repository')}
@@ -370,9 +379,9 @@ export function SettingsPage() {
           >
             <div className="flex items-center gap-2 mb-1">
               <Globe size={16} />
-              <span className="font-bold text-sm">GitHub Repo</span>
+              <span className="font-bold text-sm">{t('settings.project.repo')}</span>
             </div>
-            <p className="text-xs text-m3-on-surface-variant">View source code and releases.</p>
+            <p className="text-xs text-m3-on-surface-variant">{t('settings.project.repoDescription')}</p>
           </button>
           <button
             onClick={() => openProjectPage('issues')}
@@ -380,9 +389,9 @@ export function SettingsPage() {
           >
             <div className="flex items-center gap-2 mb-1">
               <Bug size={16} />
-              <span className="font-bold text-sm">Report Issue</span>
+              <span className="font-bold text-sm">{t('settings.project.issues')}</span>
             </div>
-            <p className="text-xs text-m3-on-surface-variant">Open a bug report or request.</p>
+            <p className="text-xs text-m3-on-surface-variant">{t('settings.project.issuesDescription')}</p>
           </button>
           <button
             onClick={() => openProjectPage('pulls')}
@@ -390,25 +399,38 @@ export function SettingsPage() {
           >
             <div className="flex items-center gap-2 mb-1">
               <GitPullRequest size={16} />
-              <span className="font-bold text-sm">Contribute</span>
+              <span className="font-bold text-sm">{t('settings.project.contribute')}</span>
             </div>
-            <p className="text-xs text-m3-on-surface-variant">Create or review pull requests.</p>
+            <p className="text-xs text-m3-on-surface-variant">{t('settings.project.contributeDescription')}</p>
           </button>
         </div>
       </div>
       <div className="mt-8 pt-6 border-t border-m3-outline/20">
-        <h3 className="font-sans font-bold text-xl mb-3">Advanced</h3>
+        <h3 className="font-sans font-bold text-xl mb-3">{t('settings.advanced.title')}</h3>
         <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 space-y-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="font-bold text-sm">Notification sounds</p>
-              <p className="text-xs text-m3-on-surface-variant">Sounds are used for important app events like available updates.</p>
+              <p className="font-bold text-sm">{t('settings.advanced.language')}</p>
+              <p className="text-xs text-m3-on-surface-variant">{t('settings.advanced.languageDescription')}</p>
             </div>
-            <div className="inline-flex rounded-xl border border-m3-outline/30 p-1" role="group" aria-label="Notification sound mode">
+            <select
+              value={language}
+              onChange={(event) => selectLanguage(event.target.value as AppLanguage)}
+              className="rounded-xl border border-m3-outline/30 bg-m3-surface px-3 py-2 text-sm font-bold text-m3-on-surface"
+            >
+              {supportedLanguages.map((item) => <option key={item.code} value={item.code}>{item.label}</option>)}
+            </select>
+          </div>
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="font-bold text-sm">{t('settings.advanced.notificationSounds')}</p>
+              <p className="text-xs text-m3-on-surface-variant">{t('settings.advanced.notificationSoundsDescription')}</p>
+            </div>
+            <div className="inline-flex rounded-xl border border-m3-outline/30 p-1" role="group" aria-label={t('settings.advanced.soundMode')}>
               {([
-                ['off', 'Off'],
-                ['important', 'Important'],
-                ['all', 'All'],
+                ['off', t('settings.advanced.modes.off')],
+                ['important', t('settings.advanced.modes.important')],
+                ['all', t('settings.advanced.modes.all')],
               ] as const).map(([value, label]) => (
                 <button
                   key={value}
@@ -424,8 +446,8 @@ export function SettingsPage() {
           </div>
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="font-bold text-sm">Sound preset</p>
-              <p className="text-xs text-m3-on-surface-variant">Fine-tune the notification tone while keeping it quiet.</p>
+              <p className="font-bold text-sm">{t('settings.advanced.soundPreset')}</p>
+              <p className="text-xs text-m3-on-surface-variant">{t('settings.advanced.soundPresetDescription')}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <select
@@ -434,9 +456,9 @@ export function SettingsPage() {
                 onChange={(event) => selectNotificationSoundPreset(event.target.value as NotificationSoundPreset)}
                 className="rounded-xl border border-m3-outline/30 bg-m3-surface px-3 py-2 text-sm font-bold text-m3-on-surface disabled:opacity-50"
               >
-                <option value="soft">Soft chime</option>
-                <option value="crystal">Crystal</option>
-                <option value="arcade">Arcade</option>
+                <option value="soft">{t('settings.advanced.presets.soft')}</option>
+                <option value="crystal">{t('settings.advanced.presets.crystal')}</option>
+                <option value="arcade">{t('settings.advanced.presets.arcade')}</option>
               </select>
               <button
                 type="button"
@@ -444,7 +466,7 @@ export function SettingsPage() {
                 onClick={() => playNotificationSound(notificationSoundPreset)}
                 className="rounded-xl border border-m3-outline/30 px-4 py-2 text-sm font-bold hover:bg-m3-on-surface/10 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Test sound
+                {t('settings.advanced.testSound')}
               </button>
             </div>
           </div>
@@ -453,23 +475,23 @@ export function SettingsPage() {
       <div className="mt-8 pt-6 border-t border-m3-outline/20">
         <h3 className="font-sans font-bold text-xl mb-3 flex items-center gap-2">
           <ShieldCheck size={18} />
-          Scraper
+          {t('settings.scraper.title')}
         </h3>
         <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="font-bold text-sm">Cipher Map</p>
+              <p className="font-bold text-sm">{t('settings.scraper.cipherMap')}</p>
               <p className="text-xs text-m3-on-surface-variant mt-0.5">
-                The cipher map is used to decode stream URLs. Update it when streams stop working.
+                {t('settings.scraper.cipherDescription')}
               </p>
               {ciphermapInfo ? (
                 <p className="text-xs text-m3-on-surface-variant/70 mt-1">
-                  Last synced: {new Date(ciphermapInfo.generatedAt).toLocaleString()}{' '}
+                  {t('settings.scraper.lastSynced', { date: new Date(ciphermapInfo.generatedAt).toLocaleString() })}{' '}
                   {ciphermapInfo.tag && <span className="ml-1 px-1.5 py-0.5 rounded bg-m3-primary/20 text-m3-primary font-mono">{ciphermapInfo.tag}</span>}
-                  {' '}&middot; {ciphermapInfo.entries} entries
+                  {' '}&middot; {t('settings.scraper.entries', { count: ciphermapInfo.entries })}
                 </p>
               ) : (
-                <p className="text-xs text-m3-on-surface-variant/50 mt-1">Using built-in fallback map</p>
+                <p className="text-xs text-m3-on-surface-variant/50 mt-1">{t('settings.scraper.fallback')}</p>
               )}
             </div>
             <button
@@ -478,14 +500,14 @@ export function SettingsPage() {
               className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border border-m3-outline/30 hover:bg-m3-on-surface/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               <RefreshCw size={14} className={syncStatus === 'syncing' ? 'animate-spin' : ''} />
-              {syncStatus === 'syncing' ? 'Updating…' : 'Update'}
+              {syncStatus === 'syncing' ? t('settings.scraper.updating') : t('settings.scraper.update')}
             </button>
           </div>
           {syncStatus === 'success' && (
-            <p className="text-xs text-green-400">✓ Cipher map updated successfully. Takes effect immediately.</p>
+            <p className="text-xs text-green-400">✓ {t('settings.scraper.success')}</p>
           )}
           {syncStatus === 'error' && (
-            <p className="text-xs text-red-400">✗ Update failed: {syncError}</p>
+            <p className="text-xs text-red-400">✗ {t('settings.scraper.error', { error: syncError })}</p>
           )}
         </div>
       </div>

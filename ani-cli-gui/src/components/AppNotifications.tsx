@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { CheckCircle2, Info, Sparkles, TriangleAlert, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export type AppNotificationKind = 'info' | 'success' | 'warning' | 'easter-egg'
 
@@ -20,6 +21,7 @@ function NotificationIcon({ kind }: { kind: AppNotificationKind }) {
 }
 
 function NotificationToast({ item, onDismiss }: { item: AppNotification; onDismiss: (id: string) => void }) {
+  const { t } = useTranslation()
   useEffect(() => {
     const timer = window.setTimeout(() => onDismiss(item.id), item.durationMs ?? 5200)
     return () => window.clearTimeout(timer)
@@ -32,7 +34,7 @@ function NotificationToast({ item, onDismiss }: { item: AppNotification; onDismi
         <p className="app-toast-title">{item.title}</p>
         {item.body ? <p className="app-toast-body">{item.body}</p> : null}
       </div>
-      <button type="button" className="app-toast-close" onClick={() => onDismiss(item.id)} aria-label="Dismiss notification">
+      <button type="button" className="app-toast-close" onClick={() => onDismiss(item.id)} aria-label={t('notifications.dismiss')}>
         <X size={15} />
       </button>
     </div>
@@ -40,9 +42,10 @@ function NotificationToast({ item, onDismiss }: { item: AppNotification; onDismi
 }
 
 export function AppNotifications({ items, onDismiss }: { items: AppNotification[]; onDismiss: (id: string) => void }) {
+  const { t } = useTranslation()
   if (!items.length) return null
   return (
-    <div className="app-toast-stack" aria-label="Notifications">
+    <div className="app-toast-stack" aria-label={t('notifications.label')}>
       {items.map((item) => <NotificationToast key={item.id} item={item} onDismiss={onDismiss} />)}
     </div>
   )

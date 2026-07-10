@@ -1,5 +1,6 @@
-feat: add in-app notifications and polish
+feat: add app translations
 
-- show in-app notifications for available and ready-to-install updates
-- add advanced notification sound settings with generated chime presets
-- add small hidden seasonal/session polish without affecting playback or logs
+- add renderer-only English and Polish translations with a Settings language picker
+- translate navigation, pages, settings, empty states, toasts, and shell controls
+- persist the selected language in localStorage and apply changes without restart
+- keep provider names, logs, remote notices, and debug output in English for support

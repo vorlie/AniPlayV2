@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Hls from 'hls.js'
 import { ArrowLeft, Download, Loader2, Maximize2, Minimize2, Pause, PictureInPicture2, Play, Server, Sparkles, Volume2, VolumeX } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { addHistory } from '../lib/history'
 import type { CatalogProvider } from '../catalog-types'
 import type { TranslationType } from '../download-types'
@@ -101,6 +102,7 @@ export function PlayerPage({
   coverUrl,
   catalogProvider = 'anikoto',
 }: PlayerPageProps) {
+  const { t } = useTranslation()
   const videoRef = useRef<HTMLVideoElement>(null)
   const hlsRef = useRef<Hls | null>(null)
   const seekedRef = useRef(false)
@@ -468,25 +470,25 @@ export function PlayerPage({
           {!isOverlay && (
             <span className="hidden md:inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full bg-m3-primary/15 text-m3-primary font-bold">
               <Sparkles size={12} />
-              Persistent Player
+              {t('player.persistent')}
             </span>
           )}
           {activeLink?.downloadable && <button
             type="button"
             onClick={() => void startDownload()}
             disabled={!activeLink || !animeId || !animeName || !episode || downloadStatus === 'starting'}
-            title={downloadStatus === 'error' ? 'Could not queue download. Check Downloads for details.' : 'Download current episode'}
+            title={downloadStatus === 'error' ? t('player.downloadError') : t('player.downloadCurrent')}
             className={`flex items-center gap-2 px-3 md:px-4 py-2 rounded-full border transition-all text-sm font-bold disabled:opacity-40 ${isOverlay ? 'border-white/30 text-white hover:bg-white/10' : 'border-m3-outline/30 text-m3-on-surface hover:bg-m3-on-surface/10'}`}
           >
             {downloadStatus === 'starting' ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}
-            <span className="hidden sm:inline">{downloadStatus === 'queued' ? 'Queued' : 'Download'}</span>
+            <span className="hidden sm:inline">{downloadStatus === 'queued' ? t('player.queued') : t('player.download')}</span>
           </button>}
           <button
             onClick={() => setShowServers((s) => !s)}
             className={`flex items-center space-x-2 px-4 py-2 rounded-full border transition-all text-sm font-bold ${showServers ? 'bg-m3-primary text-m3-on-primary border-transparent' : (isOverlay ? 'border-white/30 text-white hover:bg-white/10' : 'border-m3-outline/30 text-m3-on-surface hover:bg-m3-on-surface/10')}`}
           >
             <Server size={16} />
-            <span>Servers ({links.length})</span>
+            <span>{t('player.servers', { count: links.length })}</span>
           </button>
         </div>
       </div>
@@ -593,7 +595,7 @@ export function PlayerPage({
               <button onClick={enterFullscreen} className="ml-auto p-2 rounded-lg border border-m3-outline/30 text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface transition-all">
                 <Maximize2 size={16} />
               </button>
-              <button onClick={togglePip} className="p-2 rounded-lg border border-m3-outline/30 text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface transition-all" title="Picture in Picture">
+              <button onClick={togglePip} className="p-2 rounded-lg border border-m3-outline/30 text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface transition-all" title={t('player.pictureInPicture')}>
                 {isPip ? <Minimize2 size={16} /> : <PictureInPicture2 size={16} />}
               </button>
             </div>
@@ -612,7 +614,7 @@ export function PlayerPage({
 
       {showServers && (
         <div className={isOverlay ? 'absolute bottom-0 left-0 right-0 bg-m3-surface/95 backdrop-blur-xl border-t border-m3-outline/20 p-4 z-20' : 'bg-m3-surface/70 rounded-2xl border border-m3-outline/20 p-4'}>
-          <p className="text-xs text-m3-on-surface-variant mb-3 uppercase tracking-widest font-bold">Select Server</p>
+          <p className="text-xs text-m3-on-surface-variant mb-3 uppercase tracking-widest font-bold">{t('player.selectServer')}</p>
           <div className="flex flex-wrap gap-2 max-h-[40vh] overflow-y-auto pr-1">
             {links.map((link, i) => (
               <button

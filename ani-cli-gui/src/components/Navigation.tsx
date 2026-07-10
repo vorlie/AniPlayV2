@@ -1,12 +1,13 @@
 import { Search, History, Settings, House, Radio, Download, type LucideIcon } from 'lucide-react'
 import type { CSSProperties } from 'react'
+import { useTranslation } from 'react-i18next'
 
-const baseTabs: Array<{ id: string; label: string; icon: LucideIcon }> = [
-  { id: 'home', label: 'Home', icon: House },
-  { id: 'search', label: 'Browse', icon: Search },
-  { id: 'history', label: 'History', icon: History },
-  { id: 'downloads', label: 'Downloads', icon: Download },
-  { id: 'settings', label: 'Settings', icon: Settings },
+const baseTabs: Array<{ id: string; labelKey: string; icon: LucideIcon }> = [
+  { id: 'home', labelKey: 'nav.home', icon: House },
+  { id: 'search', labelKey: 'nav.search', icon: Search },
+  { id: 'history', labelKey: 'nav.history', icon: History },
+  { id: 'downloads', labelKey: 'nav.downloads', icon: Download },
+  { id: 'settings', labelKey: 'nav.settings', icon: Settings },
 ]
 
 export function Navigation({
@@ -22,13 +23,14 @@ export function Navigation({
   downloadCount?: number
   className?: string
 }) {
+  const { t } = useTranslation()
   return (
     <nav
-      aria-label="Primary navigation"
+      aria-label={t('nav.primary')}
       className={`fixed z-40 bottom-3 left-3 right-3 flex gap-1 rounded-2xl border border-m3-outline/20 bg-m3-surface-container/95 p-1.5 shadow-2xl backdrop-blur-2xl md:static md:w-auto md:shadow-lg ${className}`}
       style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}
     >
-      {[...baseTabs, ...(hasActivePlayer ? [{ id: 'player', label: 'Playing', icon: Radio }] : [])].map(({ id, label, icon: Icon }) => {
+      {[...baseTabs, ...(hasActivePlayer ? [{ id: 'player', labelKey: 'nav.player', icon: Radio }] : [])].map(({ id, labelKey, icon: Icon }) => {
         const active = activeTab === id
         return (
           <button
@@ -43,7 +45,7 @@ export function Navigation({
               {id === 'player' && <span className="absolute -right-1 -top-1 size-1.5 rounded-full bg-red-400 animate-pulse" />}
               {id === 'downloads' && downloadCount > 0 && <span className="absolute -right-2.5 -top-2 flex min-w-4 h-4 items-center justify-center rounded-full bg-m3-primary px-1 text-[9px] font-black text-m3-on-primary">{downloadCount > 9 ? '9+' : downloadCount}</span>}
             </span>
-            <span>{label}</span>
+            <span>{t(labelKey)}</span>
           </button>
         )
       })}
