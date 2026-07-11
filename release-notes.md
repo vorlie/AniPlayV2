@@ -4,6 +4,8 @@ This test build adds provider language grouping in Browse and introduces Docchi 
 
 ## Highlights
 
+- This build is versioned as `1.12.0-test.1`.
+- AniPlay now shows a small in-app test build badge for prerelease versions.
 - Browse now separates catalog providers into **Polish sources** and **English sources**.
 - Added **Docchi** as an experimental Polish source next to Desu.
 - Docchi can search the catalog, load episode lists, and return supported playback links.
@@ -20,6 +22,7 @@ This test build adds provider language grouping in Browse and introduces Docchi 
 - Confirm Dailymotion-based links play in-app when available.
 - Confirm Mega/embed-only links appear as fallback servers and do not expose downloads.
 - Confirm browser fallback opens the matching Docchi episode page.
+- Confirm the app header shows the `1.12.0-test.1` test build badge.
 - Switch between Desu, Docchi, Anikoto, AllAnime, and Miruro and confirm old search results clear.
 - Confirm saved history and AniList playback mappings keep the selected provider correctly.
 
@@ -34,6 +37,8 @@ This test build adds provider language grouping in Browse and introduces Docchi 
 ## Technical Notes
 
 - Added `docchi` to the shared catalog provider model.
+- Set the packaged app version to `1.12.0-test.1` for test release artifacts.
+- Added an automatic prerelease badge for versions containing `test`, `alpha`, `beta`, or `rc`.
 - Wired Docchi through Electron search, episode loading, link loading, provider validation, browser fallback, AniList mapping normalization, history, and remote notice provider targeting.
 - Added parser coverage for Docchi series matching, adult-entry filtering, episode sorting, player embed mapping, and Dailymotion HLS metadata extraction.
 - Verified with `npm test`, `npm run lint`, and `npm run build:ui`.

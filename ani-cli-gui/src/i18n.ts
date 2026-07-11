@@ -30,6 +30,7 @@ const resources = {
       app: {
         tagline: 'watch without the clutter',
         loadingSettings: 'Loading settings...',
+        testBuild: 'Test build {{version}}',
       },
       nav: {
         home: 'Home',
@@ -340,6 +341,7 @@ const resources = {
       app: {
         tagline: 'oglądaj bez bałaganu',
         loadingSettings: 'Ładowanie ustawień...',
+        testBuild: 'Wersja testowa {{version}}',
       },
       nav: {
         home: 'Start',
