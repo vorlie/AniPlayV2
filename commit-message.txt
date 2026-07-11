@@ -1,7 +1,8 @@
 feat: add experimental Docchi provider
 
 - group Browse catalog providers by Polish and English source language
-- add experimental Docchi search, episode, and playback link support
+- add experimental Docchi search, episode, and embed playback support
 - wire Docchi through mappings, history, remote notices, and browser fallback
+- keep Docchi Dailymotion playback on the reliable embed path
 - mark prerelease builds in-app with a visible test build badge
 - add parser and provider normalization tests for the new catalog path

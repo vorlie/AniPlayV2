@@ -8,9 +8,8 @@ This test build adds provider language grouping in Browse and introduces Docchi 
 - AniPlay now shows a small in-app test build badge for prerelease versions.
 - Browse now separates catalog providers into **Polish sources** and **English sources**.
 - Added **Docchi** as an experimental Polish source next to Desu.
-- Docchi can search the catalog, load episode lists, and return supported playback links.
-- Docchi playback prefers direct Dailymotion HLS links when available.
-- Embed-only Docchi players are still shown as non-downloadable fallback servers.
+- Docchi can search the catalog, load episode lists, and return supported embed playback links.
+- Docchi Dailymotion and Mega players are shown as non-downloadable embed servers.
 - Browser fallback is available for Docchi episodes when in-app playback cannot resolve a stream.
 - Existing English providers remain grouped separately: Anikoto, AllAnime, and Miruro.
 
@@ -19,8 +18,8 @@ This test build adds provider language grouping in Browse and introduces Docchi 
 - Search a few known Docchi titles and confirm results appear under the Docchi provider.
 - Open a Docchi result and confirm the episode list loads in numeric order.
 - Start playback from at least one Docchi episode.
-- Confirm Dailymotion-based links play in-app when available.
-- Confirm Mega/embed-only links appear as fallback servers and do not expose downloads.
+- Confirm Dailymotion and Mega embed servers play in-app when available.
+- Confirm Docchi embed servers do not expose downloads.
 - Confirm browser fallback opens the matching Docchi episode page.
 - Confirm the app header shows the `1.12.0-test.1` test build badge.
 - Switch between Desu, Docchi, Anikoto, AllAnime, and Miruro and confirm old search results clear.
@@ -31,7 +30,7 @@ This test build adds provider language grouping in Browse and introduces Docchi 
 - Docchi is experimental in this build.
 - Adult/hentai catalog entries are intentionally excluded.
 - Downloads are disabled for Docchi embed-only links.
-- Some Docchi players may only work through embed playback or browser fallback.
+- Some Docchi players may only work through browser fallback.
 - Provider language grouping is only visual metadata. It does not change the app UI language or Sub/Dub playback controls.
 
 ## Technical Notes
@@ -40,5 +39,5 @@ This test build adds provider language grouping in Browse and introduces Docchi 
 - Set the packaged app version to `1.12.0-test.1` for test release artifacts.
 - Added an automatic prerelease badge for versions containing `test`, `alpha`, `beta`, or `rc`.
 - Wired Docchi through Electron search, episode loading, link loading, provider validation, browser fallback, AniList mapping normalization, history, and remote notice provider targeting.
-- Added parser coverage for Docchi series matching, adult-entry filtering, episode sorting, player embed mapping, and Dailymotion HLS metadata extraction.
+- Added parser coverage for Docchi series matching, adult-entry filtering, episode sorting, and player embed mapping.
 - Verified with `npm test`, `npm run lint`, and `npm run build:ui`.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseDailymotionMetadata, parseDocchiEpisodeList, parseDocchiPlayerEmbeds, parseDocchiSeriesList } from './docchi'
+import { parseDocchiEpisodeList, parseDocchiPlayerEmbeds, parseDocchiSeriesList } from './docchi'
 
 describe('Docchi catalog parsing', () => {
   it('matches searchable title fields and filters adult entries', () => {
@@ -81,17 +81,4 @@ describe('Docchi catalog parsing', () => {
     ])
   })
 
-  it('extracts safe Dailymotion HLS metadata', () => {
-    expect(parseDailymotionMetadata({
-      qualities: {
-        auto: [{ type: 'application/vnd.apple.mpegurl', url: 'https://proxy-123.dmcdn.net/sec/master.m3u8' }],
-      },
-    })).toEqual([{
-      url: 'https://proxy-123.dmcdn.net/sec/master.m3u8',
-      resolution: 'Auto',
-      hls: true,
-      provider: 'Docchi · Dailymotion',
-      downloadable: false,
-    }])
-  })
 })

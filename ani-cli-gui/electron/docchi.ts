@@ -130,48 +130,6 @@ export function parseDocchiEpisodeList(value: unknown): string[] {
     .sort((a, b) => Number.parseFloat(a) - Number.parseFloat(b))
 }
 
-function dailymotionId(value: string): string | null {
-  try {
-    const url = new URL(value)
-    const pathMatch = url.pathname.match(/\/(?:embed\/video|video)\/([a-zA-Z0-9]+)/)
-    return pathMatch?.[1] ?? url.searchParams.get('video')
-  } catch {
-    return null
-  }
-}
-
-function allowedMediaUrl(value: string): string | null {
-  try {
-    const url = new URL(value)
-    const host = url.hostname.toLowerCase()
-    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null
-    if (host.endsWith('.dailymotion.com') || host === 'dailymotion.com' || host.endsWith('.dmcdn.net')) return url.toString()
-    return null
-  } catch {
-    return null
-  }
-}
-
-async function resolveDailymotion(embedUrl: string, provider: string): Promise<StreamLink[]> {
-  const id = dailymotionId(embedUrl)
-  if (!id) return []
-  const response = await fetch(`https://www.dailymotion.com/player/metadata/video/${encodeURIComponent(id)}`, {
-    headers: { 'User-Agent': USER_AGENT, Referer: SITE_BASE },
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-  })
-  if (!response.ok) return []
-  return parseDailymotionMetadata(await response.json() as unknown, provider)
-}
-
-export function parseDailymotionMetadata(value: unknown, provider = 'Docchi · Dailymotion'): StreamLink[] {
-  const json = value as { error?: unknown; qualities?: Record<string, Array<{ type?: string; url?: string }>> }
-  if (json.error || !json.qualities) return []
-  const candidates = Object.entries(json.qualities).flatMap(([quality, formats]) => formats.map((format) => ({ quality, ...format })))
-  const hls = candidates.find((format) => format.type?.toLowerCase().includes('mpegurl') && typeof format.url === 'string')
-  const url = hls?.url ? allowedMediaUrl(hls.url) : null
-  return url ? [{ url, resolution: hls?.quality === 'auto' ? 'Auto' : `${hls?.quality}p`, hls: true, provider, downloadable: false }] : []
-}
-
 function normalizeEmbedUrl(value: string): string | null {
   try {
     const url = new URL(value)
@@ -213,17 +171,7 @@ export async function getDocchiEpisodes(slug: string): Promise<string[]> {
 
 export async function getDocchiEpisodeLinks(slug: string, episode: string): Promise<StreamLink[]> {
   const embeds = parseDocchiPlayerEmbeds(await fetchJson(`${API_BASE}/episodes/find/${encodeURIComponent(slug)}/${encodeURIComponent(episode)}`))
-  const resolved = (await Promise.all(embeds.map(async (link) => {
-    try {
-      return new URL(link.url).hostname.toLowerCase().includes('dailymotion.com')
-        ? await resolveDailymotion(link.url, link.provider)
-        : []
-    } catch {
-      return []
-    }
-  }))).flat()
-  const links = [...resolved, ...embeds]
-  const unique = [...new Map(links.map((link) => [`${link.url}:${link.provider}`, link])).values()]
+  const unique = [...new Map(embeds.map((link) => [`${link.url}:${link.provider}`, link])).values()]
   if (!unique.length) throw new Error('No supported Docchi players are currently available')
   return unique
 }

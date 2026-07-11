@@ -248,6 +248,8 @@ function configureMediaRequestHeaders() {
   })
 
   const dailymotionMediaUrls = [
+    '*://dailymotion.com/*',
+    '*://*.dailymotion.com/*',
     '*://*.dailymotion.com/cdn/*',
     '*://*.dmcdn.net/*',
     '*://ultracloud.cc/*',
