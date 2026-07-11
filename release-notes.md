@@ -4,7 +4,7 @@ This test build adds provider language grouping in Browse and introduces Docchi 
 
 ## Highlights
 
-- This build is versioned as `1.12.0-test.1`.
+- This build is versioned as `1.12.0-test.2`.
 - AniPlay now shows a small in-app test build badge for prerelease versions.
 - Browse now separates catalog providers into **Polish sources** and **English sources**.
 - Added **Docchi** as an experimental Polish source next to Desu.
