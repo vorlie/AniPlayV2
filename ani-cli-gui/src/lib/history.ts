@@ -46,7 +46,7 @@ function normalizeEntry(entry: unknown): HistoryEntry | null {
     durationSeconds: normalizedDuration,
     aniListMediaId,
     coverUrl,
-    catalogProvider: candidate.catalogProvider === 'desu' || candidate.catalogProvider === 'miruro' || candidate.catalogProvider === 'anikoto' ? candidate.catalogProvider : 'allanime',
+    catalogProvider: candidate.catalogProvider === 'desu' || candidate.catalogProvider === 'docchi' || candidate.catalogProvider === 'miruro' || candidate.catalogProvider === 'anikoto' ? candidate.catalogProvider : 'allanime',
   }
 }
 
@@ -87,7 +87,7 @@ export function addHistory(entry: Omit<HistoryEntry, 'watchedAt'>) {
     watchedAt: Date.now(),
     aniListMediaId: entry.aniListMediaId,
     coverUrl: entry.coverUrl,
-    catalogProvider: entry.catalogProvider === 'desu' || entry.catalogProvider === 'miruro' || entry.catalogProvider === 'anikoto' ? entry.catalogProvider : 'allanime',
+    catalogProvider: entry.catalogProvider === 'desu' || entry.catalogProvider === 'docchi' || entry.catalogProvider === 'miruro' || entry.catalogProvider === 'anikoto' ? entry.catalogProvider : 'allanime',
   }
   const filtered = existing.filter((x) => !(x.animeId === entry.animeId && x.episode === entry.episode))
   filtered.unshift(normalizedEntry)

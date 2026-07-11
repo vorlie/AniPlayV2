@@ -45,7 +45,7 @@ export function AnimePage({
   const [aniListMetadata, setAniListMetadata] = useState(() => ({ mediaId: anime.aniListMediaId, coverUrl: anime.coverUrl }))
   const [idleQuoteIndex, setIdleQuoteIndex] = useState<number | null>(null)
   const restoredRef = useRef<string | null>(null)
-  const supportsTranslationSwitch = anime.catalogProvider !== 'desu'
+  const supportsTranslationSwitch = anime.catalogProvider !== 'desu' && anime.catalogProvider !== 'docchi'
   const episodesKey = `${anime.catalogProvider}:${anime.id}:${selectedTranslationType}`
   const loadingEpisodes = loadedEpisodesKey !== episodesKey
 
@@ -85,12 +85,12 @@ export function AnimePage({
         })
       } else {
         setError(res.error || t('anime.noStreams'))
-        if (anime.catalogProvider === 'desu' || anime.catalogProvider === 'miruro' || anime.catalogProvider === 'anikoto') setBrowserFallbackEpisode(ep)
+        if (anime.catalogProvider === 'desu' || anime.catalogProvider === 'docchi' || anime.catalogProvider === 'miruro' || anime.catalogProvider === 'anikoto') setBrowserFallbackEpisode(ep)
       }
     }).catch((cause: unknown) => {
       setLoadingEp(null)
       setError(cause instanceof Error ? cause.message : t('anime.lookupFailed'))
-      if (anime.catalogProvider === 'desu' || anime.catalogProvider === 'miruro' || anime.catalogProvider === 'anikoto') setBrowserFallbackEpisode(ep)
+      if (anime.catalogProvider === 'desu' || anime.catalogProvider === 'docchi' || anime.catalogProvider === 'miruro' || anime.catalogProvider === 'anikoto') setBrowserFallbackEpisode(ep)
     })
   }, [anime.id, anime.name, anime.catalogProvider, aniListMetadata.mediaId, aniListMetadata.coverUrl, initialEpisode, initialResumeSeconds, loadingEp, onEpisodeStarted, selectedTranslationType, t])
 

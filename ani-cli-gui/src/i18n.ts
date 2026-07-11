@@ -59,9 +59,13 @@ const resources = {
       browse: {
         sectionLabel: 'Library search',
         heading: 'What do you want to watch?',
-        providerGroup: 'Catalog provider',
+        providerGroup: 'Provider language',
+        polishSources: 'Polish sources',
+        englishSources: 'English sources',
+        experimental: 'Experimental',
         providerDescriptions: {
           desu: 'Searching Desu Online for Polish-subtitled anime.',
+          docchi: 'Searching Docchi for Polish-subtitled anime. Experimental provider support.',
           miruro: 'Searching Miruro for English sub and dub anime.',
           anikotoFirst: 'Searching AniList first, then Anikoto provider matches.',
           anikoto: 'Searching Anikoto for English sub and dub anime.',
@@ -365,9 +369,13 @@ const resources = {
       browse: {
         sectionLabel: 'Wyszukiwanie biblioteki',
         heading: 'Co chcesz obejrzeć?',
-        providerGroup: 'Dostawca katalogu',
+        providerGroup: 'Język dostawcy',
+        polishSources: 'Polskie źródła',
+        englishSources: 'Angielskie źródła',
+        experimental: 'Eksperymentalne',
         providerDescriptions: {
           desu: 'Wyszukiwanie anime z polskimi napisami w Desu Online.',
+          docchi: 'Wyszukiwanie anime z polskimi napisami w Docchi. Eksperymentalna obsługa dostawcy.',
           miruro: 'Wyszukiwanie anime z angielskim sub i dub w Miruro.',
           anikotoFirst: 'Najpierw AniList, potem dopasowania dostawcy Anikoto.',
           anikoto: 'Wyszukiwanie anime z angielskim sub i dub w Anikoto.',

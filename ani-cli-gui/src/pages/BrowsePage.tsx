@@ -32,6 +32,10 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
   const [viewMode, setViewMode] = useState<SearchViewMode>(getSearchViewMode)
   const translationType = getTranslationType()
   const aniListFirstSearch = getAniListFirstSearch()
+  const providerGroups: Array<{ label: string; providers: CatalogProvider[] }> = [
+    { label: t('browse.polishSources'), providers: ['desu', 'docchi'] },
+    { label: t('browse.englishSources'), providers: ['anikoto', 'allanime', 'miruro'] },
+  ]
 
   const search = async () => {
     const query = searchQuery.trim()
@@ -61,21 +65,24 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
 
   const providerDescription = catalogProvider === 'desu'
     ? t('browse.providerDescriptions.desu')
-    : catalogProvider === 'miruro'
-      ? t('browse.providerDescriptions.miruro')
-      : catalogProvider === 'anikoto'
-        ? aniListFirstSearch ? t('browse.providerDescriptions.anikotoFirst') : t('browse.providerDescriptions.anikoto')
-        : t('browse.providerDescriptions.allanime', { mode: translationType === 'dub' ? t('browse.modeDubbed') : t('browse.modeSubbed') })
+    : catalogProvider === 'docchi'
+      ? t('browse.providerDescriptions.docchi')
+      : catalogProvider === 'miruro'
+        ? t('browse.providerDescriptions.miruro')
+        : catalogProvider === 'anikoto'
+          ? aniListFirstSearch ? t('browse.providerDescriptions.anikotoFirst') : t('browse.providerDescriptions.anikoto')
+          : t('browse.providerDescriptions.allanime', { mode: translationType === 'dub' ? t('browse.modeDubbed') : t('browse.modeSubbed') })
 
   const providerLabel = (provider: CatalogProvider) => {
     if (provider === 'allanime') return `AllAnime · ${translationType.toUpperCase()}`
     if (provider === 'desu') return 'Desu · PL SUB'
+    if (provider === 'docchi') return 'Docchi · PL'
     if (provider === 'miruro') return 'Miruro · EN'
     return 'Anikoto · EN'
   }
 
   const resultMeta = (anime: AnimeSearchResult) => {
-    if (anime.catalogProvider === 'desu') return t('browse.polishSubtitles')
+    if (anime.catalogProvider === 'desu' || anime.catalogProvider === 'docchi') return t('browse.polishSubtitles')
     if (anime.catalogProvider === 'miruro') return `${anime.episodes ? t('browse.episodes', { count: anime.episodes }) : t('browse.noEpisodes')} · ${t('browse.english')}`
     if (anime.catalogProvider === 'anikoto') return `${anime.episodes ? t('browse.episodes', { count: anime.episodes }) : t('browse.noEpisodes')} · ${t('browse.english')}`
     return anime.episodes ? t('browse.episodes', { count: anime.episodes }) : t('browse.noEpisodes')
@@ -109,8 +116,26 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
             <h2 className="mt-2 text-3xl md:text-4xl font-black tracking-tight">{t('browse.heading')}</h2>
             <p className="mt-1 text-sm text-m3-on-surface-variant">{providerDescription}</p>
           </div>
-          <div className="self-start inline-flex rounded-xl border border-m3-outline/30 p-1" role="group" aria-label={t('browse.providerGroup')}>
-            {(['allanime', 'desu', 'miruro', 'anikoto'] as const).map((provider) => <button key={provider} type="button" onClick={() => selectCatalog(provider)} aria-pressed={catalogProvider === provider} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${catalogProvider === provider ? 'bg-m3-primary text-m3-on-primary' : 'hover:bg-m3-on-surface/10'}`}>{providerLabel(provider)}</button>)}
+          <div className="grid gap-2 sm:grid-cols-2" aria-label={t('browse.providerGroup')}>
+            {providerGroups.map((group) => (
+              <div key={group.label} className="rounded-2xl border border-m3-outline/25 bg-m3-surface/35 p-2">
+                <p className="mb-1 px-1 text-[10px] font-black uppercase tracking-wider text-m3-on-surface-variant">{group.label}</p>
+                <div className="flex flex-wrap gap-1" role="group" aria-label={group.label}>
+                  {group.providers.map((provider) => (
+                    <button
+                      key={provider}
+                      type="button"
+                      onClick={() => selectCatalog(provider)}
+                      aria-pressed={catalogProvider === provider}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${catalogProvider === provider ? 'bg-m3-primary text-m3-on-primary' : 'hover:bg-m3-on-surface/10'}`}
+                    >
+                      {providerLabel(provider)}
+                      {provider === 'docchi' ? <span className="ml-1 opacity-75">{t('browse.experimental')}</span> : null}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 

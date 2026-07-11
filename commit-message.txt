@@ -1,6 +1,6 @@
-feat: add app translations
+feat: add experimental Docchi provider
 
-- add renderer-only English and Polish translations with a Settings language picker
-- translate navigation, pages, settings, empty states, toasts, and shell controls
-- persist the selected language in localStorage and apply changes without restart
-- keep provider names, logs, remote notices, and debug output in English for support
+- group Browse catalog providers by Polish and English source language
+- add experimental Docchi search, episode, and playback link support
+- wire Docchi through mappings, history, remote notices, and browser fallback
+- add parser and provider normalization tests for the new catalog path

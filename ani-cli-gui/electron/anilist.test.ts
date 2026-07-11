@@ -62,10 +62,12 @@ describe('catalog mapping providers', () => {
     expect(normalizeCatalogMapping(legacy).catalogProvider).toBe('allanime')
   })
 
-  it('stores Anikoto mappings with provider metadata', () => {
+  it('stores provider metadata on mappings', () => {
     const service = new AniListService(mkdtempSync(join(tmpdir(), 'aniplay-anilist-')))
     const mapping = service.confirmMapping(1, { id: 'anikoto:test', name: 'Example', episodes: 12, catalogProvider: 'anikoto' }, 'sub')
+    const docchiMapping = service.confirmMapping(2, { id: 'docchi-test', name: 'Example PL', episodes: 12, catalogProvider: 'docchi' }, 'sub')
     expect(mapping.catalogProvider).toBe('anikoto')
+    expect(docchiMapping.catalogProvider).toBe('docchi')
   })
 
   it('does not reuse a saved mapping for a different active provider', () => {

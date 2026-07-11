@@ -1,35 +1,39 @@
-# AniPlay v1.11.0
+# AniPlay Docchi Provider Test Build
 
-This release adds the first app translation pass, with English and Polish available across the main renderer UI.
+This test build adds provider language grouping in Browse and introduces Docchi as an experimental Polish catalog provider.
 
 ## Highlights
 
-- Added English and Polish app translations.
-- Added **Settings -> Advanced -> Language** so the interface can switch language immediately without restarting.
-- The selected language is saved and reused on the next launch.
-- Translated the main visible app surfaces, including navigation, pages, settings, buttons, placeholders, empty states, and toast text.
-- Support/debug-facing content stays in English for now to avoid making troubleshooting harder.
+- Browse now separates catalog providers into **Polish sources** and **English sources**.
+- Added **Docchi** as an experimental Polish source next to Desu.
+- Docchi can search the catalog, load episode lists, and return supported playback links.
+- Docchi playback prefers direct Dailymotion HLS links when available.
+- Embed-only Docchi players are still shown as non-downloadable fallback servers.
+- Browser fallback is available for Docchi episodes when in-app playback cannot resolve a stream.
+- Existing English providers remain grouped separately: Anikoto, AllAnime, and Miruro.
 
-## Translations
+## Testing Focus
 
-- Added renderer-only localization using `i18next` and `react-i18next`.
-- Added English and Polish resource strings for the main visible UI.
-- Translated navigation, Browse, Anime details, Player, History, Downloads, Home, Settings, app toasts, empty states, placeholders, buttons, and shell labels.
-- Kept provider names, anime titles, filenames, remote notice content, logs, debug messages, Discord Rich Presence, and main-process errors in English for easier support and debugging.
-- Missing Polish strings fall back to English instead of exposing raw translation keys.
+- Search a few known Docchi titles and confirm results appear under the Docchi provider.
+- Open a Docchi result and confirm the episode list loads in numeric order.
+- Start playback from at least one Docchi episode.
+- Confirm Dailymotion-based links play in-app when available.
+- Confirm Mega/embed-only links appear as fallback servers and do not expose downloads.
+- Confirm browser fallback opens the matching Docchi episode page.
+- Switch between Desu, Docchi, Anikoto, AllAnime, and Miruro and confirm old search results clear.
+- Confirm saved history and AniList playback mappings keep the selected provider correctly.
 
-## Settings
+## Known Limits
 
-- Added a language picker under **Settings -> Advanced**.
-- Supported languages are **English** and **Polski**.
-- Changing the language updates the renderer immediately without an app restart.
-- The preference is stored as `app.language`.
+- Docchi is experimental in this build.
+- Adult/hentai catalog entries are intentionally excluded.
+- Downloads are disabled for Docchi embed-only links.
+- Some Docchi players may only work through embed playback or browser fallback.
+- Provider language grouping is only visual metadata. It does not change the app UI language or Sub/Dub playback controls.
 
 ## Technical Notes
 
-- Added `i18next` and `react-i18next` dependencies.
-- Added `app.language` local storage preference for renderer language selection.
-- No preload, Electron main-process IPC, scraper, AniList, download manager, or Discord Rich Presence API changes were made for translations.
-- Verified with `npm run lint` and `npm run build:ui`.
-
-**Full changelog:** https://github.com/vorlie/AniPlayV2/compare/1.10.3...1.11.0
+- Added `docchi` to the shared catalog provider model.
+- Wired Docchi through Electron search, episode loading, link loading, provider validation, browser fallback, AniList mapping normalization, history, and remote notice provider targeting.
+- Added parser coverage for Docchi series matching, adult-entry filtering, episode sorting, player embed mapping, and Dailymotion HLS metadata extraction.
+- Verified with `npm test`, `npm run lint`, and `npm run build:ui`.

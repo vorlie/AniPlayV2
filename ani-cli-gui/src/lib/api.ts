@@ -28,7 +28,7 @@ export function getTranslationType(): TranslationType {
 
 export function getCatalogProvider(): CatalogProvider {
   const provider = localStorage.getItem(CATALOG_PROVIDER_KEY)
-  return provider === 'allanime' || provider === 'desu' || provider === 'miruro' || provider === 'anikoto' ? provider : DEFAULT_CATALOG_PROVIDER
+  return provider === 'allanime' || provider === 'desu' || provider === 'docchi' || provider === 'miruro' || provider === 'anikoto' ? provider : DEFAULT_CATALOG_PROVIDER
 }
 
 export function getAniListFirstSearch(): boolean {

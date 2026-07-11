@@ -48,6 +48,7 @@ function timeUntil(timestamp: number, t: TFunction) {
 function providerLabel(provider: CatalogProvider) {
   if (provider === 'allanime') return 'AllAnime'
   if (provider === 'desu') return 'Desu'
+  if (provider === 'docchi') return 'Docchi'
   if (provider === 'miruro') return 'Miruro'
   return 'Anikoto'
 }

@@ -14,6 +14,7 @@ import type { AnimeSearchResult } from '../src/catalog-types'
 import type { CatalogProvider } from '../src/catalog-types'
 import { DiscordPresenceService, validatePlayback } from './discord-presence'
 import { getDesuEpisodePageUrl } from './desu'
+import { getDocchiEpisodePageUrl } from './docchi'
 import { UpdateService } from './updater'
 import { RemoteNoticeService } from './remote-notices'
 import { getMiruroEpisodePageUrl } from './miruro'
@@ -138,7 +139,7 @@ function requireTranslationType(value: unknown): TranslationType {
 }
 
 function requireCatalogProvider(value: unknown): CatalogProvider {
-  if (value !== 'allanime' && value !== 'desu' && value !== 'miruro' && value !== 'anikoto') throw new TypeError('catalogProvider must be allanime, desu, miruro, or anikoto')
+  if (value !== 'allanime' && value !== 'desu' && value !== 'docchi' && value !== 'miruro' && value !== 'anikoto') throw new TypeError('catalogProvider must be allanime, desu, docchi, miruro, or anikoto')
   return value
 }
 
@@ -353,7 +354,7 @@ function createWindow() {
       id: requireString(value.id, 'animeId', 1000),
       name: requireString(value.name, 'animeName', 300),
       episodes: typeof value.episodes === 'number' && Number.isInteger(value.episodes) && value.episodes >= 0 ? value.episodes : 0,
-      catalogProvider: value.catalogProvider === 'desu' || value.catalogProvider === 'miruro' || value.catalogProvider === 'anikoto' ? value.catalogProvider : 'allanime',
+      catalogProvider: value.catalogProvider === 'desu' || value.catalogProvider === 'docchi' || value.catalogProvider === 'miruro' || value.catalogProvider === 'anikoto' ? value.catalogProvider : 'allanime',
     }
     return aniListService.resolveAniListMetadata(normalized, mode)
   })
@@ -401,11 +402,13 @@ function createWindow() {
       const mode = translationType === undefined ? 'sub' : requireTranslationType(translationType)
       const url = provider === 'desu'
         ? await getDesuEpisodePageUrl(animeId, episode)
-        : provider === 'miruro'
-          ? await getMiruroEpisodePageUrl(animeId, episode)
-          : provider === 'anikoto'
-            ? await getAnikotoEpisodePageUrl(animeId, episode, mode)
-            : null
+        : provider === 'docchi'
+          ? await getDocchiEpisodePageUrl(animeId, episode)
+          : provider === 'miruro'
+            ? await getMiruroEpisodePageUrl(animeId, episode)
+            : provider === 'anikoto'
+              ? await getAnikotoEpisodePageUrl(animeId, episode, mode)
+              : null
       if (!url) throw new Error('Browser fallback is not available for this provider')
       await shell.openExternal(url)
       return { success: true }
