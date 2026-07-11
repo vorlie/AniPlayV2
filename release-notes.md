@@ -9,7 +9,8 @@ This test build adds provider language grouping in Browse and introduces Docchi 
 - Browse now separates catalog providers into **Polish sources** and **English sources**.
 - Added **Docchi** as an experimental Polish source next to Desu.
 - Docchi can search the catalog, load episode lists, and return supported embed playback links.
-- Docchi Dailymotion and Mega players are shown as non-downloadable embed servers.
+- Docchi Dailymotion and Mega players are shown as embed servers.
+- Mega may offer manual downloads inside its own embed page, but AniPlay does not queue those downloads automatically.
 - Browser fallback is available for Docchi episodes when in-app playback cannot resolve a stream.
 - Existing English providers remain grouped separately: Anikoto, AllAnime, and Miruro.
 
@@ -19,7 +20,8 @@ This test build adds provider language grouping in Browse and introduces Docchi 
 - Open a Docchi result and confirm the episode list loads in numeric order.
 - Start playback from at least one Docchi episode.
 - Confirm Dailymotion and Mega embed servers play in-app when available.
-- Confirm Docchi embed servers do not expose downloads.
+- Confirm AniPlay does not expose its own Download button for Docchi embed servers.
+- Confirm Mega manual downloads, when offered by Mega itself, are handled by the user outside AniPlay's download queue.
 - Confirm browser fallback opens the matching Docchi episode page.
 - Confirm the app header shows the `1.12.0-test.1` test build badge.
 - Switch between Desu, Docchi, Anikoto, AllAnime, and Miruro and confirm old search results clear.
@@ -29,7 +31,8 @@ This test build adds provider language grouping in Browse and introduces Docchi 
 
 - Docchi is experimental in this build.
 - Adult/hentai catalog entries are intentionally excluded.
-- Downloads are disabled for Docchi embed-only links.
+- AniPlay downloads are disabled for Docchi embed-only links.
+- Mega downloads are manual only when Mega exposes them in its own embed UI.
 - Some Docchi players may only work through browser fallback.
 - Provider language grouping is only visual metadata. It does not change the app UI language or Sub/Dub playback controls.
 
