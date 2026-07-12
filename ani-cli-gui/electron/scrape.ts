@@ -196,25 +196,93 @@ export async function getEpisodes(showId: string, mode: TranslationType, catalog
 }
 
 const ALLANIME_EPOCH = 4128
-const ALLANIME_BUILD_ID = '9'
+const ALLANIME_BUILD_ID = '12'
+const ALLANIME_LEGACY_BUILD_ID = '9'
 const ALLANIME_QUERY_HASH = 'd405d0edd690624b66baba3068e0edc3ac90f1597d898a1ec8db4e5c43c00fec'
-const ALLANIME_KEY = Buffer.from('b1a9a4d051988f1b1b12dbb747439d9bd64b09ea17835600a7eaa4de87c1ad87', 'hex')
-  .map((byte, index) => byte ^ Buffer.from('k7DLdv5SGiuEyGUtcncl5wQOR7r4aenLfDV3AOBKlAU=', 'base64')[index])
+const ALLANIME_STATIC_KEY = Buffer.from(Buffer.from('b1a9a4d051988f1b1b12dbb747439d9bd64b09ea17835600a7eaa4de87c1ad87', 'hex')
+  .map((byte, index) => byte ^ Buffer.from('k7DLdv5SGiuEyGUtcncl5wQOR7r4aenLfDV3AOBKlAU=', 'base64')[index]))
+const ALLANIME_RESPONSE_FALLBACK_SECRET = [88, 111, 116, 51, 54, 105, 51, 108, 75, 51].map((code) => String.fromCharCode(code)).join('')
 
-function createAllAnimeRequestToken(queryHash: string): string {
+interface AllAnimeCryptoMaterial {
+  epoch: number
+  buildId: string
+  key: Buffer
+  legacyCtr?: boolean
+}
+
+let allAnimeCryptoMaterial: { value: AllAnimeCryptoMaterial; expiresAt: number } | null = null
+
+function xorAllAnimeKey(maskHex: string, partB: string): Buffer {
+  const mask = Buffer.from(maskHex, 'hex')
+  const part = Buffer.from(partB, 'base64')
+  if (mask.length !== 32 || part.length !== 32) throw new Error('AllAnime crypto material had an invalid key length')
+  return Buffer.from(mask.map((byte, index) => byte ^ part[index]))
+}
+
+async function fetchText(input: string | URL, init: RequestInit = {}, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<string> {
+  const response = await fetchChecked(input, init, timeoutMs)
+  return await response.text()
+}
+
+async function getAllAnimeCryptoMaterial(): Promise<AllAnimeCryptoMaterial> {
+  if (allAnimeCryptoMaterial && allAnimeCryptoMaterial.expiresAt > Date.now()) return allAnimeCryptoMaterial.value
+  const fallback: AllAnimeCryptoMaterial = { epoch: ALLANIME_EPOCH, buildId: ALLANIME_BUILD_ID, key: ALLANIME_STATIC_KEY, legacyCtr: true }
+
+  try {
+    const page = await fetchText('https://mkissa.to', {
+      headers: { 'User-Agent': AGENT, 'Accept': 'text/html,application/xhtml+xml' },
+    }, 8_000)
+    const appJsUrl = page.match(/https:\/\/cdn\.(?:mkissa\.net|allanime\.day)\/all\/mk\/_app\/immutable\/entry\/app\.[^"']+\.js/)?.[0]
+    const cryptoConfigText = page.match(/window\.__aaCrypto\s*=\s*(\{[^<;]+\})/)?.[1]
+    const cryptoConfig = cryptoConfigText ? JSON.parse(cryptoConfigText) as unknown : null
+    const cryptoObject = isObject(cryptoConfig) ? cryptoConfig : null
+    const epoch = typeof cryptoObject?.epoch === 'number' ? cryptoObject.epoch : Number(page.match(/"epoch":(\d+)/)?.[1])
+    const partB = typeof cryptoObject?.partB === 'string' ? cryptoObject.partB : page.match(/"partB":"([^"]+)"/)?.[1]
+    if (!appJsUrl || !Number.isFinite(epoch) || !partB) throw new Error('AllAnime page did not expose crypto bootstrap data')
+
+    const appJs = await fetchText(appJsUrl, { headers: { 'User-Agent': AGENT } }, 8_000)
+    const chunkPaths = [...new Set([...appJs.matchAll(/\.\.\/chunks\/[^"',\]]+\.js/g)].map((match) => match[0]))]
+    let mask: string | undefined
+    let buildId: string | undefined
+
+    for (const chunkPath of chunkPaths) {
+      try {
+        const encJs = await fetchText(new URL(chunkPath, appJsUrl), {
+          headers: { 'User-Agent': AGENT, 'Accept': 'text/javascript,*/*;q=0.8' },
+        }, 8_000)
+        mask = encJs.match(/([0-9a-f]{64})/i)?.[1]
+        buildId = encJs.match(/[0-9a-f]{64}.[^;]*"(\d+)"/i)?.[1]
+        if (mask && buildId) break
+      } catch {
+        // Some lazy chunks are optional; keep scanning until the crypto chunk is found.
+      }
+    }
+    if (!mask || !buildId) throw new Error('AllAnime encryption chunk did not expose key material')
+
+    const value: AllAnimeCryptoMaterial = { epoch, buildId, key: xorAllAnimeKey(mask, partB) }
+    allAnimeCryptoMaterial = { value, expiresAt: Date.now() + 30 * 60_000 }
+    return value
+  } catch (error: unknown) {
+    console.warn('[scrape] Dynamic AllAnime crypto material unavailable, using bundled fallback:', errorMessage(error))
+    allAnimeCryptoMaterial = { value: fallback, expiresAt: Date.now() + 5 * 60_000 }
+    return fallback
+  }
+}
+
+function createAllAnimeRequestToken(queryHash: string, material: AllAnimeCryptoMaterial): string {
   const ts = Math.floor(Date.now() / 300_000) * 300_000
   const payload = {
     v: 1,
     ts,
-    epoch: ALLANIME_EPOCH,
-    buildId: ALLANIME_BUILD_ID,
+    epoch: material.epoch,
+    buildId: material.buildId,
     qh: queryHash,
   }
   const iv = crypto.createHash('sha256')
-    .update(`${ALLANIME_EPOCH}:${ALLANIME_BUILD_ID}:${queryHash}:${ts}`)
+    .update(`${material.epoch}:${material.buildId}:${queryHash}:${ts}`)
     .digest()
     .subarray(0, 12)
-  const cipher = crypto.createCipheriv('aes-256-gcm', ALLANIME_KEY, iv)
+  const cipher = crypto.createCipheriv('aes-256-gcm', material.key, iv)
   const encrypted = Buffer.concat([cipher.update(JSON.stringify(payload)), cipher.final()])
   return Buffer.concat([Buffer.from([1]), iv, encrypted, cipher.getAuthTag()]).toString('base64')
 }
@@ -238,7 +306,7 @@ function debugAllAnimeEpisodeResponse(label: string, body: string): void {
   console.log(preview)
 }
 
-function processResponse(responseRaw: string): unknown {
+function processResponse(responseRaw: string, material: AllAnimeCryptoMaterial): unknown {
   let parsed: unknown = responseRaw
   try {
     parsed = JSON.parse(responseRaw) as unknown
@@ -254,37 +322,54 @@ function processResponse(responseRaw: string): unknown {
       if (typeof tobeparsed !== 'string' || !tobeparsed) return parsed
 
       const buffer = Buffer.from(tobeparsed, 'base64')
-      
-      // The bash script format:
-      // iv is 12 bytes at offset 1
-      // ctr is iv + "00000002"
-      // ciphertext starts at offset 13, length is filesize - 13 - 16
       const ivRaw = buffer.subarray(1, 13)
-      const ivHex = ivRaw.toString('hex')
-      const ctrHex = ivHex + "00000002"
-      const ctrBuffer = Buffer.from(ctrHex, 'hex')
-      
       const ctLen = buffer.length - 13 - 16
       if (ctLen <= 0) throw new Error('Encrypted episode payload is too short')
       const ciphertext = buffer.subarray(13, 13 + ctLen)
-      
-      if (buffer[0] === 1 && buffer.length > 29) {
+      const tag = buffer.subarray(buffer.length - 16)
+      const decryptGcm = (key: Buffer): unknown => {
+        const decipher = crypto.createDecipheriv('aes-256-gcm', key, ivRaw)
+        decipher.setAuthTag(tag)
+        const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()])
+        return JSON.parse(decrypted.toString('utf-8')) as unknown
+      }
+
+      try {
+        return decryptGcm(material.key)
+      } catch (error: unknown) {
+        const fallbackKey = crypto.createHash('sha256')
+          .update(`${ALLANIME_RESPONSE_FALLBACK_SECRET}:v${buffer[0]}`)
+          .digest()
         try {
-          const gcm = crypto.createDecipheriv('aes-256-gcm', ALLANIME_KEY, ivRaw)
-          gcm.setAuthTag(buffer.subarray(buffer.length - 16))
-          const decrypted = Buffer.concat([gcm.update(buffer.subarray(13, buffer.length - 16)), gcm.final()])
-          return JSON.parse(decrypted.toString('utf-8')) as unknown
-        } catch (error: unknown) {
-          console.warn('[scrape] AES-GCM episode decrypt failed, trying legacy CTR:', errorMessage(error))
+          return decryptGcm(fallbackKey)
+        } catch {
+          if (!material.legacyCtr) throw error
+          if (DEBUG_ALLANIME) console.warn('[scrape] AES-GCM episode decrypt failed, trying legacy CTR:', errorMessage(error))
         }
       }
 
-      const decipher = crypto.createDecipheriv('aes-256-ctr', ALLANIME_KEY, ctrBuffer)
+      const ctrBuffer = Buffer.from(`${ivRaw.toString('hex')}00000002`, 'hex')
+      const decipher = crypto.createDecipheriv('aes-256-ctr', material.key, ctrBuffer)
       const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()])
 
       return JSON.parse(decrypted.toString('utf-8')) as unknown
   }
   return parsed
+}
+
+function getEpisodeSourceValues(result: unknown): unknown | undefined {
+    const resultObject = isObject(result) ? result : null
+    const resultData = resultObject && isObject(resultObject.data) ? resultObject.data : null
+    const resultEpisode = resultObject && isObject(resultObject.episode)
+      ? resultObject.episode
+      : resultData && isObject(resultData.episode)
+        ? resultData.episode
+        : null
+
+    if (Array.isArray(result)) return result
+    if (resultObject?.sourceUrls !== undefined) return resultObject.sourceUrls
+    if (resultEpisode?.sourceUrls !== undefined) return resultEpisode.sourceUrls
+    return undefined
 }
 
 export async function getEpisodeLinks(showId: string, epNo: string, mode: TranslationType, catalogProvider: CatalogProvider = 'anikoto'): Promise<StreamLink[]> {
@@ -294,69 +379,87 @@ export async function getEpisodeLinks(showId: string, epNo: string, mode: Transl
     if (catalogProvider === 'anikoto') return getAnikotoEpisodeLinks(showId, epNo, mode)
     const queryHash = ALLANIME_QUERY_HASH
     const queryVars = { showId, translationType: mode, episodeString: epNo }
-    const extensions = { persistedQuery: { version: 1, sha256Hash: queryHash }, aaReq: createAllAnimeRequestToken(queryHash) }
-
-    const url = new URL(`${ALLANIME_API}/api`)
-    url.searchParams.append('variables', JSON.stringify(queryVars))
-    url.searchParams.append('extensions', JSON.stringify(extensions))
-
+    const dynamicMaterial = await getAllAnimeCryptoMaterial()
+    const materials: AllAnimeCryptoMaterial[] = [
+      dynamicMaterial,
+      { epoch: ALLANIME_EPOCH, buildId: ALLANIME_BUILD_ID, key: ALLANIME_STATIC_KEY, legacyCtr: true },
+      { epoch: ALLANIME_EPOCH, buildId: ALLANIME_LEGACY_BUILD_ID, key: ALLANIME_STATIC_KEY, legacyCtr: true },
+    ].filter((material, index, items) => items.findIndex((item) => item.epoch === material.epoch && item.buildId === material.buildId && item.key.equals(material.key)) === index)
+    let result: unknown = null
     let rawText = ''
-    try {
-      const response = await fetchChecked(url, {
-        method: 'GET',
-        headers: {
-          'User-Agent': AGENT,
-          'Referer': ALLANIME_REFR,
-          'Origin': ALLANIME_REFR,
-        }
-      })
-      rawText = await response.text()
-      debugAllAnimeEpisodeResponse('persisted episode query raw response', rawText)
-    } catch (error: unknown) {
-      console.warn('[scrape] Persisted episode query failed, trying full query:', errorMessage(error))
-    }
+    let lastEpisodeError: unknown
 
-    if (!rawText || !rawText.includes("tobeparsed")) {
-        const episodeEmbedGql = `query ($showId: String!, $translationType: VaildTranslationTypeEnumType!, $episodeString: String!) { episode( showId: $showId translationType: $translationType episodeString: $episodeString ) { episodeString sourceUrls }}`
-        const response = await fetchChecked(`${ALLANIME_API}/api`, {
-          method: 'POST',
+    for (const material of materials) {
+      const extensions = { persistedQuery: { version: 1, sha256Hash: queryHash }, aaReq: createAllAnimeRequestToken(queryHash, material) }
+      const url = new URL(`${ALLANIME_API}/api`)
+      url.searchParams.append('variables', JSON.stringify(queryVars))
+      url.searchParams.append('extensions', JSON.stringify(extensions))
+
+      try {
+        const response = await fetchChecked(url, {
+          method: 'GET',
           headers: {
-            'Content-Type': 'application/json',
             'User-Agent': AGENT,
             'Referer': ALLANIME_REFR,
-          },
-          body: JSON.stringify({
-            variables: queryVars,
-            query: episodeEmbedGql,
-            extensions: { aaReq: createAllAnimeRequestToken(queryHash) },
-          }),
+            'Origin': ALLANIME_REFR,
+            'x-build-id': material.buildId,
+          }
         })
         rawText = await response.text()
-        debugAllAnimeEpisodeResponse('fallback episode query raw response', rawText)
+        debugAllAnimeEpisodeResponse(`persisted episode query raw response (build ${material.buildId})`, rawText)
+        result = processResponse(rawText, material)
+        const candidateSources = getEpisodeSourceValues(result)
+        if (Array.isArray(candidateSources) || typeof candidateSources === 'string') break
+        result = null
+        lastEpisodeError = new Error('Episode response contained no source list')
+      } catch (error: unknown) {
+        lastEpisodeError = error
+        console.warn(`[scrape] Persisted episode query failed for build ${material.buildId}:`, errorMessage(error))
+        result = null
+      }
     }
+
+    if (result === null) {
+        const episodeEmbedGql = `query ($showId: String!, $translationType: VaildTranslationTypeEnumType!, $episodeString: String!) { episode( showId: $showId translationType: $translationType episodeString: $episodeString ) { episodeString sourceUrls }}`
+        for (const material of materials) {
+          try {
+            const response = await fetchChecked(`${ALLANIME_API}/api`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': AGENT,
+                'Referer': ALLANIME_REFR,
+                'x-build-id': material.buildId,
+              },
+              body: JSON.stringify({
+                variables: queryVars,
+                query: episodeEmbedGql,
+                extensions: { aaReq: createAllAnimeRequestToken(queryHash, material) },
+              }),
+            })
+            rawText = await response.text()
+            debugAllAnimeEpisodeResponse(`fallback episode query raw response (build ${material.buildId})`, rawText)
+            result = processResponse(rawText, material)
+            const candidateSources = getEpisodeSourceValues(result)
+            if (Array.isArray(candidateSources) || typeof candidateSources === 'string') break
+            result = null
+            lastEpisodeError = new Error('Episode response contained no source list')
+          } catch (error: unknown) {
+            lastEpisodeError = error
+            console.warn(`[scrape] Fallback episode query failed for build ${material.buildId}:`, errorMessage(error))
+          }
+        }
+    }
+
+    if (result === null) throw new Error(`Episode response could not be decoded: ${errorMessage(lastEpisodeError)}`)
   
     debugAllAnimeEpisodeResponse('episode response before processing', rawText)
-    const result = processResponse(rawText)
-    const resultObject = isObject(result) ? result : null
-    const resultData = resultObject && isObject(resultObject.data) ? resultObject.data : null
-    const resultEpisode = resultObject && isObject(resultObject.episode)
-      ? resultObject.episode
-      : resultData && isObject(resultData.episode)
-        ? resultData.episode
-        : null
-
-    let sourceValues: unknown = []
-    if (result instanceof Array) {
-        sourceValues = result
-    } else if (resultObject?.sourceUrls !== undefined) {
-        sourceValues = resultObject.sourceUrls
-    } else if (resultEpisode?.sourceUrls !== undefined) {
-        sourceValues = resultEpisode.sourceUrls
-    }
+    let sourceValues = getEpisodeSourceValues(result)
 
     if (typeof sourceValues === 'string') {
         sourceValues = JSON.parse(sourceValues) as unknown
     }
+    if (sourceValues === undefined) throw new Error('Episode response contained no source list')
     if (!Array.isArray(sourceValues)) throw new Error('Episode response contained an invalid source list')
     const sources: SourceEntry[] = sourceValues.flatMap((value): SourceEntry[] => {
       if (!isObject(value)) return []

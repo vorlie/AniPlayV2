@@ -1,8 +1,9 @@
-feat: add experimental Docchi provider
+feat: prepare AniPlay 1.12.0 release candidate
 
 - group Browse catalog providers by Polish and English source language
 - add experimental Docchi search, episode, and embed playback support
 - wire Docchi through mappings, history, remote notices, and browser fallback
 - keep Docchi Dailymotion playback on the reliable embed path
-- mark prerelease builds in-app with a visible test build badge
+- restore AllAnime playback with current crypto and direct media handling
+- mark prerelease builds in-app with a visible release candidate badge
 - add parser and provider normalization tests for the new catalog path

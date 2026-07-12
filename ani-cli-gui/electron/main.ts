@@ -247,7 +247,12 @@ function configureMediaRequestHeaders() {
     callback({ requestHeaders: headers })
   })
 
-  const dailymotionMediaUrls = [
+  const corsMediaUrls = [
+    '*://video.wixstatic.com/*',
+    '*://tools.fast4speed.rsvp/*',
+    '*://*.fast4speed.rsvp/*',
+    '*://mp4upload.com/*',
+    '*://*.mp4upload.com/*',
     '*://dailymotion.com/*',
     '*://*.dailymotion.com/*',
     '*://*.dailymotion.com/cdn/*',
@@ -263,14 +268,22 @@ function configureMediaRequestHeaders() {
     '*://voltara.click/*',
     '*://*.voltara.click/*',
   ]
-  session.defaultSession.webRequest.onHeadersReceived({ urls: dailymotionMediaUrls }, (details, callback) => {
+  session.defaultSession.webRequest.onHeadersReceived({ urls: corsMediaUrls }, (details, callback) => {
     const responseHeaders = { ...details.responseHeaders }
     for (const name of Object.keys(responseHeaders)) {
-      if (name.toLowerCase() === 'access-control-allow-origin' || name.toLowerCase() === 'access-control-expose-headers') {
+      const lowerName = name.toLowerCase()
+      if (
+        lowerName === 'access-control-allow-origin'
+        || lowerName === 'access-control-allow-methods'
+        || lowerName === 'access-control-allow-headers'
+        || lowerName === 'access-control-expose-headers'
+      ) {
         delete responseHeaders[name]
       }
     }
     responseHeaders['Access-Control-Allow-Origin'] = ['*']
+    responseHeaders['Access-Control-Allow-Methods'] = ['GET, HEAD, OPTIONS']
+    responseHeaders['Access-Control-Allow-Headers'] = ['Range, Origin, Referer, User-Agent, Content-Type']
     responseHeaders['Access-Control-Expose-Headers'] = ['Content-Length, Content-Range, Accept-Ranges']
     callback({ responseHeaders })
   })
