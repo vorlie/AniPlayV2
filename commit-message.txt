@@ -1,4 +1,4 @@
-feat: prepare AniPlay 1.12.0 release candidate
+feat: prepare AniPlay 1.12.0 release
 
 - group Browse catalog providers by Polish and English source language
 - add experimental Docchi search, episode, and embed playback support
