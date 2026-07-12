@@ -509,7 +509,6 @@ export function PlayerPage({
               className="w-full h-full object-contain"
               controls={useNativeControls}
               autoPlay
-              crossOrigin="anonymous"
               onError={tryNextServer}
               onPlay={(e) => handlePlaying(e.currentTarget)}
               onPause={(e) => handlePause(e.currentTarget)}
@@ -545,7 +544,6 @@ export function PlayerPage({
                 className="w-full h-full object-contain"
                 controls={useNativeControls}
                 autoPlay
-                crossOrigin="anonymous"
                 onError={tryNextServer}
                 onPlay={(e) => handlePlaying(e.currentTarget)}
                 onPause={(e) => handlePause(e.currentTarget)}

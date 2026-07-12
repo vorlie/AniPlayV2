@@ -1,6 +1,9 @@
-feat: add app translations
+feat: prepare AniPlay 1.12.0 release
 
-- add renderer-only English and Polish translations with a Settings language picker
-- translate navigation, pages, settings, empty states, toasts, and shell controls
-- persist the selected language in localStorage and apply changes without restart
-- keep provider names, logs, remote notices, and debug output in English for support
+- group Browse catalog providers by Polish and English source language
+- add experimental Docchi search, episode, and embed playback support
+- wire Docchi through mappings, history, remote notices, and browser fallback
+- keep Docchi Dailymotion playback on the reliable embed path
+- restore AllAnime playback with current crypto and direct media handling
+- mark prerelease builds in-app with a visible release candidate badge
+- add parser and provider normalization tests for the new catalog path

@@ -14,7 +14,7 @@ describe('remote notice normalization', () => {
           severity: 'warning',
           title: 'AllAnime is currently broken',
           message: 'AllAnime changed their backend.',
-          providers: ['allanime', 'invalid'],
+          providers: ['allanime', 'docchi', 'invalid'],
           minVersion: '1.9.0',
           startsAt: '2026-07-07T12:00:00Z',
           dismissible: true,
@@ -35,7 +35,7 @@ describe('remote notice normalization', () => {
     expect(state.notices[0]).toMatchObject({
       id: 'allanime-outage-2026-07-07',
       severity: 'warning',
-      providers: ['allanime'],
+      providers: ['allanime', 'docchi'],
       link: 'https://github.com/pystardust/ani-cli/issues/1763',
     })
     expect(state.notices[1].link).toBeUndefined()

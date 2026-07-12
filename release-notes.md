@@ -1,35 +1,39 @@
-# AniPlay v1.11.0
+# AniPlay 1.12.0
 
-This release adds the first app translation pass, with English and Polish available across the main renderer UI.
+AniPlay 1.12.0 adds provider language grouping, introduces Docchi as an experimental Polish catalog provider, and restores AllAnime playback against the current upstream crypto flow.
 
 ## Highlights
 
-- Added English and Polish app translations.
-- Added **Settings -> Advanced -> Language** so the interface can switch language immediately without restarting.
-- The selected language is saved and reused on the next launch.
-- Translated the main visible app surfaces, including navigation, pages, settings, buttons, placeholders, empty states, and toast text.
-- Support/debug-facing content stays in English for now to avoid making troubleshooting harder.
+- Browse now separates catalog providers into **Polish sources** and **English sources**.
+- Added **Docchi** as an experimental Polish source next to Desu.
+- Docchi can search the catalog, load episode lists, and return supported embed playback links.
+- Docchi Dailymotion and Mega players are shown as embed servers.
+- Browser fallback is available for Docchi episodes when in-app playback cannot resolve a stream.
+- AllAnime playback has been updated for the current MKissa/AllAnime crypto bootstrap and encrypted episode payload format.
+- AllAnime direct media playback no longer forces browser CORS mode for plain MP4 mirrors.
+- Existing English providers remain grouped separately: Anikoto, AllAnime, and Miruro.
 
-## Translations
+## Notes
 
-- Added renderer-only localization using `i18next` and `react-i18next`.
-- Added English and Polish resource strings for the main visible UI.
-- Translated navigation, Browse, Anime details, Player, History, Downloads, Home, Settings, app toasts, empty states, placeholders, buttons, and shell labels.
-- Kept provider names, anime titles, filenames, remote notice content, logs, debug messages, Discord Rich Presence, and main-process errors in English for easier support and debugging.
-- Missing Polish strings fall back to English instead of exposing raw translation keys.
+- Docchi is experimental in this release.
+- Adult/hentai catalog entries are intentionally excluded.
+- AniPlay downloads are disabled for Docchi embed-only links.
+- Mega may offer manual downloads inside its own embed page, but AniPlay does not queue those downloads automatically.
+- Some Docchi players may only work through browser fallback.
+- Some AllAnime mirrors may timeout or return upstream 403/500 responses; AniPlay skips failed mirrors and tries the remaining resolved sources.
+- Provider language grouping is only visual metadata. It does not change the app UI language or Sub/Dub playback controls.
 
-## Settings
+## Technical Changes
 
-- Added a language picker under **Settings -> Advanced**.
-- Supported languages are **English** and **Polski**.
-- Changing the language updates the renderer immediately without an app restart.
-- The preference is stored as `app.language`.
+- Added `docchi` to the shared catalog provider model.
+- Wired Docchi through Electron search, episode loading, link loading, provider validation, browser fallback, AniList mapping normalization, history, and remote notice provider targeting.
+- Updated AllAnime crypto discovery for the current `mkissa.to` bootstrap and `cdn.mkissa.net` bundle layout.
+- Added AllAnime AES-GCM response fallback decoding for encrypted episode payloads.
+- Expanded Electron media header handling for AllAnime mirror hosts and removed forced anonymous CORS mode from direct video playback.
+- Added parser coverage for Docchi series matching, adult-entry filtering, episode sorting, and player embed mapping.
 
-## Technical Notes
+## Verification
 
-- Added `i18next` and `react-i18next` dependencies.
-- Added `app.language` local storage preference for renderer language selection.
-- No preload, Electron main-process IPC, scraper, AniList, download manager, or Discord Rich Presence API changes were made for translations.
-- Verified with `npm run lint` and `npm run build:ui`.
-
-**Full changelog:** https://github.com/vorlie/AniPlayV2/compare/1.10.3...1.11.0
+- `npm test`
+- `npm run lint`
+- `npm run build:ui`

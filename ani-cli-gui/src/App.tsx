@@ -27,6 +27,7 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ de
 
 const LOGO_CLICK_TARGET = 7
 const LOGO_CLICK_WINDOW_MS = 4000
+const TEST_BUILD_VERSION_PATTERN = /-(?:test|alpha|beta|rc)\b/i
 
 function createNotification(title: string, body: string | undefined, kind: AppNotificationKind, durationMs?: number): AppNotification {
   return {
@@ -56,6 +57,7 @@ function App() {
   const [downloadState, setDownloadState] = useState<DownloadState | null>(null)
   const [homeAniListOpenRequest, setHomeAniListOpenRequest] = useState<{ id: number; nonce: number } | null>(null)
   const [notifications, setNotifications] = useState<AppNotification[]>(initialNotifications)
+  const [appVersion, setAppVersion] = useState<string | null>(null)
   const [secretSakuraMode, setSecretSakuraMode] = useState(false)
   const logoClickTimesRef = useRef<number[]>([])
   const watchedEpisodesRef = useRef(new Set<string>())
@@ -78,6 +80,7 @@ function App() {
   }, [])
 
   const notifyUpdateState = useCallback((state: UpdateState) => {
+    setAppVersion(state.currentVersion)
     if (state.phase !== 'available' && state.phase !== 'downloaded') return
     const version = state.availableVersion ?? 'the latest version'
     const key = `${state.phase}:${version}`
@@ -106,6 +109,7 @@ function App() {
   }, [notify, t])
 
   const activeDownloadCount = downloadState?.jobs.filter((job) => ['queued', 'resolving', 'downloading'].includes(job.status)).length ?? 0
+  const isTestBuild = appVersion ? TEST_BUILD_VERSION_PATTERN.test(appVersion) : false
 
   const handleResumeFromHistory = (item: HistoryEntry) => {
     setActiveTab('player')
@@ -176,6 +180,11 @@ function App() {
             <span className="text-layer">AniPlay</span>
           </button>
           <span className="hidden lg:inline text-xs font-bold uppercase tracking-[0.18em] text-m3-on-surface-variant">{t('app.tagline')}</span>
+          {isTestBuild && (
+            <span className="hidden sm:inline-flex rounded-full border border-amber-300/35 bg-amber-300/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-amber-100">
+              {t('app.testBuild', { version: appVersion })}
+            </span>
+          )}
         </div>
         <Navigation activeTab={activeTab} setActiveTab={setActiveTab} hasActivePlayer={activeAnime !== null} downloadCount={activeDownloadCount} />
       </header>
