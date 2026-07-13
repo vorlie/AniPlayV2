@@ -1,5 +1,6 @@
 import { load } from 'cheerio'
 import type { SearchResult, StreamLink } from '../scrape'
+import { cdaEmbedLink, isCdaEmbedUrl } from './cda'
 
 const BASE = 'https://desu-online.pl'
 const TIMEOUT_MS = 12_000
@@ -170,8 +171,9 @@ export function parseRumbleEmbed(html: string): StreamLink[] {
   return url ? [{ url, resolution: 'Auto', hls: true, provider: 'Desu · Rumble', downloadable: false }] : []
 }
 
-async function resolveMirror(mirror: { label: string; url: string }): Promise<StreamLink[]> {
+export async function resolveDesuMirror(mirror: { label: string; url: string }): Promise<StreamLink[]> {
   const host = new URL(mirror.url).hostname.toLowerCase()
+  if (isCdaEmbedUrl(mirror.url)) return [cdaEmbedLink(mirror.url, `Desu · ${mirror.label || 'CDA'}`)]
   if (host === 'dailymotion.com' || host.endsWith('.dailymotion.com')) return resolveDailymotion(mirror.url)
   if (host === 'iframely.net' || host.endsWith('.iframely.net')) return resolveIframeWrapper(mirror.url)
   if (host === 'rumble.com' || host.endsWith('.rumble.com')) return resolveRumble(mirror.url)
@@ -205,7 +207,7 @@ export async function getDesuEpisodeLinks(animeId: string, episode: string): Pro
   const mirrors = parseDesuMirrors(await cached(`episode:${entry.url}`, () => fetchHtml(entry.url, animeId), 2 * 60_000))
   if (!mirrors.length) throw new Error('Desu Online did not return mirror information')
   const results = (await Promise.all(mirrors.map(async (mirror) => {
-    try { return await resolveMirror(mirror) } catch { return [] }
+    try { return await resolveDesuMirror(mirror) } catch { return [] }
   }))).flat()
   const unique = [...new Map(results.map((result) => [result.url, result])).values()]
   if (!unique.length) throw new Error('No supported Desu Online mirrors are currently available')

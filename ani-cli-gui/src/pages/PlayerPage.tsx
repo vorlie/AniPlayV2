@@ -500,7 +500,6 @@ export function PlayerPage({
               src={activeLink.url}
               className="h-full w-full border-0"
               allow="autoplay; fullscreen; picture-in-picture"
-              allowFullScreen
               title={title}
             />
           ) : (
@@ -535,7 +534,6 @@ export function PlayerPage({
                 src={activeLink.url}
                 className="h-full w-full border-0"
                 allow="autoplay; fullscreen; picture-in-picture"
-                allowFullScreen
                 title={title}
               />
             ) : (

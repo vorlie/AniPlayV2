@@ -1,7 +1,6 @@
-feat: prepare AniPlay 1.12.1
+feat: improve Polish provider embed playback
 
-- add an explicit Docchi adult catalog opt-in for search results
-- show provider-aware source loading status while resolving streams
-- clarify AllAnime loading steps during encrypted source fetches
-- update Scraper settings copy for the current AllAnime flow
-- organize Electron providers, services, and download helpers
+- add shared CDA embed handling for Desu and Docchi players
+- keep CDA entries non-downloadable because media may be split into video and audio streams
+- remove redundant iframe fullscreen attribute warning
+- organize Electron provider, service, and download modules

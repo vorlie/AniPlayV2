@@ -1,4 +1,5 @@
 import type { SearchResult, StreamLink } from '../scrape'
+import { cdaEmbedLink, isCdaEmbedUrl } from './cda'
 
 const API_BASE = 'https://api.docchi.pl/v1'
 const SITE_BASE = 'https://docchi.pl'
@@ -152,7 +153,9 @@ export function parseDocchiPlayerEmbeds(value: unknown): StreamLink[] {
     const hosting = text(entry.player_hosting)?.toLowerCase()
     const translator = text(entry.translator_title)
     const label = translator ? `Docchi · ${translator}` : `Docchi · ${hosting ?? new URL(url).hostname}`
-    if (hosting === 'dailymotion' || new URL(url).hostname.toLowerCase().includes('dailymotion.com')) {
+    if (hosting === 'cda' || isCdaEmbedUrl(url)) {
+      results.push(cdaEmbedLink(url, label))
+    } else if (hosting === 'dailymotion' || new URL(url).hostname.toLowerCase().includes('dailymotion.com')) {
       results.push({ url, resolution: 'Embed', hls: false, provider: label, downloadable: false, embed: true })
     } else if (hosting === 'mega' || new URL(url).hostname.toLowerCase().includes('mega.')) {
       results.push({ url, resolution: 'Embed', hls: false, provider: label, downloadable: false, embed: true })

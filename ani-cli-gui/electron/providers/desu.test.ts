@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { isChallengePage, parseDailymotionMetadata, parseDesuEpisodes, parseDesuMirrors, parseDesuSearch, parseIframeWrapper, parseRumbleEmbed, validateDesuAnimeId } from './desu'
+import { isChallengePage, parseDailymotionMetadata, parseDesuEpisodes, parseDesuMirrors, parseDesuSearch, parseIframeWrapper, parseRumbleEmbed, resolveDesuMirror, validateDesuAnimeId } from './desu'
 
 const fixture = (name: string) => fs.readFileSync(join(import.meta.dirname, '..', 'fixtures', name), 'utf8')
 
@@ -45,5 +45,16 @@ describe('Desu mirror resolvers', () => {
     expect(parseRumbleEmbed(fixture('rumble.html'))[0]).toMatchObject({
       url: 'https://rumble.com/hls-vod/abc123/playlist.m3u8', hls: true, downloadable: false,
     })
+  })
+
+  it('returns CDA mirrors as embed links', async () => {
+    await expect(resolveDesuMirror({ label: 'CDA', url: 'https://ebd.cda.pl/620x368/788727172' })).resolves.toEqual([{
+      url: 'https://ebd.cda.pl/620x368/788727172',
+      resolution: 'Embed',
+      hls: false,
+      provider: 'Desu · CDA',
+      downloadable: false,
+      embed: true,
+    }])
   })
 })

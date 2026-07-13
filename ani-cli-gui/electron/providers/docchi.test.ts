@@ -66,6 +66,11 @@ describe('Docchi catalog parsing', () => {
         player_hosting: 'mega',
       },
       {
+        player: 'https://ebd.cda.pl/620x368/788727172',
+        player_hosting: 'cda',
+        translator_title: 'CDA Fansub',
+      },
+      {
         player: 'not a url',
         player_hosting: 'broken',
       },
@@ -85,6 +90,14 @@ describe('Docchi catalog parsing', () => {
         resolution: 'Embed',
         hls: false,
         provider: 'Docchi · mega',
+        downloadable: false,
+        embed: true,
+      },
+      {
+        url: 'https://ebd.cda.pl/620x368/788727172',
+        resolution: 'Embed',
+        hls: false,
+        provider: 'Docchi · CDA Fansub',
         downloadable: false,
         embed: true,
       },
