@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { AniListService, descriptionToPlainText, normalizeCatalogMapping, normalizeMedia, scoreCandidate } from './anilist'
-import type { CatalogMapping } from '../src/anilist-types'
+import type { CatalogMapping } from '../../src/anilist-types'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'

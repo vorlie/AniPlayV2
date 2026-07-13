@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { isChallengePage, parseDailymotionMetadata, parseDesuEpisodes, parseDesuMirrors, parseDesuSearch, parseIframeWrapper, parseRumbleEmbed, validateDesuAnimeId } from './desu'
 
-const fixture = (name: string) => fs.readFileSync(join(import.meta.dirname, 'fixtures', name), 'utf8')
+const fixture = (name: string) => fs.readFileSync(join(import.meta.dirname, '..', 'fixtures', name), 'utf8')
 
 describe('Desu catalog parsing', () => {
   it('parses only canonical anime search cards', () => {

@@ -6,19 +6,19 @@ import fs from 'node:fs'
 import { promises as fsp } from 'node:fs'
 import { searchAnime, getEpisodes, getEpisodeLinks, reloadCipherMap, type TranslationType } from './scrape'
 import { ElectronBlocker } from '@ghostery/adblocker-electron'
-import { DownloadManager } from './download-manager'
+import { DownloadManager } from './downloads/download-manager'
 import type { DownloadRequest } from '../src/download-types'
-import { AniListService } from './anilist'
+import { AniListService } from './services/anilist'
 import type { AnimeSummary, ListUpdateInput } from '../src/anilist-types'
 import type { AnimeSearchResult } from '../src/catalog-types'
 import type { CatalogProvider } from '../src/catalog-types'
-import { DiscordPresenceService, validatePlayback } from './discord-presence'
-import { getDesuEpisodePageUrl } from './desu'
-import { getDocchiEpisodePageUrl } from './docchi'
-import { UpdateService } from './updater'
-import { RemoteNoticeService } from './remote-notices'
-import { getMiruroEpisodePageUrl } from './miruro'
-import { getAnikotoEpisodePageUrl } from './anikoto'
+import { DiscordPresenceService, validatePlayback } from './services/discord-presence'
+import { getDesuEpisodePageUrl } from './providers/desu'
+import { getDocchiEpisodePageUrl } from './providers/docchi'
+import { UpdateService } from './services/updater'
+import { RemoteNoticeService } from './services/remote-notices'
+import { getMiruroEpisodePageUrl } from './providers/miruro'
+import { getAnikotoEpisodePageUrl } from './providers/anikoto'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -325,10 +325,10 @@ function createWindow() {
   })
 
   // Register the scraping handlers
-  ipcMain.handle('search', async (event, query: unknown, translationType: unknown, catalogProvider: unknown, aniListFirstSearch: unknown) => {
+  ipcMain.handle('search', async (event, query: unknown, translationType: unknown, catalogProvider: unknown, aniListFirstSearch: unknown, includeAdultDocchi: unknown) => {
     try {
       assertTrustedSender(event)
-      const results = await searchAnime(requireString(query, 'query', 200), requireTranslationType(translationType), requireCatalogProvider(catalogProvider), aniListFirstSearch === true)
+      const results = await searchAnime(requireString(query, 'query', 200), requireTranslationType(translationType), requireCatalogProvider(catalogProvider), aniListFirstSearch === true, includeAdultDocchi === true)
       return { success: true, data: results }
     } catch (error: unknown) {
       return { success: false, error: errorMessage(error) }

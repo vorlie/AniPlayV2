@@ -115,6 +115,36 @@ const resources = {
         noMatchingEpisode: 'No matching episode.',
         readyTitle: 'Ready when you are',
         readyBody: 'Choose an episode. AniPlay will gather every available server before playback starts.',
+        loadingSourcesTitle: 'Loading episode {{episode}}',
+        loadingSourcesBody: 'Resolving playable sources...',
+        sourceLoading: {
+          allanime: [
+            'Fetching encrypted AllAnime episode data...',
+            'Decoding stream source entries...',
+            'Resolving mirror links and quality options...',
+            'Skipping unavailable mirrors and keeping playable sources...',
+          ],
+          docchi: [
+            'Fetching Docchi player embeds...',
+            'Checking supported embed servers...',
+          ],
+          desu: [
+            'Loading Desu episode mirrors...',
+            'Resolving supported player sources...',
+          ],
+          anikoto: [
+            'Resolving Anikoto episode sources...',
+            'Checking available stream servers...',
+          ],
+          miruro: [
+            'Resolving Miruro provider sources...',
+            'Checking available stream servers...',
+          ],
+          default: [
+            'Resolving playable sources...',
+            'Checking available stream servers...',
+          ],
+        },
         idleQuotes: [
           'Choose an episode. The servers are waiting.',
           'No episode selected. The watch queue is suspiciously quiet.',
@@ -257,6 +287,9 @@ const resources = {
           aniListFirst: 'Experimental AniList-first search',
           aniListFirstDescription: 'Prioritize AniList metadata for Anikoto search results, then fall back to provider catalog matches.',
           enableAniListFirst: 'Enable experimental AniList-first search',
+          docchiAdult: 'Docchi adult catalog opt-in',
+          docchiAdultDescription: 'Show adult Docchi entries in search results. Off by default and only affects the Docchi provider.',
+          enableDocchiAdult: 'Show adult Docchi search results',
         },
         downloads: {
           title: 'Downloads',
@@ -312,13 +345,15 @@ const resources = {
           testSound: 'Test sound',
         },
         scraper: {
-          title: 'Scraper',
-          cipherMap: 'Cipher Map',
-          cipherDescription: 'The cipher map is used to decode stream URLs. Update it when streams stop working.',
+          title: 'AllAnime scraper tools',
+          cipherMap: 'Mirror URL cipher map',
+          cipherDescription: 'Used to decode AllAnime mirror URLs after episode data is loaded.',
+          cryptoDescription: 'Encrypted episode payloads and crypto bootstrap data are handled automatically at playback time.',
           lastSynced: 'Last synced: {{date}}',
           entries: '{{count}} entries',
           fallback: 'Using built-in fallback map',
           update: 'Update',
+          updateCipherMap: 'Update cipher map',
           updating: 'Updating...',
           success: 'Cipher map updated successfully. Takes effect immediately.',
           error: 'Update failed: {{error}}',
@@ -426,6 +461,36 @@ const resources = {
         noMatchingEpisode: 'Brak pasującego odcinka.',
         readyTitle: 'Gotowe, kiedy Ty jesteś',
         readyBody: 'Wybierz odcinek. AniPlay zbierze dostępne serwery przed odtwarzaniem.',
+        loadingSourcesTitle: 'Ładowanie odcinka {{episode}}',
+        loadingSourcesBody: 'Szukam działających źródeł...',
+        sourceLoading: {
+          allanime: [
+            'Pobieram zaszyfrowane dane odcinka z AllAnime...',
+            'Dekoduję wpisy źródeł streamu...',
+            'Sprawdzam mirrory i dostępne jakości...',
+            'Pomijam niedostępne mirrory i zostawiam działające źródła...',
+          ],
+          docchi: [
+            'Pobieram odtwarzacze Docchi...',
+            'Sprawdzam obsługiwane serwery embed...',
+          ],
+          desu: [
+            'Ładuję mirrory odcinka z Desu...',
+            'Szukam obsługiwanych źródeł odtwarzania...',
+          ],
+          anikoto: [
+            'Szukam źródeł odcinka w Anikoto...',
+            'Sprawdzam dostępne serwery streamu...',
+          ],
+          miruro: [
+            'Szukam źródeł dostawcy Miruro...',
+            'Sprawdzam dostępne serwery streamu...',
+          ],
+          default: [
+            'Szukam działających źródeł...',
+            'Sprawdzam dostępne serwery streamu...',
+          ],
+        },
         idleQuotes: [
           'Wybierz odcinek. Serwery już czekają.',
           'Nie wybrano odcinka. Kolejka oglądania jest podejrzanie cicha.',
@@ -568,6 +633,9 @@ const resources = {
           aniListFirst: 'Eksperymentalne wyszukiwanie AniList-first',
           aniListFirstDescription: 'Najpierw używa metadanych AniList dla wyników Anikoto, potem wraca do katalogu dostawcy.',
           enableAniListFirst: 'Włącz eksperymentalne wyszukiwanie AniList-first',
+          docchiAdult: 'Opcjonalny katalog 18+ Docchi',
+          docchiAdultDescription: 'Pokazuje wpisy 18+ z Docchi w wynikach wyszukiwania. Domyślnie wyłączone i dotyczy tylko dostawcy Docchi.',
+          enableDocchiAdult: 'Pokaż wyniki 18+ z Docchi',
         },
         downloads: {
           title: 'Pobieranie',
@@ -623,13 +691,15 @@ const resources = {
           testSound: 'Testuj dźwięk',
         },
         scraper: {
-          title: 'Scraper',
-          cipherMap: 'Mapa szyfru',
-          cipherDescription: 'Mapa szyfru służy do dekodowania URL-i streamów. Zaktualizuj ją, gdy streamy przestaną działać.',
+          title: 'Narzędzia scrapera AllAnime',
+          cipherMap: 'Mapa szyfru URL-i mirrorów',
+          cipherDescription: 'Służy do dekodowania URL-i mirrorów AllAnime po załadowaniu danych odcinka.',
+          cryptoDescription: 'Zaszyfrowane dane odcinka i bootstrap kryptograficzny są obsługiwane automatycznie podczas odtwarzania.',
           lastSynced: 'Ostatnia synchronizacja: {{date}}',
           entries: 'Wpisy: {{count}}',
           fallback: 'Używana jest wbudowana mapa zapasowa',
           update: 'Aktualizuj',
+          updateCipherMap: 'Aktualizuj mapę szyfru',
           updating: 'Aktualizuję...',
           success: 'Mapa szyfru zaktualizowana. Działa od razu.',
           error: 'Aktualizacja nieudana: {{error}}',

@@ -2,10 +2,10 @@ import * as crypto from 'crypto'
 import fs from 'node:fs'
 import { join } from 'node:path'
 import { app } from 'electron'
-import { getDesuEpisodeLinks, getDesuEpisodes, searchDesu } from './desu'
-import { getDocchiEpisodeLinks, getDocchiEpisodes, searchDocchi } from './docchi'
-import { getMiruroEpisodeLinks, getMiruroEpisodes, searchMiruro } from './miruro'
-import { getAnikotoEpisodeLinks, getAnikotoEpisodes, searchAnikoto } from './anikoto'
+import { getDesuEpisodeLinks, getDesuEpisodes, searchDesu } from './providers/desu'
+import { getDocchiEpisodeLinks, getDocchiEpisodes, searchDocchi } from './providers/docchi'
+import { getMiruroEpisodeLinks, getMiruroEpisodes, searchMiruro } from './providers/miruro'
+import { getAnikotoEpisodeLinks, getAnikotoEpisodes, searchAnikoto } from './providers/anikoto'
 import type { CatalogProvider } from '../src/catalog-types'
 
 const DEFAULT_TIMEOUT_MS = 10_000
@@ -122,9 +122,9 @@ export interface SearchResult {
   catalogProvider: CatalogProvider
 }
 
-export async function searchAnime(query: string, mode: TranslationType, catalogProvider: CatalogProvider = 'anikoto', aniListFirstSearch = false): Promise<SearchResult[]> {
+export async function searchAnime(query: string, mode: TranslationType, catalogProvider: CatalogProvider = 'anikoto', aniListFirstSearch = false, includeAdultDocchi = false): Promise<SearchResult[]> {
   if (catalogProvider === 'desu') return searchDesu(query)
-  if (catalogProvider === 'docchi') return searchDocchi(query)
+  if (catalogProvider === 'docchi') return searchDocchi(query, includeAdultDocchi)
   if (catalogProvider === 'miruro') return searchMiruro(query)
   if (catalogProvider === 'anikoto') return searchAnikoto(query, aniListFirstSearch)
   const searchGql = `query( $search: SearchInput $limit: Int $page: Int $translationType: VaildTranslationTypeEnumType $countryOrigin: VaildCountryOriginEnumType ) { shows( search: $search limit: $limit page: $page translationType: $translationType countryOrigin: $countryOrigin ) { edges { _id name availableEpisodes __typename } }}`

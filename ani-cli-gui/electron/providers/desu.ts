@@ -1,5 +1,5 @@
 import { load } from 'cheerio'
-import type { SearchResult, StreamLink } from './scrape'
+import type { SearchResult, StreamLink } from '../scrape'
 
 const BASE = 'https://desu-online.pl'
 const TIMEOUT_MS = 12_000

@@ -20,6 +20,7 @@ export interface StreamLink {
 export const TRANSLATION_TYPE_KEY = 'playback.translationType'
 export const CATALOG_PROVIDER_KEY = 'catalog.provider'
 export const ANILIST_SEARCH_KEY = 'search.anilistFirst'
+export const DOCCHI_ADULT_OPT_IN_KEY = 'search.docchiAdultOptIn'
 export const DEFAULT_CATALOG_PROVIDER: CatalogProvider = 'anikoto'
 
 export function getTranslationType(): TranslationType {
@@ -35,8 +36,12 @@ export function getAniListFirstSearch(): boolean {
   return localStorage.getItem(ANILIST_SEARCH_KEY) === 'true'
 }
 
+export function getDocchiAdultOptIn(): boolean {
+  return localStorage.getItem(DOCCHI_ADULT_OPT_IN_KEY) === 'true'
+}
+
 export async function invokeSearch(query: string, catalogProvider: CatalogProvider = getCatalogProvider(), aniListFirstSearch: boolean = getAniListFirstSearch()): Promise<IpcResponse<AnimeSearchResult[]>> {
-  if (window.aniPlay) return window.aniPlay.search(query, getTranslationType(), catalogProvider, aniListFirstSearch)
+  if (window.aniPlay) return window.aniPlay.search(query, getTranslationType(), catalogProvider, aniListFirstSearch, catalogProvider === 'docchi' && getDocchiAdultOptIn())
   throw new Error('AniPlay API is only available in the Electron application')
 }
 

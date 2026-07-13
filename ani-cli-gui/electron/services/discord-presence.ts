@@ -2,7 +2,7 @@ import { app } from 'electron'
 import fs from 'node:fs'
 import { join } from 'node:path'
 import * as DiscordRPC from 'discord-rpc'
-import type { DiscordActivityPayload, DiscordPlaybackPresence, DiscordPresenceSettings } from '../src/discord-presence-types'
+import type { DiscordActivityPayload, DiscordPlaybackPresence, DiscordPresenceSettings } from '../../src/discord-presence-types'
 
 const DEFAULT_CLIENT_ID = '1440472840578142381'
 const SETTINGS_FILE = 'discord-presence.json'

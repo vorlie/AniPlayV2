@@ -60,7 +60,7 @@ interface GraphicsSettings {
 }
 
 interface AniPlayApi {
-  search(query: string, translationType: TranslationType, catalogProvider: CatalogProvider, aniListFirstSearch?: boolean): Promise<IpcResponse<SearchResult[]>>
+  search(query: string, translationType: TranslationType, catalogProvider: CatalogProvider, aniListFirstSearch?: boolean, includeAdultDocchi?: boolean): Promise<IpcResponse<SearchResult[]>>
   getEpisodes(showId: string, translationType: TranslationType, catalogProvider: CatalogProvider): Promise<IpcResponse<string[]>>
   getEpisodeLinks(showId: string, episode: string, translationType: TranslationType, catalogProvider: CatalogProvider): Promise<IpcResponse<StreamLink[]>>
   openProviderEpisode(showId: string, episode: string, catalogProvider: CatalogProvider, translationType?: TranslationType): Promise<IpcResponse<void>>

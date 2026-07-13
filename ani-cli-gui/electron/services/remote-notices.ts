@@ -1,8 +1,8 @@
 import { app, shell } from 'electron'
 import fs from 'node:fs'
 import { join } from 'node:path'
-import type { CatalogProvider } from '../src/catalog-types'
-import type { RemoteNotice, RemoteNoticeSeverity, RemoteNoticeState } from '../src/remote-notice-types'
+import type { CatalogProvider } from '../../src/catalog-types'
+import type { RemoteNotice, RemoteNoticeSeverity, RemoteNoticeState } from '../../src/remote-notice-types'
 
 const DEFAULT_STATUS_URL = 'https://cdn.vorlie.pl/aniplay/status.json'
 const MAX_STATUS_BYTES = 128 * 1024

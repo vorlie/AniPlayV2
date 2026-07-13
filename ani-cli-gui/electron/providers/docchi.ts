@@ -1,4 +1,4 @@
-import type { SearchResult, StreamLink } from './scrape'
+import type { SearchResult, StreamLink } from '../scrape'
 
 const API_BASE = 'https://api.docchi.pl/v1'
 const SITE_BASE = 'https://docchi.pl'
@@ -88,11 +88,11 @@ function scoreSeries(query: string, value: JsonObject): number {
   return best
 }
 
-export function parseDocchiSeriesList(value: unknown, query: string): SearchResult[] {
+export function parseDocchiSeriesList(value: unknown, query: string, includeAdult = false): SearchResult[] {
   if (!Array.isArray(value)) throw new Error('Docchi series list response was invalid')
   return value
     .flatMap((entry): Array<SearchResult & { score: number }> => {
-      if (!isObject(entry) || isAdultEntry(entry)) return []
+      if (!isObject(entry) || (!includeAdult && isAdultEntry(entry))) return []
       const slug = text(entry.slug)
       const title = text(entry.title) ?? text(entry.title_en)
       if (!slug || !title) return []
@@ -161,8 +161,8 @@ export function parseDocchiPlayerEmbeds(value: unknown): StreamLink[] {
   return [...new Map(results.map((result) => [result.url, result])).values()]
 }
 
-export async function searchDocchi(query: string): Promise<SearchResult[]> {
-  return parseDocchiSeriesList(await cached('series:list', () => fetchJson(`${API_BASE}/series/list`), 15 * 60_000), query)
+export async function searchDocchi(query: string, includeAdult = false): Promise<SearchResult[]> {
+  return parseDocchiSeriesList(await cached('series:list', () => fetchJson(`${API_BASE}/series/list`), 15 * 60_000), query, includeAdult)
 }
 
 export async function getDocchiEpisodes(slug: string): Promise<string[]> {

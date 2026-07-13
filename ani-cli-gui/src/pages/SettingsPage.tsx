@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Bug, Download, FolderOpen, Gamepad2, GitPullRequest, Globe, MessageCircle, Palette, RefreshCw, RotateCcw, Search, ShieldCheck, SlidersHorizontal } from 'lucide-react'
 import { argbFromRgb, hexFromArgb, themeFromSourceColor } from '@material/material-color-utilities'
-import { ANILIST_SEARCH_KEY, getAniListFirstSearch, getTranslationType, TRANSLATION_TYPE_KEY, type TranslationType } from '../lib/api'
+import { ANILIST_SEARCH_KEY, DOCCHI_ADULT_OPT_IN_KEY, getAniListFirstSearch, getDocchiAdultOptIn, getTranslationType, TRANSLATION_TYPE_KEY, type TranslationType } from '../lib/api'
 import { getNotificationSoundMode, getNotificationSoundPreset, playNotificationSound, setNotificationSoundMode, setNotificationSoundPreset, type NotificationSoundMode, type NotificationSoundPreset } from '../lib/notification-sounds'
 import { setAppLanguage, supportedLanguages, type AppLanguage } from '../i18n'
 import type { UpdateState } from '../updater-types'
@@ -75,6 +75,7 @@ export function SettingsPage() {
   const [useNativeControls, setUseNativeControls] = useState(true)
   const [translationType, setTranslationType] = useState<TranslationType>(getTranslationType)
   const [aniListFirstSearch, setAniListFirstSearch] = useState(getAniListFirstSearch)
+  const [docchiAdultOptIn, setDocchiAdultOptIn] = useState(getDocchiAdultOptIn)
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
   const [syncError, setSyncError] = useState<string | null>(null)
   const [ciphermapInfo, setCiphermapInfo] = useState<CiphermapInfo | null>(null)
@@ -173,6 +174,14 @@ export function SettingsPage() {
     setAniListFirstSearch((prev) => {
       const next = !prev
       localStorage.setItem(ANILIST_SEARCH_KEY, String(next))
+      return next
+    })
+  }
+
+  const toggleDocchiAdultOptIn = () => {
+    setDocchiAdultOptIn((prev) => {
+      const next = !prev
+      localStorage.setItem(DOCCHI_ADULT_OPT_IN_KEY, String(next))
       return next
     })
   }
@@ -370,20 +379,37 @@ export function SettingsPage() {
           {activeSection === 'search' && (
             <section>
               <h3 className="font-sans font-bold text-xl mb-4">{t('settings.search.title')}</h3>
-              <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex items-center justify-between gap-3">
-                <div>
-                  <p className="font-bold text-sm">{t('settings.search.aniListFirst')}</p>
-                  <p className="text-xs text-m3-on-surface-variant">{t('settings.search.aniListFirstDescription')}</p>
+              <div className="grid gap-3">
+                <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-bold text-sm">{t('settings.search.aniListFirst')}</p>
+                    <p className="text-xs text-m3-on-surface-variant">{t('settings.search.aniListFirstDescription')}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={toggleAniListFirstSearch}
+                    className={`w-14 h-8 shrink-0 rounded-full p-1 transition-colors ${aniListFirstSearch ? 'bg-m3-primary' : 'bg-m3-surface-variant/60'}`}
+                    aria-pressed={aniListFirstSearch}
+                    aria-label={t('settings.search.enableAniListFirst')}
+                  >
+                    <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${aniListFirstSearch ? 'translate-x-6' : 'translate-x-0'}`} />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={toggleAniListFirstSearch}
-                  className={`w-14 h-8 shrink-0 rounded-full p-1 transition-colors ${aniListFirstSearch ? 'bg-m3-primary' : 'bg-m3-surface-variant/60'}`}
-                  aria-pressed={aniListFirstSearch}
-                  aria-label={t('settings.search.enableAniListFirst')}
-                >
-                  <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${aniListFirstSearch ? 'translate-x-6' : 'translate-x-0'}`} />
-                </button>
+                <div className="rounded-2xl border border-amber-300/25 bg-amber-300/5 p-4 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-bold text-sm">{t('settings.search.docchiAdult')}</p>
+                    <p className="text-xs text-m3-on-surface-variant">{t('settings.search.docchiAdultDescription')}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={toggleDocchiAdultOptIn}
+                    className={`w-14 h-8 shrink-0 rounded-full p-1 transition-colors ${docchiAdultOptIn ? 'bg-amber-300' : 'bg-m3-surface-variant/60'}`}
+                    aria-pressed={docchiAdultOptIn}
+                    aria-label={t('settings.search.enableDocchiAdult')}
+                  >
+                    <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${docchiAdultOptIn ? 'translate-x-6' : 'translate-x-0'}`} />
+                  </button>
+                </div>
               </div>
             </section>
           )}
@@ -547,6 +573,7 @@ export function SettingsPage() {
                   <div className="min-w-0">
                     <p className="font-bold text-sm">{t('settings.scraper.cipherMap')}</p>
                     <p className="text-xs text-m3-on-surface-variant mt-0.5">{t('settings.scraper.cipherDescription')}</p>
+                    <p className="text-xs text-m3-on-surface-variant/70 mt-1">{t('settings.scraper.cryptoDescription')}</p>
                     {ciphermapInfo ? (
                       <p className="text-xs text-m3-on-surface-variant/70 mt-1">
                         {t('settings.scraper.lastSynced', { date: new Date(ciphermapInfo.generatedAt).toLocaleString() })}{' '}
@@ -559,7 +586,7 @@ export function SettingsPage() {
                   </div>
                   <button onClick={syncCiphermap} disabled={syncStatus === 'syncing'} className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border border-m3-outline/30 hover:bg-m3-on-surface/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
                     <RefreshCw size={14} className={syncStatus === 'syncing' ? 'animate-spin' : ''} />
-                    {syncStatus === 'syncing' ? t('settings.scraper.updating') : t('settings.scraper.update')}
+                    {syncStatus === 'syncing' ? t('settings.scraper.updating') : t('settings.scraper.updateCipherMap')}
                   </button>
                 </div>
                 {syncStatus === 'success' && <p className="text-xs text-green-400">✓ {t('settings.scraper.success')}</p>}

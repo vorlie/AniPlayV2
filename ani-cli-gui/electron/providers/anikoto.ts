@@ -1,5 +1,5 @@
-import type { SearchResult, StreamLink } from './scrape'
-import type { TranslationType } from '../src/catalog-types'
+import type { SearchResult, StreamLink } from '../scrape'
+import type { TranslationType } from '../../src/catalog-types'
 
 const ANILIST_API = 'https://graphql.anilist.co'
 const ANIKOTO_API = 'https://anikotoapi.site'

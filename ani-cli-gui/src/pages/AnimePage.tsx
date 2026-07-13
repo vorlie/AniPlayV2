@@ -44,6 +44,7 @@ export function AnimePage({
   const [browserFallbackEpisode, setBrowserFallbackEpisode] = useState<string | null>(null)
   const [aniListMetadata, setAniListMetadata] = useState(() => ({ mediaId: anime.aniListMediaId, coverUrl: anime.coverUrl }))
   const [idleQuoteIndex, setIdleQuoteIndex] = useState<number | null>(null)
+  const [sourceStatusIndex, setSourceStatusIndex] = useState(0)
   const restoredRef = useRef<string | null>(null)
   const supportsTranslationSwitch = anime.catalogProvider !== 'desu' && anime.catalogProvider !== 'docchi'
   const episodesKey = `${anime.catalogProvider}:${anime.id}:${selectedTranslationType}`
@@ -59,6 +60,7 @@ export function AnimePage({
   const handlePlay = useCallback((ep: string, translationType: TranslationType = selectedTranslationType) => {
     if (loadingEp === ep) return
     setLoadingEp(ep)
+    setSourceStatusIndex(0)
     setError(null)
     setBrowserFallbackEpisode(null)
 
@@ -163,6 +165,21 @@ export function AnimePage({
   }, [loadingEp, loadingEpisodes, playingLinks.length, t])
 
   const idleQuotes = t('anime.idleQuotes', { returnObjects: true }) as string[]
+  const sourceStatusMessages = (
+    t(`anime.sourceLoading.${anime.catalogProvider}`, { returnObjects: true }) as unknown
+  )
+  const sourceStatuses = Array.isArray(sourceStatusMessages)
+    ? sourceStatusMessages.filter((message): message is string => typeof message === 'string')
+    : t('anime.sourceLoading.default', { returnObjects: true }) as string[]
+  const sourceStatus = sourceStatuses[sourceStatusIndex % Math.max(sourceStatuses.length, 1)] ?? t('anime.loadingSourcesBody')
+
+  useEffect(() => {
+    if (!loadingEp) return
+    const timer = window.setInterval(() => {
+      setSourceStatusIndex((current) => current + 1)
+    }, anime.catalogProvider === 'allanime' ? 4500 : 6000)
+    return () => window.clearInterval(timer)
+  }, [anime.catalogProvider, loadingEp])
 
   const visibleEpisodes = episodeQuery.trim()
     ? episodes.filter((episode) => episode.includes(episodeQuery.trim()))
@@ -279,9 +296,11 @@ export function AnimePage({
             />
           ) : (
             <div className="m3-card flex-1 min-h-[280px] flex flex-col items-center justify-center text-center px-6">
-              <span className="flex size-16 items-center justify-center rounded-2xl bg-m3-primary/10 text-m3-primary"><MonitorPlay size={28} /></span>
-              <p className="mt-4 font-bold">{t('anime.readyTitle')}</p>
-              <p className="mt-1 min-h-5 text-sm text-m3-on-surface-variant">{idleQuoteIndex === null ? t('anime.readyBody') : idleQuotes[idleQuoteIndex]}</p>
+              <span className="flex size-16 items-center justify-center rounded-2xl bg-m3-primary/10 text-m3-primary">
+                {loadingEp ? <Loader2 size={28} className="animate-spin" /> : <MonitorPlay size={28} />}
+              </span>
+              <p className="mt-4 font-bold">{loadingEp ? t('anime.loadingSourcesTitle', { episode: loadingEp }) : t('anime.readyTitle')}</p>
+              <p className="mt-1 min-h-5 text-sm text-m3-on-surface-variant">{loadingEp ? sourceStatus : idleQuoteIndex === null ? t('anime.readyBody') : idleQuotes[idleQuoteIndex]}</p>
             </div>
           )}
         </section>

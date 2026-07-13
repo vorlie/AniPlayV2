@@ -1,36 +1,21 @@
-# AniPlay 1.12.0
+# AniPlay 1.12.1
 
-AniPlay 1.12.0 adds provider language grouping, introduces Docchi as an experimental Polish catalog provider, and restores AllAnime playback against the current upstream crypto flow.
+AniPlay 1.12.1 is a small follow-up release focused on clearer provider behavior and safer catalog controls.
 
 ## Highlights
 
-- Browse now separates catalog providers into **Polish sources** and **English sources**.
-- Added **Docchi** as an experimental Polish source next to Desu.
-- Docchi can search the catalog, load episode lists, and return supported embed playback links.
-- Docchi Dailymotion and Mega players are shown as embed servers.
-- Browser fallback is available for Docchi episodes when in-app playback cannot resolve a stream.
-- AllAnime playback has been updated for the current MKissa/AllAnime crypto bootstrap and encrypted episode payload format.
-- AllAnime direct media playback no longer forces browser CORS mode for plain MP4 mirrors.
-- Existing English providers remain grouped separately: Anikoto, AllAnime, and Miruro.
+- Added an explicit Docchi adult catalog opt-in under Settings -> Search.
+- Docchi adult entries remain hidden by default and only appear when the opt-in is enabled.
+- Added clearer source-loading status text while AniPlay resolves episode streams.
+- AllAnime now shows more specific loading steps while fetching encrypted episode data and resolving mirrors.
+- Updated the Scraper settings page to explain that AllAnime crypto handling is automatic, while the cipher map update only refreshes mirror URL decoding.
+- Reorganized Electron internals into provider, service, and download folders for easier maintenance.
 
 ## Notes
 
-- Docchi is experimental in this release.
-- Adult/hentai catalog entries are intentionally excluded.
-- AniPlay downloads are disabled for Docchi embed-only links.
-- Mega may offer manual downloads inside its own embed page, but AniPlay does not queue those downloads automatically.
-- Some Docchi players may only work through browser fallback.
-- Some AllAnime mirrors may timeout or return upstream 403/500 responses; AniPlay skips failed mirrors and tries the remaining resolved sources.
-- Provider language grouping is only visual metadata. It does not change the app UI language or Sub/Dub playback controls.
-
-## Technical Changes
-
-- Added `docchi` to the shared catalog provider model.
-- Wired Docchi through Electron search, episode loading, link loading, provider validation, browser fallback, AniList mapping normalization, history, and remote notice provider targeting.
-- Updated AllAnime crypto discovery for the current `mkissa.to` bootstrap and `cdn.mkissa.net` bundle layout.
-- Added AllAnime AES-GCM response fallback decoding for encrypted episode payloads.
-- Expanded Electron media header handling for AllAnime mirror hosts and removed forced anonymous CORS mode from direct video playback.
-- Added parser coverage for Docchi series matching, adult-entry filtering, episode sorting, and player embed mapping.
+- The Docchi adult catalog setting only affects Docchi search results.
+- Provider language grouping, playback language, and UI language remain separate settings.
+- Some AllAnime mirrors may still timeout or return upstream 403/500 responses; AniPlay skips failed mirrors and tries remaining sources.
 
 ## Verification
 

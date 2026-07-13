@@ -3,7 +3,7 @@ import { parseDocchiEpisodeList, parseDocchiPlayerEmbeds, parseDocchiSeriesList 
 
 describe('Docchi catalog parsing', () => {
   it('matches searchable title fields and filters adult entries', () => {
-    const results = parseDocchiSeriesList([
+    const payload = [
       {
         slug: 'oshi-no-ko',
         title: '"Oshi no Ko"',
@@ -14,7 +14,7 @@ describe('Docchi catalog parsing', () => {
       },
       {
         slug: 'adult-title',
-        title: 'Oshi no Ko H',
+        title: 'Private Adult Title',
         episodes: 1,
         adult_content: 'true',
       },
@@ -24,13 +24,23 @@ describe('Docchi catalog parsing', () => {
         episodes: 12,
         adult_content: false,
       },
-    ], 'My Star')
+    ]
+    const results = parseDocchiSeriesList(payload, 'My Star')
 
     expect(results).toEqual([{
       id: 'oshi-no-ko',
       name: '"Oshi no Ko" / My Star',
       episodes: 11,
       coverUrl: 'https://cdn.example/oshi.jpg',
+      catalogProvider: 'docchi',
+    }])
+
+    expect(parseDocchiSeriesList(payload, 'Private Adult Title')).toEqual([])
+    expect(parseDocchiSeriesList(payload, 'Private Adult Title', true)).toEqual([{
+      id: 'adult-title',
+      name: 'Private Adult Title',
+      episodes: 1,
+      coverUrl: undefined,
       catalogProvider: 'docchi',
     }])
   })

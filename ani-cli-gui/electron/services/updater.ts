@@ -1,6 +1,6 @@
 import { app } from 'electron'
 import updaterPackage, { type ProgressInfo, type UpdateInfo } from 'electron-updater'
-import type { UpdateState } from '../src/updater-types'
+import type { UpdateState } from '../../src/updater-types'
 
 const { autoUpdater } = updaterPackage
 

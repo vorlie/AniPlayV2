@@ -1,5 +1,5 @@
 import { gunzipSync, inflateSync } from 'node:zlib'
-import type { SearchResult, StreamLink } from './scrape'
+import type { SearchResult, StreamLink } from '../scrape'
 
 const BASE = 'https://www.miruro.to'
 const ANILIST_API = 'https://graphql.anilist.co'

@@ -3,8 +3,8 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 import { join } from 'node:path'
-import type { DownloadJob, DownloadRequest, DownloadResult, DownloadState } from '../src/download-types'
-import { getEpisodeLinks } from './scrape'
+import type { DownloadJob, DownloadRequest, DownloadResult, DownloadState } from '../../src/download-types'
+import { getEpisodeLinks } from '../scrape'
 import { buildFfmpegArgs, createDownloadFileName, findAvailablePath, nextQueuedJob, parseFfmpegProgress, recoverInterruptedJobs } from './download-utils'
 
 const ACTIVE_STATUSES = new Set(['queued', 'resolving', 'downloading'])

@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs'
 import { join, parse } from 'node:path'
-import type { DownloadJob } from '../src/download-types'
+import type { DownloadJob } from '../../src/download-types'
 
 const WINDOWS_RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i
 

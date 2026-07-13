@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import type { DownloadJob } from '../src/download-types'
+import type { DownloadJob } from '../../src/download-types'
 import { buildFfmpegArgs, createDownloadFileName, findAvailablePath, mediaHeaders, nextQueuedJob, parseFfmpegProgress, recoverInterruptedJobs, sanitizeFilePart } from './download-utils'
 
 function job(id: string, status: DownloadJob['status'], createdAt: number): DownloadJob {
