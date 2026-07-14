@@ -1,6 +1,8 @@
-feat: improve Polish provider embed playback
+feat: add ad blocking presets
 
-- add shared CDA embed handling for Desu and Docchi players
-- keep CDA entries non-downloadable because media may be split into video and audio streams
-- remove redundant iframe fullscreen attribute warning
-- organize Electron provider, service, and download modules
+- move embedded-player filtering into an Electron adblock service
+- add Off, EasyList only, Basic, Balanced, and Strict filter presets in Settings
+- support uBlock/uAssets list combinations with cached network-only engines
+- keep AniPlay's lightweight known ad-host blocker configurable
+- persist and display session and all-time blocked request counters
+- default new installs to the safer EasyList-only preset

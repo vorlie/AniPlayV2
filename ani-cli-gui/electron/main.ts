@@ -5,7 +5,6 @@ import { dirname } from 'node:path'
 import fs from 'node:fs'
 import { promises as fsp } from 'node:fs'
 import { searchAnime, getEpisodes, getEpisodeLinks, reloadCipherMap, type TranslationType } from './scrape'
-import { ElectronBlocker } from '@ghostery/adblocker-electron'
 import { DownloadManager } from './downloads/download-manager'
 import type { DownloadRequest } from '../src/download-types'
 import { AniListService } from './services/anilist'
@@ -19,6 +18,8 @@ import { UpdateService } from './services/updater'
 import { RemoteNoticeService } from './services/remote-notices'
 import { getMiruroEpisodePageUrl } from './providers/miruro'
 import { getAnikotoEpisodePageUrl } from './providers/anikoto'
+import { AdBlockService } from './services/adblock'
+import type { AdBlockSettings } from '../src/adblock-types'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -36,6 +37,7 @@ let aniListService: AniListService
 let discordPresenceService: DiscordPresenceService
 let updateService: UpdateService
 let remoteNoticeService: RemoteNoticeService
+let adBlockService: AdBlockService
 
 const PROJECT_PAGES = {
   repository: 'https://github.com/vorlie/AniPlayV2',
@@ -77,33 +79,6 @@ if (safeGraphicsModeActive) {
   app.disableHardwareAcceleration()
   app.commandLine.appendSwitch('disable-gpu-compositing')
 }
-
-const EASYLIST_URL = 'https://ublockorigin.pages.dev/thirdparties/easylist.txt'
-
-const BLOCKED_EMBED_HOST_PATTERNS = [
-  /(^|\.)doubleclick\.net$/i,
-  /(^|\.)googlesyndication\.com$/i,
-  /(^|\.)googleadservices\.com$/i,
-  /(^|\.)adservice\.google\./i,
-  /(^|\.)adnxs\.com$/i,
-  /(^|\.)adsystem\.com$/i,
-  /(^|\.)exoclick\.com$/i,
-  /(^|\.)exosrv\.com$/i,
-  /(^|\.)popcash\.net$/i,
-  /(^|\.)popads\.net$/i,
-  /(^|\.)propellerads\.com$/i,
-  /(^|\.)propellerclick\.com$/i,
-  /(^|\.)onclickads\.net$/i,
-  /(^|\.)adsterra\.com$/i,
-  /(^|\.)highperformanceformat\.com$/i,
-  /(^|\.)highperformancecpmgate\.com$/i,
-  /(^|\.)statlytic\.net$/i,
-  /(^|\.)b7510\.com$/i,
-]
-
-const BLOCKED_EMBED_PATH_PATTERNS = [
-  /(^|[/?&_.-])(ad|ads|advert|banner|popunder|popup|prebid|vast|vpaid)([/?&_.=-]|$)/i,
-]
 
 function isTrustedSender(event: IpcMainInvokeEvent): boolean {
   const frameUrl = event.senderFrame?.url
@@ -169,38 +144,6 @@ function requireDownloadRequest(value: unknown): DownloadRequest {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Unknown error'
-}
-
-function shouldBlockEmbeddedRequest(rawUrl: string): boolean {
-  try {
-    const url = new URL(rawUrl)
-    const hostname = url.hostname.toLowerCase()
-    if (BLOCKED_EMBED_HOST_PATTERNS.some((pattern) => pattern.test(hostname))) return true
-    return BLOCKED_EMBED_PATH_PATTERNS.some((pattern) => pattern.test(`${url.pathname}${url.search}`))
-  } catch {
-    return false
-  }
-}
-
-function configureEmbeddedContentBlocking() {
-  session.defaultSession.webRequest.onBeforeRequest({ urls: ['*://*/*'] }, (details, callback) => {
-    callback({ cancel: shouldBlockEmbeddedRequest(details.url) })
-  })
-}
-
-async function configureEasyListBlocking() {
-  try {
-    const cachePath = join(app.getPath('userData'), 'easylist-engine.bin')
-    const blocker = await ElectronBlocker.fromLists(fetch, [EASYLIST_URL], {}, {
-      path: cachePath,
-      read: fsp.readFile,
-      write: fsp.writeFile,
-    })
-    blocker.enableBlockingInSession(session.defaultSession)
-    console.log('[adblock] EasyList blocking enabled')
-  } catch (error: unknown) {
-    console.warn('[adblock] EasyList blocking could not be enabled:', errorMessage(error))
-  }
 }
 
 function configureMediaRequestHeaders() {
@@ -319,7 +262,7 @@ function createWindow() {
   })
 
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (shouldBlockEmbeddedRequest(url)) return { action: 'deny' }
+    if (adBlockService.shouldBlockKnownEmbeddedRequest(url)) return { action: 'deny' }
     shell.openExternal(url).catch((error: unknown) => console.warn('Could not open external URL:', errorMessage(error)))
     return { action: 'deny' }
   })
@@ -464,6 +407,21 @@ function createWindow() {
       restartRequired: settings.safeGraphicsMode !== graphicsSettingsAtStartup.safeGraphicsMode,
       launchOverride: hasSafeGraphicsOverride(),
     }
+  })
+
+  ipcMain.handle('adblock:get-state', (event) => {
+    assertTrustedSender(event)
+    return adBlockService.getState()
+  })
+
+  ipcMain.handle('adblock:set-settings', async (event, settings: unknown) => {
+    assertTrustedSender(event)
+    if (!settings || typeof settings !== 'object' || Array.isArray(settings)) throw new TypeError('Invalid adblock settings')
+    const value = settings as Partial<AdBlockSettings>
+    return adBlockService.setSettings({
+      mode: value.mode,
+      blockKnownAdHosts: value.blockKnownAdHosts,
+    })
   })
 
   ipcMain.handle('sync-ciphermap', async (event) => {
@@ -641,7 +599,7 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('before-quit', () => { remoteNoticeService?.shutdown(); updateService?.shutdown(); downloadManager?.shutdown(); aniListService?.shutdown(); void discordPresenceService?.shutdown() })
+app.on('before-quit', () => { adBlockService?.shutdown(); remoteNoticeService?.shutdown(); updateService?.shutdown(); downloadManager?.shutdown(); aniListService?.shutdown(); void discordPresenceService?.shutdown() })
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
@@ -667,8 +625,8 @@ app.whenReady().then(() => {
     if (win && !win.isDestroyed()) win.webContents.send('downloads:changed', state)
   })
   downloadManager.initialize()
-  configureEmbeddedContentBlocking()
-  void configureEasyListBlocking()
+  adBlockService = new AdBlockService()
+  adBlockService.initialize(session.defaultSession)
   configureMediaRequestHeaders()
   createWindow()
 })

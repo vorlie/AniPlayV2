@@ -4,6 +4,7 @@ import type { CatalogProvider, TranslationType } from './catalog-types'
 import type { DiscordPlaybackPresence, DiscordPresenceSettings } from './discord-presence-types'
 import type { UpdateState } from './updater-types'
 import type { RemoteNoticeState } from './remote-notice-types'
+import type { AdBlockSettings, AdBlockState } from './adblock-types'
 
 interface SearchResult {
   id: string
@@ -88,6 +89,10 @@ interface AniPlayApi {
   graphics: {
     getSettings(): Promise<GraphicsSettings>
     setSafeMode(enabled: boolean): Promise<GraphicsSettings>
+  }
+  adBlock: {
+    getState(): Promise<AdBlockState>
+    setSettings(settings: Partial<AdBlockSettings>): Promise<AdBlockState>
   }
   updater: {
     getState(): Promise<UpdateState>

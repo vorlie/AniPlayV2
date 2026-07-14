@@ -1,12 +1,13 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Bug, Download, FolderOpen, Gamepad2, GitPullRequest, Globe, MessageCircle, Palette, RefreshCw, RotateCcw, Search, ShieldCheck, SlidersHorizontal } from 'lucide-react'
+import { Bug, Download, FolderOpen, Gamepad2, GitPullRequest, Globe, MessageCircle, Palette, RefreshCw, RotateCcw, Search, Shield, ShieldCheck, SlidersHorizontal, Video } from 'lucide-react'
 import { argbFromRgb, hexFromArgb, themeFromSourceColor } from '@material/material-color-utilities'
 import { ANILIST_SEARCH_KEY, DOCCHI_ADULT_OPT_IN_KEY, getAniListFirstSearch, getDocchiAdultOptIn, getTranslationType, TRANSLATION_TYPE_KEY, type TranslationType } from '../lib/api'
 import { getNotificationSoundMode, getNotificationSoundPreset, playNotificationSound, setNotificationSoundMode, setNotificationSoundPreset, type NotificationSoundMode, type NotificationSoundPreset } from '../lib/notification-sounds'
 import { setAppLanguage, supportedLanguages, type AppLanguage } from '../i18n'
 import type { UpdateState } from '../updater-types'
+import type { AdBlockMode, AdBlockState } from '../adblock-types'
 
 const DEFAULT_PRIMARY = '#D0BCFF'
 
@@ -59,7 +60,7 @@ function applyThemeFromPrimary(primary: string) {
 }
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
-type SettingsSection = 'theme' | 'player' | 'search' | 'downloads' | 'updates' | 'project' | 'advanced' | 'scraper'
+type SettingsSection = 'theme' | 'player' | 'search' | 'downloads' | 'updates' | 'project' | 'adblock' | 'advanced' | 'scraper'
 
 interface CiphermapInfo {
   generatedAt: string
@@ -89,6 +90,7 @@ export function SettingsPage() {
   const [safeGraphicsRestartRequired, setSafeGraphicsRestartRequired] = useState(false)
   const [safeGraphicsLaunchOverride, setSafeGraphicsLaunchOverride] = useState(false)
   const [language, setLanguage] = useState<AppLanguage>(i18n.language === 'pl' ? 'pl' : 'en')
+  const [adBlockState, setAdBlockState] = useState<AdBlockState | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem('theme.primary')
@@ -130,6 +132,10 @@ export function SettingsPage() {
       setSafeGraphicsRestartRequired(settings.restartRequired)
       setSafeGraphicsLaunchOverride(settings.launchOverride)
     }).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    void window.aniPlay?.adBlock.getState().then(setAdBlockState).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -238,13 +244,24 @@ export function SettingsPage() {
     setSafeGraphicsLaunchOverride(settings.launchOverride)
   }
 
+  const selectAdBlockMode = async (mode: AdBlockMode) => {
+    const state = await window.aniPlay?.adBlock.setSettings({ mode })
+    if (state) setAdBlockState(state)
+  }
+
+  const toggleKnownAdHosts = async () => {
+    const state = await window.aniPlay?.adBlock.setSettings({ blockKnownAdHosts: !(adBlockState?.blockKnownAdHosts ?? true) })
+    if (state) setAdBlockState(state)
+  }
+
   const sections: Array<{ id: SettingsSection; label: string; icon: React.ReactNode }> = [
     { id: 'theme', label: t('settings.theme.title'), icon: <Palette size={16} /> },
-    { id: 'player', label: t('settings.player.title'), icon: <Gamepad2 size={16} /> },
+    { id: 'player', label: t('settings.player.title'), icon: <Video size={16} /> },
     { id: 'search', label: t('settings.search.title'), icon: <Search size={16} /> },
     { id: 'downloads', label: t('settings.downloads.title'), icon: <Download size={16} /> },
     { id: 'updates', label: t('settings.updates.title'), icon: <RefreshCw size={16} /> },
     { id: 'project', label: t('settings.project.title'), icon: <Globe size={16} /> },
+    { id: 'adblock', label: t('settings.adblock.title'), icon: <Shield size={16} /> },
     { id: 'advanced', label: t('settings.advanced.title'), icon: <SlidersHorizontal size={16} /> },
     { id: 'scraper', label: t('settings.scraper.title'), icon: <ShieldCheck size={16} /> },
   ]
@@ -319,7 +336,10 @@ export function SettingsPage() {
 
           {activeSection === 'player' && (
             <section>
-              <h3 className="font-sans font-bold text-xl mb-4">{t('settings.player.title')}</h3>
+              <h3 className="font-sans font-bold text-xl mb-4 flex items-center gap-2">
+                <Video size={20} /> 
+                {t('settings.player.title')}
+              </h3>
               <div className="grid gap-3">
                 <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex items-center justify-between gap-3">
                   <div>
@@ -378,7 +398,10 @@ export function SettingsPage() {
 
           {activeSection === 'search' && (
             <section>
-              <h3 className="font-sans font-bold text-xl mb-4">{t('settings.search.title')}</h3>
+              <h3 className="font-sans font-bold text-xl mb-4 flex items-center gap-2">
+                <Search size={20} />
+                {t('settings.search.title')}
+              </h3>
               <div className="grid gap-3">
                 <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex items-center justify-between gap-3">
                   <div>
@@ -416,7 +439,10 @@ export function SettingsPage() {
 
           {activeSection === 'downloads' && (
             <section>
-              <h3 className="font-sans font-bold text-xl mb-4">{t('settings.downloads.title')}</h3>
+              <h3 className="font-sans font-bold text-xl mb-4 flex items-center gap-2">
+                <Download size={20} />
+                {t('settings.downloads.title')}
+              </h3>
               <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-bold text-sm">{t('settings.downloads.folder')}</p>
@@ -435,7 +461,10 @@ export function SettingsPage() {
 
           {activeSection === 'updates' && (
             <section>
-              <h3 className="font-sans font-bold text-xl mb-4">{t('settings.updates.title')}</h3>
+              <h3 className="font-sans font-bold text-xl mb-4 flex items-center gap-2">
+                <RefreshCw size={20} />
+                {t('settings.updates.title')}
+              </h3>
               <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-bold text-sm">AniPlay {updateState?.currentVersion ?? ''}</p>
@@ -473,7 +502,10 @@ export function SettingsPage() {
 
           {activeSection === 'project' && (
             <section>
-              <h3 className="font-sans font-bold text-xl mb-4">{t('settings.project.title')}</h3>
+              <h3 className="font-sans font-bold text-xl mb-4 flex items-center gap-2">
+                <Globe size={20} />
+                {t('settings.project.title')}
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
                 <button onClick={() => openProjectPage('repository')} className="rounded-xl border border-m3-outline/20 bg-m3-surface-container/40 hover:bg-m3-on-surface/10 transition-all px-4 py-3 text-left">
                   <div className="flex items-center gap-2 mb-1"><Globe size={16} /><span className="font-bold text-sm">{t('settings.project.repo')}</span></div>
@@ -495,9 +527,60 @@ export function SettingsPage() {
             </section>
           )}
 
+          {activeSection === 'adblock' && (
+            <section>
+              <h3 className="font-sans font-bold text-xl mb-4 flex items-center gap-2">
+                <Shield size={20} />
+                {t('settings.adblock.title')}
+              </h3>
+              <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 space-y-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <p className="font-bold text-sm">{t('settings.adblock.mode')}</p>
+                    <p className="text-xs text-m3-on-surface-variant">{t('settings.adblock.modeDescription')}</p>
+                    <p className="mt-1 text-xs text-m3-on-surface-variant/70">
+                      {adBlockState ? t('settings.adblock.status', { lists: adBlockState.listCount, blocked: adBlockState.blockedCount, total: adBlockState.totalBlockedCount }) : t('settings.adblock.loading')}
+                    </p>
+                    {adBlockState?.lastError && <p className="mt-1 text-xs text-amber-200">{t('settings.adblock.lastError', { error: adBlockState.lastError })}</p>}
+                  </div>
+                  <select
+                    value={adBlockState?.mode ?? 'easylist'}
+                    onChange={(event) => void selectAdBlockMode(event.target.value as AdBlockMode)}
+                    className="rounded-xl border border-m3-outline/30 bg-m3-surface px-3 py-2 text-sm font-bold text-m3-on-surface"
+                  >
+                    <option value="off">{t('settings.adblock.modes.off')}</option>
+                    <option value="easylist">{t('settings.adblock.modes.easylist')}</option>
+                    <option value="basic">{t('settings.adblock.modes.basic')}</option>
+                    <option value="balanced">{t('settings.adblock.modes.balanced')}</option>
+                    <option value="strict">{t('settings.adblock.modes.strict')}</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <p className="font-bold text-sm">{t('settings.adblock.knownHosts')}</p>
+                    <p className="text-xs text-m3-on-surface-variant">{t('settings.adblock.knownHostsDescription')}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void toggleKnownAdHosts()}
+                    className={`w-14 h-8 shrink-0 rounded-full p-1 transition-colors ${adBlockState?.blockKnownAdHosts ?? true ? 'bg-m3-primary' : 'bg-m3-surface-variant/60'}`}
+                    aria-pressed={adBlockState?.blockKnownAdHosts ?? true}
+                    aria-label={t('settings.adblock.knownHosts')}
+                  >
+                    <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${adBlockState?.blockKnownAdHosts ?? true ? 'translate-x-6' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+                <p className="text-xs text-m3-on-surface-variant/70">{t('settings.adblock.note')}</p>
+              </div>
+            </section>
+          )}
+
           {activeSection === 'advanced' && (
             <section>
-              <h3 className="font-sans font-bold text-xl mb-4">{t('settings.advanced.title')}</h3>
+              <h3 className="font-sans font-bold text-xl mb-4 flex items-center gap-2">
+                <SlidersHorizontal size={20} />
+                {t('settings.advanced.title')}
+              </h3>
               <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 space-y-4">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>
@@ -565,7 +648,7 @@ export function SettingsPage() {
           {activeSection === 'scraper' && (
             <section>
               <h3 className="font-sans font-bold text-xl mb-4 flex items-center gap-2">
-                <ShieldCheck size={18} />
+                <ShieldCheck size={20} />
                 {t('settings.scraper.title')}
               </h3>
               <div className="rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4 space-y-4">

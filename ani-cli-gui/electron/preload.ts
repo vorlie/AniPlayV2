@@ -5,6 +5,7 @@ import type { AnimeSearchResult, CatalogProvider, TranslationType } from '../src
 import type { DiscordPlaybackPresence } from '../src/discord-presence-types'
 import type { UpdateState } from '../src/updater-types'
 import type { RemoteNoticeState } from '../src/remote-notice-types'
+import type { AdBlockSettings, AdBlockState } from '../src/adblock-types'
 
 contextBridge.exposeInMainWorld('aniPlay', {
   search: (query: string, translationType: TranslationType, catalogProvider: CatalogProvider, aniListFirstSearch?: boolean, includeAdultDocchi?: boolean) => ipcRenderer.invoke('search', query, translationType, catalogProvider, aniListFirstSearch, includeAdultDocchi),
@@ -42,6 +43,10 @@ contextBridge.exposeInMainWorld('aniPlay', {
   graphics: {
     getSettings: () => ipcRenderer.invoke('graphics:get-settings'),
     setSafeMode: (enabled: boolean) => ipcRenderer.invoke('graphics:set-safe-mode', enabled),
+  },
+  adBlock: {
+    getState: (): Promise<AdBlockState> => ipcRenderer.invoke('adblock:get-state'),
+    setSettings: (settings: Partial<AdBlockSettings>): Promise<AdBlockState> => ipcRenderer.invoke('adblock:set-settings', settings),
   },
   updater: {
     getState: (): Promise<UpdateState> => ipcRenderer.invoke('updater:get-state'),
