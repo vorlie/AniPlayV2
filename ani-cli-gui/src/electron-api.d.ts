@@ -1,10 +1,11 @@
 import type { DownloadRequest, DownloadResult, DownloadState } from './download-types'
-import type { AnimeDetails, AnimeSummary, AniListSession, CatalogMapping, CatalogResolution, DashboardData, ListUpdateInput, MediaListState } from './anilist-types'
+import type { AnimeDetails, AnimeSummary, AniListProfile, AniListSession, CatalogMapping, CatalogResolution, DashboardData, ListUpdateInput, MediaListState } from './anilist-types'
 import type { CatalogProvider, TranslationType } from './catalog-types'
 import type { DiscordPlaybackPresence, DiscordPresenceSettings } from './discord-presence-types'
 import type { UpdateState } from './updater-types'
 import type { RemoteNoticeState } from './remote-notice-types'
 import type { AdBlockSettings, AdBlockState } from './adblock-types'
+import type { ProfileSharePayload } from './profile-share-types'
 
 interface SearchResult {
   id: string
@@ -71,6 +72,7 @@ interface AniPlayApi {
   aniList: {
     auth: { status(): Promise<AniListSession>; start(): Promise<AniListSession>; logout(): Promise<AniListSession> }
     dashboard: { get(): Promise<DashboardData> }
+    profile: { get(): Promise<AniListProfile>; export(payload: ProfileSharePayload): Promise<{ saved: boolean }> }
     media: { get(id: number): Promise<AnimeDetails> }
     list: { update(input: ListUpdateInput): Promise<MediaListState>; delete(id: number): Promise<boolean> }
     mapping: {

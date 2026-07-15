@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { AniListService, descriptionToPlainText, normalizeCatalogMapping, normalizeMedia, scoreCandidate } from './anilist'
+import { AniListService, descriptionToPlainText, normalizeCatalogMapping, normalizeMedia, normalizeRelations, scoreCandidate } from './anilist'
 import type { CatalogMapping } from '../../src/anilist-types'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -28,6 +28,18 @@ describe('AniList normalization', () => {
   it('decodes numeric entities and preserves list boundaries', () => {
     expect(descriptionToPlainText('<ul><li>One</li><li>Two &#x26; three</li></ul>'))
       .toBe('• One\n• Two & three')
+  })
+
+  it('normalizes anime relations and excludes non-anime media', () => {
+    const relations = normalizeRelations({
+      edges: [
+        { relationType: 'SEQUEL', node: { type: 'ANIME', id: 2, title: { english: 'Next season' }, coverImage: {} } },
+        { relationType: 'SOURCE', node: { type: 'MANGA', id: 3, title: { english: 'Source manga' }, coverImage: {} } },
+      ],
+    })
+
+    expect(relations).toHaveLength(1)
+    expect(relations[0]).toMatchObject({ relationType: 'SEQUEL', media: { id: 2, title: 'Next season' } })
   })
 })
 

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
-import { CalendarClock, ChevronLeft, Flame, ListPlus, Loader2, LogIn, LogOut, Play, RotateCcw, Search, Sparkles, Star, TrendingUp, UserRound } from 'lucide-react'
+import { CalendarClock, ChevronLeft, Flame, ListPlus, Loader2, LogIn, LogOut, Minus, Play, Plus, RotateCcw, Search, Sparkles, Star, TrendingUp, UserRound } from 'lucide-react'
 import { getCatalogProvider, getTranslationType, invokeSearch, type AnimeSearchResult, type CatalogProvider } from '../lib/api'
 import { readHistory, type HistoryEntry } from '../lib/history'
-import type { AnimeDetails, AnimeSummary, AniListStatus, CatalogCandidate, CatalogMapping, DashboardData, ListUpdateInput } from '../anilist-types'
+import type { AnimeDetails, AnimeRelation, AnimeSummary, AniListStatus, CatalogCandidate, CatalogMapping, DashboardData, ListUpdateInput } from '../anilist-types'
 
 interface HomePageProps {
   setSearchQuery: (val: string) => void
@@ -125,6 +125,27 @@ function Section({ title, icon, items, onSelect, label }: { title: string; icon:
   return <section className="space-y-3"><div className="flex items-center gap-2 text-m3-on-surface">{icon}<h3 className="text-lg font-black">{title}</h3></div><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">{items.map((item) => <MediaCard key={item.id} media={item} label={label} onClick={() => onSelect(item)} />)}</div></section>
 }
 
+function RelationsSection({ items, onSelect, t }: { items: AnimeRelation[]; onSelect: (item: AnimeSummary) => void; t: TFunction }) {
+  if (!items.length) return null
+  return <section className="space-y-3"><div className="flex items-center gap-2 text-m3-on-surface"><ListPlus size={18} className="text-m3-primary"/><h3 className="text-lg font-black">{t('home.relations')}</h3></div><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">{items.map((item) => <MediaCard key={`${item.relationType}:${item.media.id}`} media={item.media} label={t(`home.relationTypes.${item.relationType.toLowerCase()}`)} onClick={() => onSelect(item.media)} />)}</div></section>
+}
+
+const LIST_STATUSES: AniListStatus[] = ['CURRENT', 'PLANNING', 'COMPLETED', 'PAUSED', 'DROPPED', 'REPEATING']
+
+function NumberStepper({ label, value, onChange, max }: { label: string; value: number; onChange: (value: number) => void; max?: number }) {
+  const update = (next: number) => onChange(Math.max(0, max === undefined ? next : Math.min(max, next)))
+  return (
+    <div className="rounded-2xl border border-m3-outline/15 bg-m3-surface/45 p-3">
+      <span className="text-[11px] font-bold uppercase tracking-wider text-m3-on-surface-variant">{label}</span>
+      <div className="mt-2 flex items-center gap-2">
+        <button type="button" onClick={() => update(value - 1)} disabled={value <= 0} className="icon-button !size-9" aria-label={`${label} -1`}><Minus size={15}/></button>
+        <input type="number" min="0" max={max} value={value} onChange={(event) => update(Number(event.target.value) || 0)} className="min-w-0 flex-1 bg-transparent text-center text-xl font-black outline-none" aria-label={label}/>
+        <button type="button" onClick={() => update(value + 1)} disabled={max !== undefined && value >= max} className="icon-button !size-9" aria-label={`${label} +1`}><Plus size={15}/></button>
+      </div>
+    </div>
+  )
+}
+
 function DetailsView({ id, onBack, onOpenAnime, onChanged }: { id: number; onBack: () => void; onOpenAnime: (media: AnimeSummary, anime: AnimeSearchResult, suggestion: EpisodeSuggestion) => void; onChanged: () => void }) {
   const { t } = useTranslation()
   const [media, setMedia] = useState<AnimeDetails | null>(null)
@@ -142,6 +163,26 @@ function DetailsView({ id, onBack, onOpenAnime, onChanged }: { id: number; onBac
   const provider = getCatalogProvider()
   const translationType = getTranslationType()
   const suggestion = useMemo(() => media ? suggestedEpisode(media, t) : null, [media, t])
+  const hasListChanges = Boolean(media && (!media.listState
+    || status !== media.listState.status
+    || progress !== media.listState.progress
+    || score !== media.listState.score
+    || repeat !== media.listState.repeat))
+
+  const resetListDraft = () => {
+    setStatus(media?.listState?.status ?? 'PLANNING')
+    setProgress(media?.listState?.progress ?? 0)
+    setScore(media?.listState?.score ?? 0)
+    setRepeat(media?.listState?.repeat ?? 0)
+  }
+
+  const showMedia = useCallback((item: AnimeDetails) => {
+    setMedia(item)
+    setStatus(item.listState?.status ?? 'PLANNING')
+    setProgress(item.listState?.progress ?? 0)
+    setScore(item.listState?.score ?? 0)
+    setRepeat(item.listState?.repeat ?? 0)
+  }, [])
 
   const searchForCandidates = useCallback(async (item: AnimeSummary, query: string) => {
     const response = await invokeSearch(query, provider)
@@ -187,14 +228,10 @@ function DetailsView({ id, onBack, onOpenAnime, onChanged }: { id: number; onBac
 
   useEffect(() => {
     void window.aniPlay!.aniList.media.get(id).then((item) => {
-      setMedia(item)
-      setStatus(item.listState?.status ?? 'PLANNING')
-      setProgress(item.listState?.progress ?? 0)
-      setScore(item.listState?.score ?? 0)
-      setRepeat(item.listState?.repeat ?? 0)
+      showMedia(item)
       void preparePlaybackTarget(item)
     }).catch((cause: unknown) => setError(cause instanceof Error ? cause.message : t('home.loadFailed')))
-  }, [id, preparePlaybackTarget, t])
+  }, [id, preparePlaybackTarget, showMedia, t])
 
   const save = async () => {
     if (!media) return; setSaving(true); setError(null)
@@ -204,7 +241,17 @@ function DetailsView({ id, onBack, onOpenAnime, onChanged }: { id: number; onBac
 
   const remove = async () => {
     if (!media?.listState) return; setSaving(true)
-    try { await window.aniPlay!.aniList.list.delete(media.listState.id); setMedia({ ...media, listState: undefined }); onChanged() } catch (cause) { setError(cause instanceof Error ? cause.message : t('home.removeFailed')) } finally { setSaving(false) }
+    try { await window.aniPlay!.aniList.list.delete(media.listState.id); setMedia({ ...media, listState: undefined }); setStatus('PLANNING'); setProgress(0); setScore(0); setRepeat(0); onChanged() } catch (cause) { setError(cause instanceof Error ? cause.message : t('home.removeFailed')) } finally { setSaving(false) }
+  }
+
+  const openLinkedMedia = (item: AnimeSummary) => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    setMedia(null)
+    setError(null)
+    void window.aniPlay!.aniList.media.get(item.id).then((next) => {
+      showMedia(next)
+      void preparePlaybackTarget(next)
+    }).catch(() => setError(t('home.linkedMediaFailed')))
   }
 
   const openCandidateSearch = async (query?: string) => {
@@ -276,9 +323,19 @@ function DetailsView({ id, onBack, onOpenAnime, onChanged }: { id: number; onBac
         </div>
         <div className="m3-card p-5"><h3 className="font-black">{t('home.about')}</h3><p className="mt-3 whitespace-pre-line text-sm leading-6 text-m3-on-surface-variant">{media.description}</p><div className="mt-4 flex flex-wrap gap-2">{media.genres.map((genre) => <span key={genre} className="rounded-full bg-m3-primary/10 px-3 py-1 text-xs text-m3-primary">{genre}</span>)}</div></div>
       </section>
-      <aside className="m3-card p-5"><h3 className="flex items-center gap-2 font-black"><ListPlus size={18}/> {t('home.myAniList')}</h3><div className="mt-4 grid gap-3"><label className="text-xs text-m3-on-surface-variant">{t('home.status')}<select value={status} onChange={(e) => setStatus(e.target.value as AniListStatus)} className="mt-1 w-full rounded-xl bg-m3-surface p-2.5 text-m3-on-surface">{['CURRENT','PLANNING','COMPLETED','PAUSED','DROPPED','REPEATING'].map((item) => <option key={item}>{item}</option>)}</select></label><div className="grid grid-cols-3 gap-2">{[[t('home.progress'), progress, setProgress], [t('home.score'), score, setScore], [t('home.repeats'), repeat, setRepeat]].map(([label, value, setter]) => <label key={String(label)} className="text-xs text-m3-on-surface-variant">{String(label)}<input type="number" min="0" max={label === t('home.score') ? 100 : undefined} value={value as number} onChange={(e) => (setter as (n: number) => void)(Number(e.target.value))} className="mt-1 w-full rounded-xl bg-m3-surface p-2.5 text-m3-on-surface" /></label>)}</div><button disabled={saving} onClick={() => void save()} className="primary-action justify-center py-2.5">{saving ? <Loader2 className="animate-spin" size={16}/> : null} {t('home.save')}</button>{media.listState ? <button disabled={saving} onClick={() => void remove()} className="text-xs text-red-300 hover:underline">{t('home.remove')}</button> : null}</div></aside>
+      <aside className="m3-card p-5">
+        <div className="flex items-center justify-between gap-3"><h3 className="flex items-center gap-2 font-black"><ListPlus size={18}/> {t('home.myAniList')}</h3>{media.listState && hasListChanges ? <button type="button" disabled={saving} onClick={resetListDraft} className="text-xs font-bold text-m3-primary hover:underline">{t('home.resetChanges')}</button> : null}</div>
+        <div className="mt-4 grid gap-4">
+          <fieldset><legend className="text-[11px] font-bold uppercase tracking-wider text-m3-on-surface-variant">{t('home.status')}</legend><div className="mt-2 flex flex-wrap gap-2">{LIST_STATUSES.map((item) => <button type="button" key={item} onClick={() => setStatus(item)} aria-pressed={status === item} className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-colors ${status === item ? 'border-m3-primary bg-m3-primary text-m3-on-primary' : 'border-m3-outline/20 bg-m3-surface/40 text-m3-on-surface-variant hover:border-m3-primary/50 hover:text-m3-on-surface'}`}>{t(`home.statuses.${item.toLowerCase()}`)}</button>)}</div></fieldset>
+          <div className="grid grid-cols-2 gap-2"><NumberStepper label={t('home.progress')} value={progress} onChange={setProgress} max={media.episodes}/><NumberStepper label={t('home.repeats')} value={repeat} onChange={setRepeat}/></div>
+          <label className="rounded-2xl border border-m3-outline/15 bg-m3-surface/45 p-3"><span className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-m3-on-surface-variant"><span>{t('home.score')}</span><strong className="text-base text-m3-on-surface">{score}</strong></span><input type="range" min="0" max="100" step="1" value={score} onChange={(event) => setScore(Number(event.target.value))} className="mt-3 w-full accent-m3-primary"/></label>
+          <button disabled={saving || !hasListChanges} onClick={() => void save()} className="primary-action py-3">{saving ? <Loader2 className="animate-spin" size={16}/> : null} {media.listState ? t('home.saveChanges') : t('home.addToList')}</button>
+          {media.listState ? <button disabled={saving} onClick={() => void remove()} className="rounded-xl py-2 text-xs font-bold text-red-300 transition-colors hover:bg-red-400/10">{t('home.remove')}</button> : null}
+        </div>
+      </aside>
     </div>
-    <Section title={t('home.recommendations')} icon={<Sparkles size={18} className="text-m3-primary"/>} items={media.recommendations} onSelect={(item) => { window.scrollTo({ top: 0, behavior: 'smooth' }); setMedia(null); window.aniPlay!.aniList.media.get(item.id).then((next) => { setMedia(next); void preparePlaybackTarget(next) }).catch(() => setError(t('home.recommendationFailed'))) }} />
+    <RelationsSection items={media.relations} onSelect={openLinkedMedia} t={t}/>
+    <Section title={t('home.recommendations')} icon={<Sparkles size={18} className="text-m3-primary"/>} items={media.recommendations} onSelect={openLinkedMedia} />
     {candidateDialog ? <CandidateModal key={`${candidateDialog.media.id}:${candidateDialog.query}`} dialog={candidateDialog} setDialog={setCandidateDialog} onRetry={(query) => void openCandidateSearch(query)} onChoose={(item) => void chooseCandidate(item)} /> : null}
   </div>
 }

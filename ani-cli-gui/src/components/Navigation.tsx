@@ -1,9 +1,10 @@
-import { Search, History, Settings, House, Radio, Download, type LucideIcon } from 'lucide-react'
+import { Search, History, Settings, House, Radio, Download, UserRound, type LucideIcon } from 'lucide-react'
 import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 
 const baseTabs: Array<{ id: string; labelKey: string; icon: LucideIcon }> = [
   { id: 'home', labelKey: 'nav.home', icon: House },
+  { id: 'profile', labelKey: 'nav.profile', icon: UserRound },
   { id: 'search', labelKey: 'nav.search', icon: Search },
   { id: 'history', labelKey: 'nav.history', icon: History },
   { id: 'downloads', labelKey: 'nav.downloads', icon: Download },

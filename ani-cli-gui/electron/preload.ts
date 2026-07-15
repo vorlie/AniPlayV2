@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { DownloadRequest, DownloadState } from '../src/download-types'
 import type { AnimeSummary, CatalogMapping, ListUpdateInput } from '../src/anilist-types'
+import type { ProfileSharePayload } from '../src/profile-share-types'
 import type { AnimeSearchResult, CatalogProvider, TranslationType } from '../src/catalog-types'
 import type { DiscordPlaybackPresence } from '../src/discord-presence-types'
 import type { UpdateState } from '../src/updater-types'
@@ -22,6 +23,10 @@ contextBridge.exposeInMainWorld('aniPlay', {
       logout: () => ipcRenderer.invoke('anilist:auth-logout'),
     },
     dashboard: { get: () => ipcRenderer.invoke('anilist:dashboard') },
+    profile: {
+      get: () => ipcRenderer.invoke('anilist:profile'),
+      export: (payload: ProfileSharePayload) => ipcRenderer.invoke('anilist:profile-export', payload),
+    },
     media: { get: (id: number) => ipcRenderer.invoke('anilist:media', id) },
     list: {
       update: (input: ListUpdateInput) => ipcRenderer.invoke('anilist:list-update', input),

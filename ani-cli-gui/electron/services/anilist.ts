@@ -4,7 +4,7 @@ import { randomBytes } from 'node:crypto'
 import fs from 'node:fs'
 import { join } from 'node:path'
 import type { AnimeSearchResult, CatalogProvider, TranslationType } from '../../src/catalog-types'
-import type { AnimeDetails, AnimeSummary, AniListSession, CatalogMapping, CatalogResolution, DashboardData, ListUpdateInput, MediaListState } from '../../src/anilist-types'
+import type { AnimeDetails, AnimeRelation, AnimeSummary, AniListProfile, AniListProfileStatGroup, AniListSession, CatalogMapping, CatalogResolution, DashboardData, ListUpdateInput, MediaListState } from '../../src/anilist-types'
 
 const API = 'https://graphql.anilist.co'
 const DEFAULT_CLIENT_ID = '45193'
@@ -32,7 +32,20 @@ const PRIVATE_DASHBOARD_QUERY = `query PrivateDashboard($userId: Int!) {
 }
 fragment Card on Media { id title { english romaji userPreferred } synonyms coverImage { large color } bannerImage format seasonYear episodes averageScore nextAiringEpisode { episode airingAt } mediaListEntry { id status progress score repeat } }`
 
-const DETAILS_QUERY = `query Details($id: Int!) { Media(id: $id, type: ANIME) { id title { english romaji userPreferred } synonyms coverImage { extraLarge large color } bannerImage description(asHtml: false) genres format season seasonYear status episodes averageScore nextAiringEpisode { episode airingAt } mediaListEntry { id status progress score repeat } recommendations(perPage: 8, sort: RATING_DESC) { nodes { mediaRecommendation { id title { english romaji userPreferred } synonyms coverImage { large color } bannerImage format seasonYear episodes averageScore nextAiringEpisode { episode airingAt } mediaListEntry { id status progress score repeat } } } } } }`
+const PROFILE_QUERY = `query Profile {
+  Viewer {
+    id name about(asHtml: false) avatar { large medium } bannerImage
+    statistics { anime {
+      count episodesWatched minutesWatched meanScore
+      statuses { status count meanScore minutesWatched }
+      genres(limit: 12, sort: COUNT_DESC) { genre count meanScore minutesWatched }
+    } }
+    favourites { anime(page: 1, perPage: 8) { nodes { ...Card } } }
+  }
+}
+fragment Card on Media { id title { english romaji userPreferred } synonyms coverImage { large color } bannerImage format seasonYear episodes averageScore nextAiringEpisode { episode airingAt } mediaListEntry { id status progress score repeat } }`
+
+const DETAILS_QUERY = `query Details($id: Int!) { Media(id: $id, type: ANIME) { id title { english romaji userPreferred } synonyms coverImage { extraLarge large color } bannerImage description(asHtml: false) genres format season seasonYear status episodes averageScore nextAiringEpisode { episode airingAt } mediaListEntry { id status progress score repeat } relations { edges { relationType node { type id title { english romaji userPreferred } synonyms coverImage { large color } bannerImage format seasonYear episodes averageScore nextAiringEpisode { episode airingAt } mediaListEntry { id status progress score repeat } } } } recommendations(perPage: 8, sort: RATING_DESC) { nodes { mediaRecommendation { id title { english romaji userPreferred } synonyms coverImage { large color } bannerImage format seasonYear episodes averageScore nextAiringEpisode { episode airingAt } mediaListEntry { id status progress score repeat } } } } } }`
 const SEARCH_QUERY = `query SearchMedia($search: String!) { Page(page: 1, perPage: 8) { media(search: $search, type: ANIME, isAdult: false, sort: SEARCH_MATCH) { id title { english romaji userPreferred } synonyms coverImage { extraLarge large color } bannerImage format seasonYear episodes averageScore } } }`
 
 function record(value: unknown): JsonObject { return value && typeof value === 'object' ? value as JsonObject : {} }
@@ -94,11 +107,32 @@ export function normalizeMedia(value: unknown): AnimeSummary {
   }
 }
 
+export function normalizeRelations(value: unknown): AnimeRelation[] {
+  return array(record(value).edges).map((value) => {
+    const edge = record(value)
+    const node = record(edge.node)
+    return { relationType: text(edge.relationType) ?? 'OTHER', media: normalizeMedia(node), mediaType: text(node.type) }
+  }).filter((item) => item.mediaType === 'ANIME' && item.media.id)
+    .map(({ relationType, media }) => ({ relationType, media }))
+}
+
 function normalizeList(value: unknown): MediaListState | undefined {
   const item = record(value)
   const id = number(item.id); const status = text(item.status)
   if (!id || !status) return undefined
   return { id, status: status as MediaListState['status'], progress: number(item.progress) ?? 0, score: number(item.score) ?? 0, repeat: number(item.repeat) ?? 0 }
+}
+
+function normalizeProfileGroups(value: unknown, labelKey: 'status' | 'genre'): AniListProfileStatGroup[] {
+  return array(value).map((value) => {
+    const item = record(value)
+    return {
+      label: text(item[labelKey]) ?? 'OTHER',
+      count: number(item.count) ?? 0,
+      meanScore: number(item.meanScore),
+      minutesWatched: number(item.minutesWatched),
+    }
+  }).filter((item) => item.count > 0)
 }
 
 export function scoreCandidate(media: AnimeSummary, candidate: AnimeSearchResult): { confidence: number; reasons: string[] } {
@@ -152,6 +186,21 @@ export class AniListService {
   }
   private loadJsonCache() { try { const saved = JSON.parse(fs.readFileSync(this.path(CACHE_FILE), 'utf8')) as Record<string, CacheRecord>; for (const [key, value] of Object.entries(saved)) this.cache.set(key, value) } catch { /* empty */ } }
   private saveCache() { const recent = [...this.cache.entries()].filter(([, item]) => item.expiresAt > Date.now() - 24 * 60 * 60_000).slice(-30); fs.writeFileSync(this.path(CACHE_FILE), JSON.stringify(Object.fromEntries(recent)), 'utf8') }
+  private invalidateListCaches(mediaId?: number, entryId?: number) {
+    if (this.user) {
+      this.cache.delete(`dashboard:user:${this.user.id}`)
+      this.cache.delete(`profile:user:${this.user.id}`)
+    }
+
+    for (const [key, cached] of this.cache) {
+      if (!key.startsWith('details:')) continue
+      const media = record(record(cached.value).Media)
+      const listState = normalizeList(media.mediaListEntry)
+      if (mediaId === number(media.id) || (entryId !== undefined && listState?.id === entryId)) this.cache.delete(key)
+    }
+
+    this.saveCache()
+  }
   private loadMappings() {
     try {
       const items = JSON.parse(fs.readFileSync(this.path(MAPPING_FILE), 'utf8')) as CatalogMapping[]
@@ -228,13 +277,41 @@ export class AniListService {
 
   async details(id: number): Promise<AnimeDetails> {
     const data = record(await this.request(DETAILS_QUERY, { id }, Boolean(this.token), true, `details:${id}:${this.user?.id ?? 'public'}`)); const media = record(data.Media); const summary = normalizeMedia(media)
-    return { ...summary, description: descriptionToPlainText(media.description), genres: array(media.genres).filter((x): x is string => typeof x === 'string'), status: text(media.status), season: text(media.season), recommendations: array(record(media.recommendations).nodes).map((node) => normalizeMedia(record(node).mediaRecommendation)).filter((item) => item.id) }
+    return { ...summary, description: descriptionToPlainText(media.description), genres: array(media.genres).filter((x): x is string => typeof x === 'string'), status: text(media.status), season: text(media.season), relations: normalizeRelations(media.relations), recommendations: array(record(media.recommendations).nodes).map((node) => normalizeMedia(record(node).mediaRecommendation)).filter((item) => item.id) }
+  }
+
+  async profile(): Promise<AniListProfile> {
+    if (!this.user) throw new Error('Sign in to AniList first')
+    const data = record(await this.request(PROFILE_QUERY, {}, true, true, `profile:user:${this.user.id}`))
+    const viewer = record(data.Viewer)
+    const avatar = record(viewer.avatar)
+    const anime = record(record(viewer.statistics).anime)
+    return {
+      user: {
+        id: number(viewer.id) ?? this.user.id,
+        name: text(viewer.name) ?? this.user.name,
+        avatar: text(avatar.large) ?? text(avatar.medium) ?? this.user.avatar,
+        bannerImage: text(viewer.bannerImage),
+        about: text(viewer.about) ? descriptionToPlainText(viewer.about) : undefined,
+      },
+      stats: {
+        count: number(anime.count) ?? 0,
+        episodesWatched: number(anime.episodesWatched) ?? 0,
+        minutesWatched: number(anime.minutesWatched) ?? 0,
+        meanScore: number(anime.meanScore) ?? 0,
+        statuses: normalizeProfileGroups(anime.statuses, 'status'),
+        genres: normalizeProfileGroups(anime.genres, 'genre'),
+      },
+      favourites: array(record(record(viewer.favourites).anime).nodes).map(normalizeMedia).filter((item) => item.id),
+    }
   }
 
   async updateList(input: ListUpdateInput): Promise<MediaListState> {
-    const data = record(await this.request('mutation Save($mediaId: Int!, $status: MediaListStatus!, $progress: Int, $score: Float, $repeat: Int) { SaveMediaListEntry(mediaId: $mediaId, status: $status, progress: $progress, score: $score, repeat: $repeat) { id status progress score repeat } }', { ...input }, true, false)); this.cache.clear(); return normalizeList(data.SaveMediaListEntry)!
+    const data = record(await this.request('mutation Save($mediaId: Int!, $status: MediaListStatus!, $progress: Int, $score: Float, $repeat: Int) { SaveMediaListEntry(mediaId: $mediaId, status: $status, progress: $progress, score: $score, repeat: $repeat) { id status progress score repeat } }', { ...input }, true, false))
+    this.invalidateListCaches(input.mediaId)
+    return normalizeList(data.SaveMediaListEntry)!
   }
-  async deleteList(entryId: number) { await this.request('mutation Delete($id: Int!) { DeleteMediaListEntry(id: $id) { deleted } }', { id: entryId }, true, false); this.cache.clear(); return true }
+  async deleteList(entryId: number) { await this.request('mutation Delete($id: Int!) { DeleteMediaListEntry(id: $id) { deleted } }', { id: entryId }, true, false); this.invalidateListCaches(undefined, entryId); return true }
   resolveMapping(media: AnimeSummary, candidates: AnimeSearchResult[], translationType: TranslationType): CatalogResolution {
     const activeProvider = candidates[0]?.catalogProvider
     const saved = this.mappings.get(media.id)

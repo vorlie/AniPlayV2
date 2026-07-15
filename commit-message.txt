@@ -1,8 +1,8 @@
-feat: add ad blocking presets
+feat: add AniList profiles and share cards
 
-- move embedded-player filtering into an Electron adblock service
-- add Off, EasyList only, Basic, Balanced, and Strict filter presets in Settings
-- support uBlock/uAssets list combinations with cached network-only engines
-- keep AniPlay's lightweight known ad-host blocker configurable
-- persist and display session and all-time blocked request counters
-- default new installs to the safer EasyList-only preset
+- add a dedicated profile page with viewing stats, Anime DNA, milestones, favourites, and biography
+- add Material You profile-card exports in Hero and Stats styles with local PNG saving
+- add anime relations and in-app navigation for related titles
+- redesign AniList list editing with status chips, steppers, score controls, and draft reset
+- replace full cache clearing with targeted dashboard, profile, and media invalidation
+- add English and Polish translations for the new AniList experiences

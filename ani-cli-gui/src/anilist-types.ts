@@ -39,7 +39,13 @@ export interface AnimeDetails extends AnimeSummary {
   genres: string[]
   status?: string
   season?: string
+  relations: AnimeRelation[]
   recommendations: AnimeSummary[]
+}
+
+export interface AnimeRelation {
+  relationType: string
+  media: AnimeSummary
 }
 
 export interface AiringItem {
@@ -58,6 +64,26 @@ export interface DashboardData {
   planning: AnimeSummary[]
   completed: AnimeSummary[]
   stale?: boolean
+}
+
+export interface AniListProfileStatGroup {
+  label: string
+  count: number
+  meanScore?: number
+  minutesWatched?: number
+}
+
+export interface AniListProfile {
+  user: { id: number; name: string; avatar?: string; bannerImage?: string; about?: string }
+  stats: {
+    count: number
+    episodesWatched: number
+    minutesWatched: number
+    meanScore: number
+    statuses: AniListProfileStatGroup[]
+    genres: AniListProfileStatGroup[]
+  }
+  favourites: AnimeSummary[]
 }
 
 export interface ListUpdateInput {

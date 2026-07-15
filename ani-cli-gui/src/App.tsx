@@ -3,6 +3,7 @@ import { BrowsePage } from './pages/BrowsePage'
 import { HistoryPage } from './pages/HistoryPage'
 import { AnimePage } from './pages/AnimePage'
 import { HomePage } from './pages/HomePage'
+import { ProfilePage } from './pages/ProfilePage'
 import { Navigation } from './components/Navigation'
 import { AppNotifications, type AppNotification, type AppNotificationKind } from './components/AppNotifications'
 import { useTranslation } from 'react-i18next'
@@ -206,6 +207,8 @@ function App() {
             onClearInitialSelection={() => setHomeAniListOpenRequest(null)}
           />
         </div>
+
+        {activeTab === 'profile' && <ProfilePage onOpenMedia={handleOpenAniListMedia} />}
 
         {activeTab === 'search' && (
           <BrowsePage

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, session, shell, type IpcMainInvokeEvent } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, session, shell, type IpcMainInvokeEvent } from 'electron'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { dirname } from 'node:path'
@@ -20,6 +20,8 @@ import { getMiruroEpisodePageUrl } from './providers/miruro'
 import { getAnikotoEpisodePageUrl } from './providers/anikoto'
 import { AdBlockService } from './services/adblock'
 import type { AdBlockSettings } from '../src/adblock-types'
+import type { ProfileSharePayload } from '../src/profile-share-types'
+import { createProfileShareSvg } from '../src/lib/profile-share'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -47,9 +49,85 @@ const PROJECT_PAGES = {
 } as const
 
 const GRAPHICS_SETTINGS_FILE = 'graphics-settings.json'
+const PROFILE_IMAGE_MAX_BYTES = 5 * 1024 * 1024
 
 interface GraphicsSettings {
   safeGraphicsMode: boolean
+}
+
+function profileSharePayload(value: unknown): ProfileSharePayload {
+  if (!value || typeof value !== 'object') throw new TypeError('Invalid profile share payload')
+  const item = value as Partial<ProfileSharePayload>
+  const finite = (number: unknown, name: string) => {
+    if (typeof number !== 'number' || !Number.isFinite(number) || number < 0) throw new TypeError(`Invalid ${name}`)
+    return number
+  }
+  const shortText = (text: unknown, name: string, max = 100) => {
+    if (typeof text !== 'string' || !text.trim() || text.length > max) throw new TypeError(`Invalid ${name}`)
+    return text.trim()
+  }
+  const optionalAniListUrl = (url: unknown) => {
+    if (url === undefined) return undefined
+    const parsed = new URL(shortText(url, 'image URL', 1000))
+    if (parsed.protocol !== 'https:' || !(parsed.hostname === 'anilist.co' || parsed.hostname.endsWith('.anilist.co'))) throw new TypeError('Invalid AniList image URL')
+    return parsed.toString()
+  }
+  if (item.style !== 'hero' && item.style !== 'stats') throw new TypeError('Invalid profile share style')
+  if (!item.labels || typeof item.labels !== 'object') throw new TypeError('Invalid profile share labels')
+  const labels = item.labels as ProfileSharePayload['labels']
+  return {
+    style: item.style,
+    username: shortText(item.username, 'username', 80),
+    avatarUrl: optionalAniListUrl(item.avatarUrl),
+    bannerUrl: optionalAniListUrl(item.bannerUrl),
+    animeCount: finite(item.animeCount, 'anime count'),
+    completed: finite(item.completed, 'completed count'),
+    episodesWatched: finite(item.episodesWatched, 'episode count'),
+    daysWatched: finite(item.daysWatched, 'watch time'),
+    meanScore: finite(item.meanScore, 'mean score'),
+    genres: Array.isArray(item.genres) ? item.genres.slice(0, 5).map((genre) => ({ label: shortText(genre?.label, 'genre', 50), count: finite(genre?.count, 'genre count') })) : [],
+    milestone: item.milestone === undefined ? undefined : shortText(item.milestone, 'milestone', 80),
+    labels: {
+      profile: shortText(labels.profile, 'profile label', 50), anime: shortText(labels.anime, 'anime label', 50),
+      completed: shortText(labels.completed, 'completed label', 50), episodes: shortText(labels.episodes, 'episodes label', 50),
+      days: shortText(labels.days, 'days label', 50), meanScore: shortText(labels.meanScore, 'score label', 50), topGenres: shortText(labels.topGenres, 'genres label', 50),
+    },
+  }
+}
+
+async function imageDataUrl(url?: string) {
+  if (!url) return undefined
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(8_000) })
+    const type = response.headers.get('content-type')?.split(';')[0]
+    const declaredSize = Number(response.headers.get('content-length') ?? 0)
+    if (!response.ok || !type?.startsWith('image/') || declaredSize > PROFILE_IMAGE_MAX_BYTES) return undefined
+    const bytes = Buffer.from(await response.arrayBuffer())
+    if (bytes.length > PROFILE_IMAGE_MAX_BYTES) return undefined
+    return `data:${type};base64,${bytes.toString('base64')}`
+  } catch { return undefined }
+}
+
+async function renderSvgToPng(svg: string) {
+  const renderer = new BrowserWindow({
+    show: false,
+    width: 1200,
+    height: 630,
+    backgroundColor: '#17131e',
+    webPreferences: { sandbox: true, offscreen: true },
+  })
+  try {
+    await renderer.loadURL(`data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`)
+    await Promise.race([
+      renderer.webContents.executeJavaScript('document.fonts.ready.then(() => true)').catch(() => false),
+      new Promise((resolve) => setTimeout(resolve, 5_000)),
+    ])
+    const image = await renderer.webContents.capturePage({ x: 0, y: 0, width: 1200, height: 630 })
+    if (image.isEmpty()) throw new Error('Could not render profile image')
+    return image.toPNG()
+  } finally {
+    renderer.destroy()
+  }
 }
 
 function readGraphicsSettings(): GraphicsSettings {
@@ -282,6 +360,20 @@ function createWindow() {
   ipcMain.handle('anilist:auth-start', async (event) => { assertTrustedSender(event); return aniListService.startAuth() })
   ipcMain.handle('anilist:auth-logout', (event) => { assertTrustedSender(event); return aniListService.logout() })
   ipcMain.handle('anilist:dashboard', async (event) => { assertTrustedSender(event); return aniListService.dashboard() })
+  ipcMain.handle('anilist:profile', async (event) => { assertTrustedSender(event); return aniListService.profile() })
+  ipcMain.handle('anilist:profile-export', async (event, value: unknown) => {
+    assertTrustedSender(event)
+    const payload = profileSharePayload(value)
+    const [avatarDataUrl, bannerDataUrl] = await Promise.all([imageDataUrl(payload.avatarUrl), payload.style === 'hero' ? imageDataUrl(payload.bannerUrl) : undefined])
+    const svg = createProfileShareSvg(payload, { avatarDataUrl, bannerDataUrl })
+    const png = await renderSvgToPng(svg)
+    const owner = BrowserWindow.fromWebContents(event.sender)
+    const options = { title: 'Save profile card', defaultPath: join(app.getPath('pictures'), `AniPlay-${payload.username.replace(/[^a-z0-9_-]+/gi, '-')}-${payload.style}.png`), filters: [{ name: 'PNG image', extensions: ['png'] }] }
+    const result = owner ? await dialog.showSaveDialog(owner, options) : await dialog.showSaveDialog(options)
+    if (result.canceled || !result.filePath) return { saved: false }
+    await fsp.writeFile(result.filePath, png)
+    return { saved: true }
+  })
   ipcMain.handle('anilist:media', async (event, id: unknown) => { assertTrustedSender(event); return aniListService.details(requirePositiveInteger(id, 'mediaId')) })
   ipcMain.handle('anilist:list-update', async (event, input: unknown) => {
     assertTrustedSender(event)
