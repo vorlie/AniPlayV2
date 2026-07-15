@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Award, Check, Clock3, Film, Gauge, ImageDown, Loader2, LogIn, LogOut, RefreshCw, Sparkles, Star, Trophy, UserRound, X } from 'lucide-react'
+import { Check, Clock3, Film, Gauge, ImageDown, Loader2, LogIn, LogOut, RefreshCw, Sparkles, Star, UserRound, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { AnimeSummary, AniListProfile, AniListSession } from '../anilist-types'
 import type { ProfileShareStyle } from '../profile-share-types'
+import { AchievementsSection } from '../components/AchievementBrowser'
+import { createAchievements } from '../lib/profile-achievements'
+import { EMPTY_VIEWING_SUMMARY, type ViewingSummary } from '../viewing-types'
 
 interface ProfilePageProps {
   onOpenMedia: (id: number) => void
@@ -30,6 +33,7 @@ export function ProfilePage({ onOpenMedia }: ProfilePageProps) {
   const [shareStyle, setShareStyle] = useState<ProfileShareStyle>('hero')
   const [exporting, setExporting] = useState(false)
   const [shareMessage, setShareMessage] = useState<string | null>(null)
+  const [viewingSummary, setViewingSummary] = useState<ViewingSummary>(EMPTY_VIEWING_SUMMARY)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -37,7 +41,10 @@ export function ProfilePage({ onOpenMedia }: ProfilePageProps) {
     try {
       const nextSession = await window.aniPlay!.aniList.auth.status()
       setSession(nextSession)
-      setProfile(nextSession.authenticated ? await window.aniPlay!.aniList.profile.get() : null)
+      if (nextSession.authenticated) {
+        const [nextProfile, nextViewingSummary] = await Promise.all([window.aniPlay!.aniList.profile.get(), window.aniPlay!.viewing.getSummary()])
+        setProfile(nextProfile); setViewingSummary(nextViewingSummary)
+      } else { setProfile(null); setViewingSummary(EMPTY_VIEWING_SUMMARY) }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : t('profile.loadFailed'))
     } finally {
@@ -80,18 +87,11 @@ export function ProfilePage({ onOpenMedia }: ProfilePageProps) {
   const completed = profile.stats.statuses.find((item) => item.label === 'COMPLETED')?.count ?? 0
   const daysWatched = profile.stats.minutesWatched / 1440
   const maxGenreCount = Math.max(...profile.stats.genres.map((item) => item.count), 1)
-  const milestones = [
-    { key: 'episodes100', value: profile.stats.episodesWatched, target: 100 },
-    { key: 'episodes1000', value: profile.stats.episodesWatched, target: 1000 },
-    { key: 'completed100', value: completed, target: 100 },
-    { key: 'days30', value: daysWatched, target: 30 },
-  ]
-
   const exportProfile = async () => {
     setExporting(true)
     setShareMessage(null)
     setError(null)
-    const earnedMilestone = [...milestones].reverse().find((milestone) => milestone.value >= milestone.target)
+    const earnedMilestone = [...createAchievements(profile.stats, profile.achievementFacts, viewingSummary)].reverse().find((achievement) => achievement.earned)
     try {
       const result = await window.aniPlay!.aniList.profile.export({
         style: shareStyle,
@@ -104,7 +104,7 @@ export function ProfilePage({ onOpenMedia }: ProfilePageProps) {
         daysWatched,
         meanScore: profile.stats.meanScore,
         genres: profile.stats.genres.slice(0, 5).map(({ label, count }) => ({ label, count })),
-        milestone: earnedMilestone ? t(`profile.milestones.${earnedMilestone.key}`) : undefined,
+        milestone: earnedMilestone ? t(`profile.achievements.items.${earnedMilestone.id}`) : undefined,
         labels: {
           profile: t('profile.share.profileLabel'), anime: t('profile.stats.anime'), completed: t('profile.share.completed'),
           episodes: t('profile.stats.episodes'), days: t('profile.share.daysWatched'), meanScore: t('profile.stats.meanScore'), topGenres: t('profile.share.topGenres'),
@@ -151,26 +151,7 @@ export function ProfilePage({ onOpenMedia }: ProfilePageProps) {
     <div className="grid gap-5 lg:grid-cols-[1.35fr_1fr]">
       <section className="m3-card p-5"><div className="flex items-center gap-2"><Star className="text-m3-primary" size={19}/><h2 className="text-lg font-black">{t('profile.dna.title')}</h2></div><p className="mt-1 text-xs text-m3-on-surface-variant">{t('profile.dna.description')}</p><div className="mt-5 grid gap-3">{profile.stats.genres.length ? profile.stats.genres.map((genre) => <div key={genre.label}><div className="mb-1.5 flex items-center justify-between text-xs"><span className="font-bold">{genre.label}</span><span className="text-m3-on-surface-variant">{t('profile.dna.titles', { count: genre.count })}{genre.meanScore ? ` · ${genre.meanScore.toFixed(1)}` : ''}</span></div><div className="h-2 overflow-hidden rounded-full bg-m3-surface-variant/40"><div className="h-full rounded-full bg-gradient-to-r from-m3-primary to-[--custom-display-name-styles-main-color]" style={{ width: `${Math.max(4, genre.count / maxGenreCount * 100)}%` }}/></div></div>) : <p className="text-sm text-m3-on-surface-variant">{t('profile.dna.empty')}</p>}</div></section>
 
-      <section className="m3-card p-5">
-        <div className="flex items-center gap-2"><Trophy className="text-m3-primary" size={19}/><h2 className="text-lg font-black">{t('profile.milestones.title')}</h2></div>
-        <p className="mt-1 text-xs text-m3-on-surface-variant">{t('profile.milestones.description')}</p>
-        <div className="mt-5 grid gap-3">
-          {milestones.map((milestone) => {
-            const progress = Math.min(100, milestone.value / milestone.target * 100)
-            const earned = progress >= 100
-            return <article key={milestone.key} className={`rounded-2xl border p-3 ${earned ? 'border-m3-primary/40 bg-m3-primary/10' : 'border-m3-outline/15 bg-m3-surface/35'}`}>
-              <div className="flex items-center gap-3">
-                <div className={`flex size-9 items-center justify-center rounded-full ${earned ? 'bg-m3-primary text-m3-on-primary' : 'bg-m3-surface-variant/50 text-m3-on-surface-variant'}`}>{earned ? <Award size={17}/> : <Trophy size={16}/>}</div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-black">{t(`profile.milestones.${milestone.key}`)}</p>
-                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-m3-surface-variant/50"><div className="h-full rounded-full bg-m3-primary" style={{ width: `${progress}%` }}/></div>
-                </div>
-                <span className="text-[11px] font-bold text-m3-on-surface-variant">{Math.min(milestone.target, Math.floor(milestone.value))}/{milestone.target}</span>
-              </div>
-            </article>
-          })}
-        </div>
-      </section>
+      <AchievementsSection stats={profile.stats} facts={profile.achievementFacts} viewing={viewingSummary}/>
     </div>
 
     {profile.favourites.length ? <section className="space-y-3"><div className="flex items-center gap-2"><Star className="text-m3-primary" size={19}/><h2 className="text-lg font-black">{t('profile.favourites')}</h2></div><div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-8">{profile.favourites.map((media) => <FavouriteCard key={media.id} media={media} onOpen={() => onOpenMedia(media.id)}/>)}</div></section> : null}

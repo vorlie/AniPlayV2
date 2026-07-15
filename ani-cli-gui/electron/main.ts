@@ -22,6 +22,7 @@ import { AdBlockService } from './services/adblock'
 import type { AdBlockSettings } from '../src/adblock-types'
 import type { ProfileSharePayload } from '../src/profile-share-types'
 import { createProfileShareSvg } from '../src/lib/profile-share'
+import { ViewingLogService } from './services/viewing-log'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -40,6 +41,7 @@ let discordPresenceService: DiscordPresenceService
 let updateService: UpdateService
 let remoteNoticeService: RemoteNoticeService
 let adBlockService: AdBlockService
+let viewingLogService: ViewingLogService
 
 const PROJECT_PAGES = {
   repository: 'https://github.com/vorlie/AniPlayV2',
@@ -375,6 +377,8 @@ function createWindow() {
     return { saved: true }
   })
   ipcMain.handle('anilist:media', async (event, id: unknown) => { assertTrustedSender(event); return aniListService.details(requirePositiveInteger(id, 'mediaId')) })
+  ipcMain.handle('viewing:summary', (event) => { assertTrustedSender(event); return viewingLogService.getSummary() })
+  ipcMain.handle('viewing:append', async (event, value: unknown) => { assertTrustedSender(event); return viewingLogService.append(value) })
   ipcMain.handle('anilist:list-update', async (event, input: unknown) => {
     assertTrustedSender(event)
     if (!input || typeof input !== 'object') throw new TypeError('Invalid list update')
@@ -711,6 +715,8 @@ app.whenReady().then(() => {
   aniListService = new AniListService()
   aniListService.initialize()
   void aniListService.validateSession()
+  viewingLogService = new ViewingLogService(app.getPath('userData'))
+  viewingLogService.initialize()
   discordPresenceService = new DiscordPresenceService()
   discordPresenceService.initialize()
   downloadManager = new DownloadManager((state) => {

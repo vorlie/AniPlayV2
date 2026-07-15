@@ -7,6 +7,7 @@ import type { DiscordPlaybackPresence } from '../src/discord-presence-types'
 import type { UpdateState } from '../src/updater-types'
 import type { RemoteNoticeState } from '../src/remote-notice-types'
 import type { AdBlockSettings, AdBlockState } from '../src/adblock-types'
+import type { WatchSegmentInput } from '../src/viewing-types'
 
 contextBridge.exposeInMainWorld('aniPlay', {
   search: (query: string, translationType: TranslationType, catalogProvider: CatalogProvider, aniListFirstSearch?: boolean, includeAdultDocchi?: boolean) => ipcRenderer.invoke('search', query, translationType, catalogProvider, aniListFirstSearch, includeAdultDocchi),
@@ -38,6 +39,10 @@ contextBridge.exposeInMainWorld('aniPlay', {
       forget: (mediaId: number) => ipcRenderer.invoke('anilist:mapping-forget', mediaId),
       enrich: (anime: AnimeSearchResult, translationType: TranslationType) => ipcRenderer.invoke('anilist:mapping-enrich', anime, translationType),
     },
+  },
+  viewing: {
+    getSummary: () => ipcRenderer.invoke('viewing:summary'),
+    append: (segment: WatchSegmentInput) => ipcRenderer.invoke('viewing:append', segment),
   },
   discordPresence: {
     getSettings: () => ipcRenderer.invoke('discord-presence:get-settings'),

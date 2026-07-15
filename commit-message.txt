@@ -1,8 +1,7 @@
-feat: add AniList profiles and share cards
+feat: expand achievements and track viewing activity
 
-- add a dedicated profile page with viewing stats, Anime DNA, milestones, favourites, and biography
-- add Material You profile-card exports in Hero and Stats styles with local PNG saving
-- add anime relations and in-app navigation for related titles
-- redesign AniList list editing with status chips, steppers, score controls, and draft reset
-- replace full cache clearing with targeted dashboard, profile, and media invalidation
-- add English and Polish translations for the new AniList experiences
+- expand the profile collection to 32 achievements with category and status browsing
+- derive discovery, genre, episode-length, and completion milestones from AniList data
+- record append-only local viewing segments for weekly, weekend, night, and streak goals
+- harden viewing-log validation, serialized writes, and summary rebuilding
+- add English and Polish translations for the new achievement experience

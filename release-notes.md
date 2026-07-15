@@ -1,43 +1,44 @@
-# AniPlay 1.13.0
+# AniPlay 1.13.1
 
-AniPlay 1.13.0 turns the AniList integration into a more personal experience with a dedicated profile dashboard, franchise relations, improved list editing, and shareable profile cards.
+AniPlay 1.13.1 expands profile achievements with richer AniList milestones and a private, local viewing ledger for activity-based challenges.
 
-## Highlights
+## Achievement collection
 
-- Added a dedicated AniList Profile page with profile artwork, biography, viewing statistics, total watch time, mean score, and favourite anime.
-- Added an Anime DNA view that visualizes the genres appearing most often in your AniList library.
-- Added viewing milestones for completed anime, watched episodes, and total time spent watching.
-- Added shareable 1200 x 630 profile images in two styles:
-  - Hero: a cinematic, artwork-led profile card.
-  - Stats: a clean, data-focused card with genre visualization.
-- Styled exported profile cards with Material You surfaces, tonal containers, expressive shapes, and Google Sans typography.
-- Added anime relations to detail pages, including prequels, sequels, side stories, spin-offs, adaptations, and alternative versions.
-- Made related anime and profile favourites directly navigable inside AniPlay.
+- Expanded the profile collection to 32 unique achievements across library, episode, completion, watch-time, discovery, and activity categories.
+- Added a dedicated achievement browser with All, Earned, and Locked filters, while keeping the profile overview compact.
+- Kept one badge per trigger and introduced clearer themed milestones, including Otaku Starter Pack, Collector, Library of Alexandria, Isekai Protagonist, 5k Club, and Year of Anime.
+- Added English and Polish text for the new achievements and browser UI.
 
-## AniList list improvements
+## AniList-powered milestones
 
-- Replaced the old list form with localized status chips, progress and rewatch steppers, a score slider, reset support, and clearer Add/Save states.
-- Prevented unchanged list entries from being submitted again.
-- Replaced full AniList cache clearing with targeted invalidation of only the affected profile, private dashboard, and media details.
-- Preserved public dashboard, search, and unrelated media caches after list updates to reduce unnecessary AniList API requests.
-- Persisted cache invalidation so stale list data is not restored on the next launch.
+- Added Trendsetter for listing 50 currently airing anime.
+- Added Hidden Gem Hunter for finding 10 titles with fewer than 5,000 AniList users.
+- Added Marathon Runner and Long-Running Legend for completing series with at least 50 and 100 episodes.
+- Added Short & Sweet for completing 20 series with 12 or fewer episodes.
+- Added Shounen Regular for completing 10 anime carrying AniList's Shounen tag.
+- Added Slice of Life for logging 1,000 episodes from Slice of Life anime.
+- Added Filler Skipper for reaching 1,000 episodes without a currently dropped series.
+- Improved profile aggregation so custom lists and status lists do not count the same media entry twice.
 
-## Profile sharing and privacy
+## Local viewing activity
 
-- Profile cards are generated locally and saved through the native Windows Save dialog.
-- Profile data is not uploaded to a separate sharing service.
-- Avatar and banner downloads are restricted to AniList-owned HTTPS hosts and limited in size.
-- Exported profile text is escaped before rendering.
-- Added English and Polish translations for the profile, relations, milestones, list editor, and export flow.
+- Added an append-only local viewing ledger and a rebuildable summary for time-based achievements.
+- Added Binge Master for watching 24 hours within a rolling seven-day window.
+- Added Weekend Warrior for watching 12 hours during a single weekend.
+- Added Night Owl for watching 100 hours between midnight and 6 AM.
+- Added Golden Week for completing at least one episode on seven consecutive days.
+- Native playback now records active viewing segments across play, pause, buffering, seeking, completion, visibility changes, and periodic checkpoints.
+- Embedded players record activity when their provider supplies trusted playback events.
 
-## Notes
+Viewing activity remains on the device and starts accumulating after upgrading to 1.13.1; earlier sessions cannot be reconstructed retroactively.
 
-- An AniList account connection is required for profile statistics and profile-card exports.
-- Google Sans is used when available, with local system-font fallbacks when Google Fonts cannot be reached.
-- AniList profile data remains cached briefly to keep navigation responsive and reduce API traffic.
+## Reliability
+
+- Viewing events are validated and written serially to protect the local ledger from overlapping updates.
+- Summary rebuilding tolerates incomplete or malformed trailing log entries.
+- Refreshed AniList profile caching for the expanded milestone data.
 
 ## Verification
 
-- 11 focused AniList and profile-card tests passed.
-- `npm run build:ui`
-- Scoped ESLint and diff checks passed.
+- Passed 17 focused tests covering AniList normalization, achievement evaluation, viewing-log aggregation, and profile-share rendering.
+- Passed the production UI build and scoped lint checks.

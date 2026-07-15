@@ -33,6 +33,7 @@ interface PlayerPageProps {
 
 const SAVE_THROTTLE_MS = 5000
 const PRESENCE_SYNC_MS = 15000
+const WATCH_CHECKPOINT_MS = 5 * 60_000
 
 function toResumeSeconds(value: number | null | undefined) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return null
@@ -110,6 +111,8 @@ export function PlayerPage({
   const latestTimeRef = useRef(0)
   const latestDurationRef = useRef(0)
   const lastPresenceAtRef = useRef(0)
+  const playingRef = useRef(false)
+  const watchSegmentRef = useRef<{ startedAt: number; fromSeconds: number } | null>(null)
   const [activeIdx, setActiveIdx] = useState(0)
   const [showServers, setShowServers] = useState(false)
   const [failed, setFailed] = useState<Set<number>>(new Set())
@@ -155,6 +158,31 @@ export function PlayerPage({
     })
   }, [animeId, animeName, episode, aniListMediaId, coverUrl, catalogProvider])
 
+  const startWatchSegment = useCallback(() => {
+    if (!window.aniPlay || !animeId || !animeName || !episode || watchSegmentRef.current) return
+    watchSegmentRef.current = { startedAt: Date.now(), fromSeconds: latestTimeRef.current }
+  }, [animeId, animeName, episode])
+
+  const flushWatchSegment = useCallback((completed = false, restart = false) => {
+    const now = Date.now()
+    const segment = watchSegmentRef.current ?? (completed ? { startedAt: now - 1000, fromSeconds: Math.max(0, latestTimeRef.current - 1) } : null)
+    watchSegmentRef.current = null
+    if (segment && window.aniPlay && animeId && animeName && episode) {
+      const endedAt = now
+      const activeSeconds = Math.max(0, (endedAt - segment.startedAt) / 1000)
+      if (activeSeconds >= (completed ? 1 : 10)) {
+        void window.aniPlay.viewing.append({
+          startedAt: segment.startedAt, endedAt, activeSeconds, timezoneOffsetMinutes: new Date(segment.startedAt).getTimezoneOffset(),
+          animeId, animeName, episode, catalogProvider, aniListMediaId,
+          fromSeconds: segment.fromSeconds, toSeconds: latestTimeRef.current,
+          durationSeconds: latestDurationRef.current > 0 ? latestDurationRef.current : undefined,
+          completed,
+        }).catch(() => {})
+      }
+    }
+    if (restart && playingRef.current) startWatchSegment()
+  }, [animeId, animeName, episode, catalogProvider, aniListMediaId, startWatchSegment])
+
   const updatePresence = useCallback((playing: boolean, force = false) => {
     if (!window.aniPlay || !animeName || !episode) return
     const now = Date.now()
@@ -194,6 +222,7 @@ export function PlayerPage({
         setCurrentTime(latestTimeRef.current)
         setDuration(latestDurationRef.current)
         setIsPlaying(true)
+        if (!playingRef.current) { playingRef.current = true; startWatchSegment() }
         saveProgress(false)
         updatePresence(true, false)
       }
@@ -206,15 +235,18 @@ export function PlayerPage({
         setCurrentTime(latestTimeRef.current)
         setDuration(latestDurationRef.current)
         setIsPlaying(false)
+        playingRef.current = false
+        flushWatchSegment(true)
         saveProgress(true)
         void window.aniPlay?.discordPresence.clear().catch(() => {})
       }
+      if (payload.event === 'pause') { playingRef.current = false; setIsPlaying(false); flushWatchSegment(false) }
     }
 
     window.addEventListener('message', handleMessage)
     updatePresence(true, true)
     return () => window.removeEventListener('message', handleMessage)
-  }, [activeEmbedOrigin, isEmbedLink, saveProgress, updatePresence])
+  }, [activeEmbedOrigin, flushWatchSegment, isEmbedLink, saveProgress, startWatchSegment, updatePresence])
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
@@ -295,20 +327,34 @@ export function PlayerPage({
   }, [])
 
   useEffect(() => {
-    const flush = () => {
+    const checkpoint = window.setInterval(() => { if (playingRef.current) flushWatchSegment(false, true) }, WATCH_CHECKPOINT_MS)
+    return () => window.clearInterval(checkpoint)
+  }, [flushWatchSegment])
+
+  useEffect(() => {
+    const flushFinal = () => {
       saveProgress(true)
+      playingRef.current = false
+      flushWatchSegment(false)
     }
-    window.addEventListener('pagehide', flush)
-    window.addEventListener('beforeunload', flush)
-    document.addEventListener('visibilitychange', flush)
-    return () => {
-      window.removeEventListener('pagehide', flush)
-      window.removeEventListener('beforeunload', flush)
-      document.removeEventListener('visibilitychange', flush)
+    const flushVisibilityCheckpoint = () => {
+      if (document.visibilityState !== 'hidden') return
       saveProgress(true)
+      flushWatchSegment(false, true)
+    }
+    window.addEventListener('pagehide', flushFinal)
+    window.addEventListener('beforeunload', flushFinal)
+    document.addEventListener('visibilitychange', flushVisibilityCheckpoint)
+    return () => {
+      window.removeEventListener('pagehide', flushFinal)
+      window.removeEventListener('beforeunload', flushFinal)
+      document.removeEventListener('visibilitychange', flushVisibilityCheckpoint)
+      saveProgress(true)
+      playingRef.current = false
+      flushWatchSegment(false)
       void window.aniPlay?.discordPresence.clear().catch(() => {})
     }
-  }, [saveProgress])
+  }, [flushWatchSegment, saveProgress])
 
   const tryNextServer = () => {
     setFailed((prev) => {
@@ -346,6 +392,8 @@ export function PlayerPage({
     latestTimeRef.current = video.currentTime || 0
     latestDurationRef.current = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : latestDurationRef.current
     setIsPlaying(true)
+    playingRef.current = true
+    startWatchSegment()
     updatePresence(true, true)
   }
 
@@ -353,6 +401,8 @@ export function PlayerPage({
     latestTimeRef.current = video.currentTime || 0
     latestDurationRef.current = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : latestDurationRef.current
     setIsPlaying(false)
+    playingRef.current = false
+    flushWatchSegment(false)
     saveProgress(true)
     updatePresence(false, true)
   }
@@ -361,8 +411,10 @@ export function PlayerPage({
     latestTimeRef.current = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : video.currentTime || 0
     latestDurationRef.current = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : latestDurationRef.current
     setIsPlaying(false)
+    playingRef.current = false
     setCurrentTime(latestTimeRef.current)
     saveProgress(true)
+    flushWatchSegment(true)
     void window.aniPlay?.discordPresence.clear().catch(() => {})
   }
 
@@ -393,10 +445,13 @@ export function PlayerPage({
   const seek = (t: number) => {
     const video = videoRef.current
     if (!video) return
+    const wasPlaying = !video.paused
+    flushWatchSegment(false)
     const nextTime = Math.max(0, Math.min(duration || 0, t))
     video.currentTime = nextTime
     latestTimeRef.current = nextTime
     setCurrentTime(nextTime)
+    if (wasPlaying) { playingRef.current = true; startWatchSegment() }
     updatePresence(!video.paused, true)
   }
 
@@ -429,6 +484,8 @@ export function PlayerPage({
 
   const handleBack = () => {
     saveProgress(true)
+    playingRef.current = false
+    flushWatchSegment(false)
     onBack()
   }
 
@@ -509,7 +566,8 @@ export function PlayerPage({
               controls={useNativeControls}
               autoPlay
               onError={tryNextServer}
-              onPlay={(e) => handlePlaying(e.currentTarget)}
+              onPlaying={(e) => handlePlaying(e.currentTarget)}
+              onWaiting={() => { playingRef.current = false; flushWatchSegment(false) }}
               onPause={(e) => handlePause(e.currentTarget)}
               onEnded={(e) => handleEnded(e.currentTarget)}
               onTimeUpdate={(e) => handleTimeUpdate(e.currentTarget)}
@@ -543,7 +601,8 @@ export function PlayerPage({
                 controls={useNativeControls}
                 autoPlay
                 onError={tryNextServer}
-                onPlay={(e) => handlePlaying(e.currentTarget)}
+                onPlaying={(e) => handlePlaying(e.currentTarget)}
+                onWaiting={() => { playingRef.current = false; flushWatchSegment(false) }}
                 onPause={(e) => handlePause(e.currentTarget)}
                 onEnded={(e) => handleEnded(e.currentTarget)}
                 onTimeUpdate={(e) => handleTimeUpdate(e.currentTarget)}

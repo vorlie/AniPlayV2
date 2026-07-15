@@ -76,9 +76,31 @@ const resources = {
           title: 'Anime DNA', description: 'Your most-watched genres, based on your AniList library.',
           titles: '{{count}} titles', empty: 'Track a few anime to reveal your taste profile.',
         },
-        milestones: {
-          title: 'Milestones', description: 'A few landmarks from your anime journey.',
-          episodes100: 'Opening act', episodes1000: 'Thousand episode club', completed100: 'Century club', days30: 'Thirty days of anime',
+        achievements: {
+          title: 'Achievements', collection: 'Achievement collection', browserTitle: 'Your anime journey',
+          summary: '{{earned}} of {{total}} achievements earned', browse: 'Browse all', close: 'Close achievements', earned: 'Earned', empty: 'No achievements match these filters.',
+          filters: { all: 'All', earned: 'Earned', locked: 'Locked' },
+          categories: { all: 'All', library: 'Library', episodes: 'Episodes', completed: 'Completed', time: 'Watch time', discovery: 'Discovery', activity: 'Activity' },
+          goals: {
+            library: 'Track {{target}} anime', episodes: 'Watch {{target}} episodes', completed: 'Complete {{target}} anime', time: 'Spend {{target}} days watching anime',
+          },
+          specialGoals: {
+            trendsetter: 'Add 50 currently airing anime', hiddenGemHunter: 'Add 10 anime with fewer than 5,000 AniList users',
+            marathonRunner: 'Complete a series with at least 50 episodes', longRunningLegend: 'Complete a series with at least 100 episodes',
+            shortAndSweet: 'Complete 20 series with 12 episodes or fewer', shounenRegular: 'Complete 10 anime tagged Shounen',
+            sliceOfLife: 'Watch 1,000 episodes of Slice of Life anime', fillerSkipper: 'Reach 1,000 episodes with nothing currently dropped',
+            bingeMaster: 'Watch 24 hours within seven days in AniPlay', weekendWarrior: 'Watch 12 hours in one weekend in AniPlay',
+            nightOwl: 'Watch 100 hours between midnight and 6 AM in AniPlay', goldenWeek: 'Finish an episode on seven consecutive days in AniPlay',
+          },
+          items: {
+            library10: 'Otaku starter pack', library50: 'Growing collection', library100: 'Collector', library250: 'Seasoned curator', library500: 'Library of Alexandria',
+            episodes100: 'Opening act', episodes500: 'Binge initiate', episodes1000: 'Episode sage', episodes2500: 'Marathon legend', episodes5000: 'The 5k club',
+            completed1: 'Isekai protagonist', completed10: 'Decade of shows', completed50: 'Finale collector', completed100: 'Seasoned veteran', completed250: 'The ultimate completionist',
+            days1: 'A day in another world', days7: 'Weeklong watch', days30: 'Thirty days of anime', days100: 'Time traveller', days365: 'Year of anime',
+            trendsetter: 'Trendsetter', hiddenGemHunter: 'Hidden gem hunter', marathonRunner: 'Marathon runner', longRunningLegend: 'Long-running legend',
+            shortAndSweet: 'Short & sweet', shounenRegular: 'Shounen regular', sliceOfLife: 'Slice of life', fillerSkipper: 'Filler skipper',
+            bingeMaster: 'Binge master', weekendWarrior: 'Weekend warrior', nightOwl: 'Night owl', goldenWeek: 'Golden week',
+          },
         },
         share: {
           button: 'Share', title: 'Create a profile card', description: 'Choose a style and save a share-ready PNG.', close: 'Close share options',
@@ -503,9 +525,31 @@ const resources = {
           title: 'Anime DNA', description: 'Najczęściej oglądane gatunki na podstawie Twojej biblioteki AniList.',
           titles: '{{count}} tytułów', empty: 'Dodaj kilka anime, aby odkryć swój profil gustu.',
         },
-        milestones: {
-          title: 'Osiągnięcia', description: 'Kilka punktów orientacyjnych w Twojej historii z anime.',
-          episodes100: 'Pierwszy opening', episodes1000: 'Klub tysiąca odcinków', completed100: 'Klub setki', days30: 'Trzydzieści dni anime',
+        achievements: {
+          title: 'Osiągnięcia', collection: 'Kolekcja osiągnięć', browserTitle: 'Twoja historia z anime',
+          summary: 'Zdobyte osiągnięcia: {{earned}} z {{total}}', browse: 'Przeglądaj', close: 'Zamknij osiągnięcia', earned: 'Zdobyte', empty: 'Brak osiągnięć pasujących do filtrów.',
+          filters: { all: 'Wszystkie', earned: 'Zdobyte', locked: 'Zablokowane' },
+          categories: { all: 'Wszystkie', library: 'Biblioteka', episodes: 'Odcinki', completed: 'Ukończone', time: 'Czas oglądania', discovery: 'Odkrywanie', activity: 'Aktywność' },
+          goals: {
+            library: 'Śledź {{target}} anime', episodes: 'Obejrzyj {{target}} odcinków', completed: 'Ukończ {{target}} anime', time: 'Spędź {{target}} dni na oglądaniu anime',
+          },
+          specialGoals: {
+            trendsetter: 'Dodaj 50 obecnie emitowanych anime', hiddenGemHunter: 'Dodaj 10 anime z popularnością poniżej 5000 użytkowników AniList',
+            marathonRunner: 'Ukończ serię mającą co najmniej 50 odcinków', longRunningLegend: 'Ukończ serię mającą co najmniej 100 odcinków',
+            shortAndSweet: 'Ukończ 20 serii mających najwyżej 12 odcinków', shounenRegular: 'Ukończ 10 anime z tagiem Shounen',
+            sliceOfLife: 'Obejrzyj 1000 odcinków anime Slice of Life', fillerSkipper: 'Osiągnij 1000 odcinków bez obecnie porzuconych serii',
+            bingeMaster: 'Oglądaj przez 24 godziny w ciągu siedmiu dni w AniPlay', weekendWarrior: 'Oglądaj przez 12 godzin w jeden weekend w AniPlay',
+            nightOwl: 'Oglądaj przez 100 godzin między północą a 6:00 w AniPlay', goldenWeek: 'Ukończ odcinek przez siedem kolejnych dni w AniPlay',
+          },
+          items: {
+            library10: 'Pakiet startowy otaku', library50: 'Rosnąca kolekcja', library100: 'Kolekcjoner', library250: 'Doświadczony kurator', library500: 'Biblioteka Aleksandryjska',
+            episodes100: 'Pierwszy opening', episodes500: 'Uczeń maratonu', episodes1000: 'Mędrzec odcinków', episodes2500: 'Legenda maratonów', episodes5000: 'Klub 5k',
+            completed1: 'Protagonista isekai', completed10: 'Dekada serii', completed50: 'Kolekcjoner finałów', completed100: 'Doświadczony weteran', completed250: 'Ostateczny kompletysta',
+            days1: 'Dzień w innym świecie', days7: 'Tydzień oglądania', days30: 'Trzydzieści dni z anime', days100: 'Podróżnik w czasie', days365: 'Rok anime',
+            trendsetter: 'Trendsetter', hiddenGemHunter: 'Łowca ukrytych pereł', marathonRunner: 'Maratończyk', longRunningLegend: 'Legenda długich serii',
+            shortAndSweet: 'Krótko i słodko', shounenRegular: 'Stały bywalec shounen', sliceOfLife: 'Okruchy życia', fillerSkipper: 'Pogromca fillerów',
+            bingeMaster: 'Mistrz binge-watchingu', weekendWarrior: 'Weekendowy wojownik', nightOwl: 'Nocny marek', goldenWeek: 'Złoty tydzień',
+          },
         },
         share: {
           button: 'Udostępnij', title: 'Utwórz kartę profilu', description: 'Wybierz styl i zapisz gotowy do udostępnienia plik PNG.', close: 'Zamknij opcje udostępniania',

@@ -32,7 +32,7 @@ const PRIVATE_DASHBOARD_QUERY = `query PrivateDashboard($userId: Int!) {
 }
 fragment Card on Media { id title { english romaji userPreferred } synonyms coverImage { large color } bannerImage format seasonYear episodes averageScore nextAiringEpisode { episode airingAt } mediaListEntry { id status progress score repeat } }`
 
-const PROFILE_QUERY = `query Profile {
+const PROFILE_QUERY = `query Profile($userId: Int!) {
   Viewer {
     id name about(asHtml: false) avatar { large medium } bannerImage
     statistics { anime {
@@ -41,6 +41,9 @@ const PROFILE_QUERY = `query Profile {
       genres(limit: 12, sort: COUNT_DESC) { genre count meanScore minutesWatched }
     } }
     favourites { anime(page: 1, perPage: 8) { nodes { ...Card } } }
+  }
+  list: MediaListCollection(userId: $userId, type: ANIME) {
+    lists { entries { status progress repeat media { id episodes popularity status genres tags { name rank } } } }
   }
 }
 fragment Card on Media { id title { english romaji userPreferred } synonyms coverImage { large color } bannerImage format seasonYear episodes averageScore nextAiringEpisode { episode airingAt } mediaListEntry { id status progress score repeat } }`
@@ -189,7 +192,7 @@ export class AniListService {
   private invalidateListCaches(mediaId?: number, entryId?: number) {
     if (this.user) {
       this.cache.delete(`dashboard:user:${this.user.id}`)
-      this.cache.delete(`profile:user:${this.user.id}`)
+      this.cache.delete(`profile:v2:user:${this.user.id}`)
     }
 
     for (const [key, cached] of this.cache) {
@@ -282,10 +285,17 @@ export class AniListService {
 
   async profile(): Promise<AniListProfile> {
     if (!this.user) throw new Error('Sign in to AniList first')
-    const data = record(await this.request(PROFILE_QUERY, {}, true, true, `profile:user:${this.user.id}`))
+    const data = record(await this.request(PROFILE_QUERY, { userId: this.user.id }, true, true, `profile:v2:user:${this.user.id}`))
     const viewer = record(data.Viewer)
     const avatar = record(viewer.avatar)
     const anime = record(record(viewer.statistics).anime)
+    const rawEntries = array(record(data.list).lists).flatMap((list) => array(record(list).entries).map(record))
+    const entries = [...new Map(rawEntries.map((entry) => [number(record(entry.media).id), entry] as const).filter(([id]) => id !== undefined)).values()]
+    const completedEntries = entries.filter((entry) => entry.status === 'COMPLETED')
+    const episodeCount = (entry: JsonObject) => number(record(entry.media).episodes) ?? 0
+    const hasGenre = (entry: JsonObject, genre: string) => array(record(entry.media).genres).includes(genre)
+    const hasTag = (entry: JsonObject, tag: string) => array(record(entry.media).tags).some((value) => text(record(value).name)?.toLowerCase() === tag.toLowerCase())
+    const consumedEpisodes = (entry: JsonObject) => (number(entry.progress) ?? 0) + (number(entry.repeat) ?? 0) * episodeCount(entry)
     return {
       user: {
         id: number(viewer.id) ?? this.user.id,
@@ -301,6 +311,15 @@ export class AniListService {
         meanScore: number(anime.meanScore) ?? 0,
         statuses: normalizeProfileGroups(anime.statuses, 'status'),
         genres: normalizeProfileGroups(anime.genres, 'genre'),
+      },
+      achievementFacts: {
+        currentlyAiring: entries.filter((entry) => record(entry.media).status === 'RELEASING').length,
+        hiddenGems: entries.filter((entry) => { const popularity = number(record(entry.media).popularity); return popularity !== undefined && popularity < 5_000 }).length,
+        completedLong50: completedEntries.filter((entry) => episodeCount(entry) >= 50).length,
+        completedLong100: completedEntries.filter((entry) => episodeCount(entry) >= 100).length,
+        completedShort12: completedEntries.filter((entry) => { const episodes = episodeCount(entry); return episodes > 0 && episodes <= 12 }).length,
+        completedShounen: completedEntries.filter((entry) => hasTag(entry, 'Shounen')).length,
+        sliceOfLifeEpisodes: entries.filter((entry) => hasGenre(entry, 'Slice of Life')).reduce((sum, entry) => sum + consumedEpisodes(entry), 0),
       },
       favourites: array(record(record(viewer.favourites).anime).nodes).map(normalizeMedia).filter((item) => item.id),
     }

@@ -83,6 +83,15 @@ export interface AniListProfile {
     statuses: AniListProfileStatGroup[]
     genres: AniListProfileStatGroup[]
   }
+  achievementFacts: {
+    currentlyAiring: number
+    hiddenGems: number
+    completedLong50: number
+    completedLong100: number
+    completedShort12: number
+    completedShounen: number
+    sliceOfLifeEpisodes: number
+  }
   favourites: AnimeSummary[]
 }
 

@@ -6,6 +6,7 @@ import type { UpdateState } from './updater-types'
 import type { RemoteNoticeState } from './remote-notice-types'
 import type { AdBlockSettings, AdBlockState } from './adblock-types'
 import type { ProfileSharePayload } from './profile-share-types'
+import type { WatchSegmentInput, ViewingSummary } from './viewing-types'
 
 interface SearchResult {
   id: string
@@ -81,6 +82,10 @@ interface AniPlayApi {
       forget(mediaId: number): Promise<boolean>
       enrich(anime: SearchResult, translationType: TranslationType): Promise<AnimeSummary | null>
     }
+  }
+  viewing: {
+    getSummary(): Promise<ViewingSummary>
+    append(segment: WatchSegmentInput): Promise<ViewingSummary>
   }
   discordPresence: {
     getSettings(): Promise<DiscordPresenceSettings>
