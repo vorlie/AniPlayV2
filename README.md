@@ -180,7 +180,7 @@ Normal application features still contact their respective services: playback pr
 
 ## Discord Rich Presence
 
-Rich Presence is disabled by default. Enable it under Settings → Player → Discord Rich Presence.
+Rich Presence is disabled by default. Enable it under Settings -> Player -> Discord Rich Presence.
 
 - Discord Desktop must be running locally.
 - AniList-linked playback can use the anime cover and AniList page.
