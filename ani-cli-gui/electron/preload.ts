@@ -15,6 +15,8 @@ contextBridge.exposeInMainWorld('aniPlay', {
   getEpisodeLinks: (showId: string, episode: string, translationType: TranslationType, catalogProvider: CatalogProvider) => ipcRenderer.invoke('links', showId, episode, translationType, catalogProvider),
   openProviderEpisode: (showId: string, episode: string, catalogProvider: CatalogProvider, translationType?: TranslationType) => ipcRenderer.invoke('open-provider-episode', showId, episode, catalogProvider, translationType),
   getCiphermapInfo: () => ipcRenderer.invoke('get-ciphermap-info'),
+  getAllAnimeDebugInfo: (refresh = false) => ipcRenderer.invoke('get-allanime-debug-info', refresh),
+  exportAllAnimeDebugInfo: () => ipcRenderer.invoke('export-allanime-debug-info'),
   syncCiphermap: () => ipcRenderer.invoke('sync-ciphermap'),
   openProjectPage: (page: 'repository' | 'issues' | 'pulls' | 'discord') => ipcRenderer.invoke('open-project-page', page),
   aniList: {

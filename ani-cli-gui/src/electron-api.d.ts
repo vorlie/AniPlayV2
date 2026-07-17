@@ -7,6 +7,7 @@ import type { RemoteNoticeState } from './remote-notice-types'
 import type { AdBlockSettings, AdBlockState } from './adblock-types'
 import type { ProfileSharePayload } from './profile-share-types'
 import type { WatchSegmentInput, ViewingSummary } from './viewing-types'
+import type { AllAnimeDebugInfo } from './scraper-types'
 
 interface SearchResult {
   id: string
@@ -68,6 +69,8 @@ interface AniPlayApi {
   getEpisodeLinks(showId: string, episode: string, translationType: TranslationType, catalogProvider: CatalogProvider): Promise<IpcResponse<StreamLink[]>>
   openProviderEpisode(showId: string, episode: string, catalogProvider: CatalogProvider, translationType?: TranslationType): Promise<IpcResponse<void>>
   getCiphermapInfo(): Promise<IpcResponse<CiphermapInfo | null>>
+  getAllAnimeDebugInfo(refresh?: boolean): Promise<AllAnimeDebugInfo>
+  exportAllAnimeDebugInfo(): Promise<{ saved: boolean }>
   syncCiphermap(): Promise<CiphermapSyncResponse>
   openProjectPage(page: 'repository' | 'issues' | 'pulls' | 'discord'): Promise<{ success: boolean }>
   aniList: {

@@ -7,6 +7,7 @@ import { getDocchiEpisodeLinks, getDocchiEpisodes, searchDocchi } from './provid
 import { getMiruroEpisodeLinks, getMiruroEpisodes, searchMiruro } from './providers/miruro'
 import { getAnikotoEpisodeLinks, getAnikotoEpisodes, searchAnikoto } from './providers/anikoto'
 import type { CatalogProvider } from '../src/catalog-types'
+import type { AllAnimeDebugInfo } from '../src/scraper-types'
 
 const DEFAULT_TIMEOUT_MS = 10_000
 
@@ -199,8 +200,9 @@ const ALLANIME_EPOCH = 4128
 const ALLANIME_BUILD_ID = '12'
 const ALLANIME_LEGACY_BUILD_ID = '9'
 const ALLANIME_QUERY_HASH = 'd405d0edd690624b66baba3068e0edc3ac90f1597d898a1ec8db4e5c43c00fec'
-const ALLANIME_STATIC_KEY = Buffer.from(Buffer.from('b1a9a4d051988f1b1b12dbb747439d9bd64b09ea17835600a7eaa4de87c1ad87', 'hex')
-  .map((byte, index) => byte ^ Buffer.from('k7DLdv5SGiuEyGUtcncl5wQOR7r4aenLfDV3AOBKlAU=', 'base64')[index]))
+const ALLANIME_STATIC_PART_A = 'b1a9a4d051988f1b1b12dbb747439d9bd64b09ea17835600a7eaa4de87c1ad87'
+const ALLANIME_STATIC_PART_B = 'k7DLdv5SGiuEyGUtcncl5wQOR7r4aenLfDV3AOBKlAU='
+const ALLANIME_STATIC_KEY = xorAllAnimeKey(ALLANIME_STATIC_PART_A, ALLANIME_STATIC_PART_B)
 const ALLANIME_RESPONSE_FALLBACK_SECRET = [88, 111, 116, 51, 54, 105, 51, 108, 75, 51].map((code) => String.fromCharCode(code)).join('')
 
 interface AllAnimeCryptoMaterial {
@@ -208,6 +210,12 @@ interface AllAnimeCryptoMaterial {
   buildId: string
   key: Buffer
   legacyCtr?: boolean
+  source: 'dynamic' | 'fallback'
+  partA: string
+  partB: string
+  appJsUrl?: string
+  fetchedAt: string
+  error?: string
 }
 
 let allAnimeCryptoMaterial: { value: AllAnimeCryptoMaterial; expiresAt: number } | null = null
@@ -226,7 +234,7 @@ async function fetchText(input: string | URL, init: RequestInit = {}, timeoutMs 
 
 async function getAllAnimeCryptoMaterial(): Promise<AllAnimeCryptoMaterial> {
   if (allAnimeCryptoMaterial && allAnimeCryptoMaterial.expiresAt > Date.now()) return allAnimeCryptoMaterial.value
-  const fallback: AllAnimeCryptoMaterial = { epoch: ALLANIME_EPOCH, buildId: ALLANIME_BUILD_ID, key: ALLANIME_STATIC_KEY, legacyCtr: true }
+  const fetchedAt = new Date().toISOString()
 
   try {
     const page = await fetchText('https://mkissa.to', {
@@ -259,13 +267,55 @@ async function getAllAnimeCryptoMaterial(): Promise<AllAnimeCryptoMaterial> {
     }
     if (!mask || !buildId) throw new Error('AllAnime encryption chunk did not expose key material')
 
-    const value: AllAnimeCryptoMaterial = { epoch, buildId, key: xorAllAnimeKey(mask, partB) }
+    const value: AllAnimeCryptoMaterial = {
+      epoch,
+      buildId,
+      key: xorAllAnimeKey(mask, partB),
+      source: 'dynamic',
+      partA: mask,
+      partB,
+      appJsUrl,
+      fetchedAt,
+    }
     allAnimeCryptoMaterial = { value, expiresAt: Date.now() + 30 * 60_000 }
     return value
   } catch (error: unknown) {
-    console.warn('[scrape] Dynamic AllAnime crypto material unavailable, using bundled fallback:', errorMessage(error))
+    const message = errorMessage(error)
+    const fallback: AllAnimeCryptoMaterial = {
+      epoch: ALLANIME_EPOCH,
+      buildId: ALLANIME_BUILD_ID,
+      key: ALLANIME_STATIC_KEY,
+      legacyCtr: true,
+      source: 'fallback',
+      partA: ALLANIME_STATIC_PART_A,
+      partB: ALLANIME_STATIC_PART_B,
+      fetchedAt,
+      error: message,
+    }
+    console.warn('[scrape] Dynamic AllAnime crypto material unavailable, using bundled fallback:', message)
     allAnimeCryptoMaterial = { value: fallback, expiresAt: Date.now() + 5 * 60_000 }
     return fallback
+  }
+}
+
+export async function getAllAnimeDebugInfo(refresh = false): Promise<AllAnimeDebugInfo> {
+  if (refresh) allAnimeCryptoMaterial = null
+  const material = await getAllAnimeCryptoMaterial()
+  return {
+    source: material.source,
+    epoch: material.epoch,
+    buildId: material.buildId,
+    partA: material.partA,
+    partB: material.partB,
+    derivedKeyHex: material.key.toString('hex'),
+    queryHash: ALLANIME_QUERY_HASH,
+    apiUrl: ALLANIME_API,
+    referer: ALLANIME_REFR,
+    appJsUrl: material.appJsUrl,
+    fetchedAt: material.fetchedAt,
+    cacheExpiresAt: new Date(allAnimeCryptoMaterial?.expiresAt ?? Date.now()).toISOString(),
+    legacyCtr: material.legacyCtr === true,
+    error: material.error,
   }
 }
 
@@ -382,8 +432,8 @@ export async function getEpisodeLinks(showId: string, epNo: string, mode: Transl
     const dynamicMaterial = await getAllAnimeCryptoMaterial()
     const materials: AllAnimeCryptoMaterial[] = [
       dynamicMaterial,
-      { epoch: ALLANIME_EPOCH, buildId: ALLANIME_BUILD_ID, key: ALLANIME_STATIC_KEY, legacyCtr: true },
-      { epoch: ALLANIME_EPOCH, buildId: ALLANIME_LEGACY_BUILD_ID, key: ALLANIME_STATIC_KEY, legacyCtr: true },
+      { ...dynamicMaterial, epoch: ALLANIME_EPOCH, buildId: ALLANIME_BUILD_ID, key: ALLANIME_STATIC_KEY, legacyCtr: true, source: 'fallback' as const, partA: ALLANIME_STATIC_PART_A, partB: ALLANIME_STATIC_PART_B },
+      { ...dynamicMaterial, epoch: ALLANIME_EPOCH, buildId: ALLANIME_LEGACY_BUILD_ID, key: ALLANIME_STATIC_KEY, legacyCtr: true, source: 'fallback' as const, partA: ALLANIME_STATIC_PART_A, partB: ALLANIME_STATIC_PART_B },
     ].filter((material, index, items) => items.findIndex((item) => item.epoch === material.epoch && item.buildId === material.buildId && item.key.equals(material.key)) === index)
     let result: unknown = null
     let rawText = ''

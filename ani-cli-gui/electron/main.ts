@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname } from 'node:path'
 import fs from 'node:fs'
 import { promises as fsp } from 'node:fs'
-import { searchAnime, getEpisodes, getEpisodeLinks, reloadCipherMap, type TranslationType } from './scrape'
+import { searchAnime, getEpisodes, getEpisodeLinks, getAllAnimeDebugInfo, getCipherMap, reloadCipherMap, type TranslationType } from './scrape'
 import { DownloadManager } from './downloads/download-manager'
 import type { DownloadRequest } from '../src/download-types'
 import { AniListService } from './services/anilist'
@@ -608,6 +608,55 @@ function createWindow() {
     } catch {
       return { success: true, data: null }
     }
+  })
+
+  ipcMain.handle('get-allanime-debug-info', async (event, refresh: unknown) => {
+    assertTrustedSender(event)
+    return getAllAnimeDebugInfo(refresh === true)
+  })
+
+  ipcMain.handle('export-allanime-debug-info', async (event) => {
+    assertTrustedSender(event)
+    const cryptoInfo = await getAllAnimeDebugInfo()
+    const ciphermapPath = join(app.getPath('userData'), 'ciphermap.json')
+    let ciphermapSource: Record<string, unknown> = { source: 'builtin:aniplay', generatedAt: null, tag: null }
+    try {
+      const parsed = JSON.parse(await fsp.readFile(ciphermapPath, 'utf8')) as unknown
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        const record = parsed as Record<string, unknown>
+        ciphermapSource = {
+          source: record.source ?? 'persisted',
+          generatedAt: record.generatedAt ?? null,
+          tag: record.tag ?? null,
+          metadata: record.metadata ?? null,
+        }
+      }
+    } catch {
+      // The active map is the bundled fallback when no persisted map is available.
+    }
+    const cipherMap = getCipherMap()
+    const payload = {
+      format: 'aniplay-allanime-debug',
+      schemaVersion: 1,
+      exportedAt: new Date().toISOString(),
+      crypto: cryptoInfo,
+      cipherMap: {
+        ...ciphermapSource,
+        entries: Object.keys(cipherMap).length,
+        values: cipherMap,
+      },
+    }
+    const date = new Date().toISOString().slice(0, 10)
+    const owner = BrowserWindow.fromWebContents(event.sender)
+    const options = {
+      title: 'Export AllAnime scraper data',
+      defaultPath: join(app.getPath('documents'), `aniplay-allanime-debug-${date}.json`),
+      filters: [{ name: 'JSON data', extensions: ['json'] }],
+    }
+    const result = owner ? await dialog.showSaveDialog(owner, options) : await dialog.showSaveDialog(options)
+    if (result.canceled || !result.filePath) return { saved: false }
+    await fsp.writeFile(result.filePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8')
+    return { saved: true }
   })
 
   ipcMain.handle('downloads:get-state', (event) => {

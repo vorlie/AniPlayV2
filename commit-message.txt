@@ -1,7 +1,1 @@
-feat: expand achievements and track viewing activity
-
-- expand the profile collection to 32 achievements with category and status browsing
-- derive discovery, genre, episode-length, and completion milestones from AniList data
-- record append-only local viewing segments for weekly, weekend, night, and streak goals
-- harden viewing-log validation, serialized writes, and summary rebuilding
-- add English and Polish translations for the new achievement experience
+feat: expose and export AllAnime runtime crypto diagnostics from scraper settings

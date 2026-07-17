@@ -8,6 +8,7 @@ import { getNotificationSoundMode, getNotificationSoundPreset, playNotificationS
 import { setAppLanguage, supportedLanguages, type AppLanguage } from '../i18n'
 import type { UpdateState } from '../updater-types'
 import type { AdBlockMode, AdBlockState } from '../adblock-types'
+import type { AllAnimeDebugInfo } from '../scraper-types'
 
 const DEFAULT_PRIMARY = '#D0BCFF'
 
@@ -80,6 +81,11 @@ export function SettingsPage() {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
   const [syncError, setSyncError] = useState<string | null>(null)
   const [ciphermapInfo, setCiphermapInfo] = useState<CiphermapInfo | null>(null)
+  const [cryptoDebugInfo, setCryptoDebugInfo] = useState<AllAnimeDebugInfo | null>(null)
+  const [cryptoDebugLoading, setCryptoDebugLoading] = useState(false)
+  const [cryptoDebugError, setCryptoDebugError] = useState<string | null>(null)
+  const [cryptoExportStatus, setCryptoExportStatus] = useState<SyncStatus>('idle')
+  const [cryptoExportError, setCryptoExportError] = useState<string | null>(null)
   const [downloadDirectory, setDownloadDirectory] = useState('Loading…')
   const [discordPresenceEnabled, setDiscordPresenceEnabled] = useState(false)
   const [discordPresenceConnected, setDiscordPresenceConnected] = useState(false)
@@ -98,6 +104,17 @@ export function SettingsPage() {
     setPrimary(saved)
     applyThemeFromPrimary(saved)
   }, [])
+
+  useEffect(() => {
+    if (activeSection !== 'scraper' || cryptoDebugInfo || cryptoDebugLoading) return
+    setCryptoDebugLoading(true)
+    window.aniPlay?.getAllAnimeDebugInfo().then((info) => {
+      setCryptoDebugInfo(info)
+      setCryptoDebugError(null)
+    }).catch((error: unknown) => {
+      setCryptoDebugError(error instanceof Error ? error.message : t('settings.scraper.unknownError'))
+    }).finally(() => setCryptoDebugLoading(false))
+  }, [activeSection, cryptoDebugInfo, cryptoDebugLoading, t])
 
   useEffect(() => {
     if (!window.aniPlay) return
@@ -214,6 +231,31 @@ export function SettingsPage() {
     } catch (e: unknown) {
       setSyncStatus('error')
       setSyncError(e instanceof Error ? e.message : t('settings.scraper.unknownError'))
+    }
+  }
+
+  const refreshCryptoDebugInfo = async () => {
+    setCryptoDebugLoading(true)
+    setCryptoDebugError(null)
+    try {
+      const info = await window.aniPlay?.getAllAnimeDebugInfo(true)
+      if (info) setCryptoDebugInfo(info)
+    } catch (error: unknown) {
+      setCryptoDebugError(error instanceof Error ? error.message : t('settings.scraper.unknownError'))
+    } finally {
+      setCryptoDebugLoading(false)
+    }
+  }
+
+  const exportCryptoDebugInfo = async () => {
+    setCryptoExportStatus('syncing')
+    setCryptoExportError(null)
+    try {
+      const result = await window.aniPlay?.exportAllAnimeDebugInfo()
+      setCryptoExportStatus(result?.saved ? 'success' : 'idle')
+    } catch (error: unknown) {
+      setCryptoExportStatus('error')
+      setCryptoExportError(error instanceof Error ? error.message : t('settings.scraper.unknownError'))
     }
   }
 
@@ -674,6 +716,57 @@ export function SettingsPage() {
                 </div>
                 {syncStatus === 'success' && <p className="text-xs text-green-400">✓ {t('settings.scraper.success')}</p>}
                 {syncStatus === 'error' && <p className="text-xs text-red-400">✗ {t('settings.scraper.error', { error: syncError })}</p>}
+              </div>
+              <div className="mt-4 rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="font-bold text-sm">{t('settings.scraper.cryptoDebug')}</p>
+                    <p className="mt-0.5 text-xs text-m3-on-surface-variant">{t('settings.scraper.cryptoDebugDescription')}</p>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                    <button type="button" onClick={() => void exportCryptoDebugInfo()} disabled={!cryptoDebugInfo || cryptoExportStatus === 'syncing'} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border border-m3-outline/30 hover:bg-m3-on-surface/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                      <Download size={14} />
+                      {cryptoExportStatus === 'syncing' ? t('settings.scraper.exportingDebug') : t('settings.scraper.exportDebug')}
+                    </button>
+                    <button type="button" onClick={() => void refreshCryptoDebugInfo()} disabled={cryptoDebugLoading} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border border-m3-outline/30 hover:bg-m3-on-surface/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                      <RefreshCw size={14} className={cryptoDebugLoading ? 'animate-spin' : ''} />
+                      {cryptoDebugLoading ? t('settings.scraper.loadingDebug') : t('settings.scraper.refreshDebug')}
+                    </button>
+                  </div>
+                </div>
+                {cryptoDebugError && <p role="alert" className="mt-3 text-xs text-red-400">{t('settings.scraper.error', { error: cryptoDebugError })}</p>}
+                {cryptoExportStatus === 'success' && <p className="mt-3 text-xs text-green-400">✓ {t('settings.scraper.exportSuccess')}</p>}
+                {cryptoExportStatus === 'error' && <p role="alert" className="mt-3 text-xs text-red-400">✗ {t('settings.scraper.exportError', { error: cryptoExportError })}</p>}
+                {cryptoDebugInfo && (
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    {[
+                      ['Source', cryptoDebugInfo.source],
+                      ['Epoch', String(cryptoDebugInfo.epoch)],
+                      ['Build ID', cryptoDebugInfo.buildId],
+                      ['Legacy CTR', cryptoDebugInfo.legacyCtr ? 'true' : 'false'],
+                      ['Fetched at', new Date(cryptoDebugInfo.fetchedAt).toLocaleString()],
+                      ['Cache expires', new Date(cryptoDebugInfo.cacheExpiresAt).toLocaleString()],
+                      ['API URL', cryptoDebugInfo.apiUrl],
+                      ['Referer', cryptoDebugInfo.referer],
+                      ['App JS URL', cryptoDebugInfo.appJsUrl ?? '—'],
+                      ['Query hash', cryptoDebugInfo.queryHash],
+                      ['Part A', cryptoDebugInfo.partA],
+                      ['Part B', cryptoDebugInfo.partB],
+                      ['Derived key (hex)', cryptoDebugInfo.derivedKeyHex],
+                    ].map(([label, value]) => (
+                      <label key={label} className={`block min-w-0 ${value.length > 48 ? 'md:col-span-2' : ''}`}>
+                        <span className="mb-1 block text-[10px] font-black uppercase tracking-wider text-m3-on-surface-variant">{label}</span>
+                        <input readOnly value={value} onFocus={(event) => event.currentTarget.select()} className="w-full rounded-xl border border-m3-outline/20 bg-m3-surface/55 px-3 py-2 font-mono text-xs text-m3-on-surface outline-none focus:border-m3-primary/60" />
+                      </label>
+                    ))}
+                    {cryptoDebugInfo.error && (
+                      <label className="block min-w-0 md:col-span-2">
+                        <span className="mb-1 block text-[10px] font-black uppercase tracking-wider text-amber-300">Fallback reason</span>
+                        <input readOnly value={cryptoDebugInfo.error} onFocus={(event) => event.currentTarget.select()} className="w-full rounded-xl border border-amber-300/20 bg-amber-300/5 px-3 py-2 font-mono text-xs text-amber-100 outline-none" />
+                      </label>
+                    )}
+                  </div>
+                )}
               </div>
             </section>
           )}
