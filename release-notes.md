@@ -1,4 +1,4 @@
-# AniPlay 1.13.1
+# AniPlay 1.13.2
 
 ## Reliability
 
