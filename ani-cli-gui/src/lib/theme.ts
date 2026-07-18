@@ -110,21 +110,21 @@ export function initializeTheme(storage: Pick<Storage, 'getItem' | 'setItem' | '
   return { themeId, accent }
 }
 
-export function saveTheme(themeId: ThemeId, storage: Pick<Storage, 'setItem'> = localStorage) {
+export function saveTheme(themeId: ThemeId, storage: Pick<Storage, 'getItem' | 'setItem'> = localStorage, root: HTMLElement = document.documentElement) {
   storage.setItem(THEME_STORAGE_KEY, themeId)
-  applyTheme(themeId, getThemeAccent(themeId))
+  applyTheme(themeId, getThemeAccent(themeId, storage), root)
 }
 
-export function saveThemeAccent(themeId: ThemeId, accent: string, storage: Pick<Storage, 'setItem'> = localStorage) {
+export function saveThemeAccent(themeId: ThemeId, accent: string, storage: Pick<Storage, 'setItem'> = localStorage, root: HTMLElement = document.documentElement) {
   if (!isValidAccent(accent)) return false
   storage.setItem(ACCENT_STORAGE_KEYS[themeId], accent.toUpperCase())
-  applyTheme(themeId, accent)
+  applyTheme(themeId, accent, root)
   return true
 }
 
-export function resetThemeAccent(themeId: ThemeId, storage: Pick<Storage, 'removeItem'> = localStorage) {
+export function resetThemeAccent(themeId: ThemeId, storage: Pick<Storage, 'removeItem'> = localStorage, root: HTMLElement = document.documentElement) {
   storage.removeItem(ACCENT_STORAGE_KEYS[themeId])
   const accent = THEME_DEFINITIONS[themeId].defaultAccent
-  applyTheme(themeId, accent)
+  applyTheme(themeId, accent, root)
   return accent
 }
