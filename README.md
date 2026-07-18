@@ -2,7 +2,7 @@
 
 AniPlay is a Material You-inspired desktop anime browser and player built with Electron, React, TypeScript, and Vite. It combines third-party playback catalogs with AniList discovery, list management, profile statistics, achievements, local watch history, and downloads.
 
-The repository is currently at the 1.13.x line. Windows is the primary supported platform. An Electron Builder Linux target is available for testing, while macOS packaging is not configured.
+The repository is currently at the 1.14.x line. Windows is the primary supported platform. An Electron Builder Linux target is available for testing, while macOS packaging is not configured.
 
 AniPlay does not host anime or video files. Search results and playback links come from third-party providers, so availability and compatibility can change independently of the app.
 
