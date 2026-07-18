@@ -1,64 +1,14 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Bug, Download, FolderOpen, Gamepad2, GitPullRequest, Globe, MessageCircle, Palette, RefreshCw, RotateCcw, Search, Shield, ShieldCheck, SlidersHorizontal, Video } from 'lucide-react'
-import { argbFromRgb, hexFromArgb, themeFromSourceColor } from '@material/material-color-utilities'
+import { Bug, Check, Download, FolderOpen, Gamepad2, GitPullRequest, Globe, MessageCircle, Palette, RefreshCw, RotateCcw, Search, Shield, ShieldCheck, SlidersHorizontal, Video } from 'lucide-react'
 import { ANILIST_SEARCH_KEY, DOCCHI_ADULT_OPT_IN_KEY, getAniListFirstSearch, getDocchiAdultOptIn, getTranslationType, TRANSLATION_TYPE_KEY, type TranslationType } from '../lib/api'
 import { getNotificationSoundMode, getNotificationSoundPreset, playNotificationSound, setNotificationSoundMode, setNotificationSoundPreset, type NotificationSoundMode, type NotificationSoundPreset } from '../lib/notification-sounds'
 import { setAppLanguage, supportedLanguages, type AppLanguage } from '../i18n'
 import type { UpdateState } from '../updater-types'
 import type { AdBlockMode, AdBlockState } from '../adblock-types'
 import type { AllAnimeDebugInfo } from '../scraper-types'
-
-const DEFAULT_PRIMARY = '#D0BCFF'
-
-function clamp(v: number, min = 0, max = 255) {
-  return Math.min(max, Math.max(min, v))
-}
-
-function hexToRgb(hex: string) {
-  const clean = hex.replace('#', '')
-  const normalized = clean.length === 3
-    ? clean.split('').map((c) => c + c).join('')
-    : clean
-  const n = parseInt(normalized, 16)
-  return {
-    r: (n >> 16) & 255,
-    g: (n >> 8) & 255,
-    b: n & 255
-  }
-}
-
-function rgbToHex(r: number, g: number, b: number) {
-  return `#${[r, g, b].map((v) => clamp(v).toString(16).padStart(2, '0')).join('')}`
-}
-
-function applyThemeFromPrimary(primary: string) {
-  const root = document.documentElement
-  const { r, g, b } = hexToRgb(primary)
-  const sourceColor = argbFromRgb(r, g, b)
-  const theme = themeFromSourceColor(sourceColor, [
-    { name: 'custom-primary', value: sourceColor, blend: true }
-  ])
-  const dark = theme.schemes.dark
-
-  const p = hexFromArgb(dark.primary)
-  root.style.setProperty('--color-m3-surface', hexFromArgb(dark.surface))
-  root.style.setProperty('--color-m3-surface-container', hexFromArgb(dark.secondaryContainer))
-  root.style.setProperty('--color-m3-surface-variant', hexFromArgb(dark.surfaceVariant))
-  root.style.setProperty('--color-m3-primary', p)
-  root.style.setProperty('--color-m3-on-primary', hexFromArgb(dark.onPrimary))
-  root.style.setProperty('--color-m3-primary-container', hexFromArgb(dark.primaryContainer))
-  root.style.setProperty('--color-m3-on-primary-container', hexFromArgb(dark.onPrimaryContainer))
-  root.style.setProperty('--color-m3-secondary', hexFromArgb(dark.secondary))
-  root.style.setProperty('--color-m3-on-secondary', hexFromArgb(dark.onSecondary))
-  root.style.setProperty('--color-m3-outline', hexFromArgb(dark.outline))
-  root.style.setProperty('--color-m3-on-surface', hexFromArgb(dark.onSurface))
-  root.style.setProperty('--color-m3-on-surface-variant', hexFromArgb(dark.onSurfaceVariant))
-  root.style.setProperty('--custom-display-name-styles-main-color', p)
-  root.style.setProperty('--custom-display-name-styles-light-1-color', rgbToHex(clamp(r + 28), clamp(g + 28), clamp(b + 28)))
-  root.style.setProperty('--custom-display-name-styles-dark-1-color', rgbToHex(clamp(r - 48), clamp(g - 48), clamp(b - 48)))
-}
+import { getTheme, getThemeAccent, isValidAccent, resetThemeAccent, saveTheme, saveThemeAccent, type ThemeId } from '../lib/theme'
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
 type SettingsSection = 'theme' | 'player' | 'search' | 'downloads' | 'updates' | 'project' | 'adblock' | 'advanced' | 'scraper'
@@ -73,7 +23,9 @@ interface CiphermapInfo {
 export function SettingsPage() {
   const { t, i18n } = useTranslation()
   const [activeSection, setActiveSection] = useState<SettingsSection>('theme')
-  const [primary, setPrimary] = useState(DEFAULT_PRIMARY)
+  const [themeId, setThemeId] = useState<ThemeId>(getTheme)
+  const [primary, setPrimary] = useState(() => getThemeAccent(getTheme()))
+  const [accentInput, setAccentInput] = useState(() => getThemeAccent(getTheme()))
   const [useNativeControls, setUseNativeControls] = useState(true)
   const [translationType, setTranslationType] = useState<TranslationType>(getTranslationType)
   const [aniListFirstSearch, setAniListFirstSearch] = useState(getAniListFirstSearch)
@@ -97,13 +49,6 @@ export function SettingsPage() {
   const [safeGraphicsLaunchOverride, setSafeGraphicsLaunchOverride] = useState(false)
   const [language, setLanguage] = useState<AppLanguage>(i18n.language === 'pl' ? 'pl' : 'en')
   const [adBlockState, setAdBlockState] = useState<AdBlockState | null>(null)
-
-  useEffect(() => {
-    const saved = localStorage.getItem('theme.primary')
-    if (!saved) return
-    setPrimary(saved)
-    applyThemeFromPrimary(saved)
-  }, [])
 
   useEffect(() => {
     if (activeSection !== 'scraper' || cryptoDebugInfo || cryptoDebugLoading) return
@@ -169,15 +114,24 @@ export function SettingsPage() {
   }, [])
 
   const handleColor = (val: string) => {
-    setPrimary(val)
-    applyThemeFromPrimary(val)
-    localStorage.setItem('theme.primary', val)
+    if (!saveThemeAccent(themeId, val)) return
+    const normalized = val.toUpperCase()
+    setPrimary(normalized)
+    setAccentInput(normalized)
   }
 
   const reset = () => {
-    setPrimary(DEFAULT_PRIMARY)
-    applyThemeFromPrimary(DEFAULT_PRIMARY)
-    localStorage.removeItem('theme.primary')
+    const accent = resetThemeAccent(themeId)
+    setPrimary(accent)
+    setAccentInput(accent)
+  }
+
+  const selectTheme = (nextThemeId: ThemeId) => {
+    saveTheme(nextThemeId)
+    const accent = getThemeAccent(nextThemeId)
+    setThemeId(nextThemeId)
+    setPrimary(accent)
+    setAccentInput(accent)
   }
 
   const toggleNativeControls = () => {
@@ -340,9 +294,38 @@ export function SettingsPage() {
                 <Palette size={20} />
                 {t('settings.theme.title')}
               </h3>
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-5 items-start">
+              <p className="mb-4 text-sm text-m3-on-surface-variant">{t('settings.theme.description')}</p>
+              <div className="mb-5 grid gap-3 sm:grid-cols-2">
+                {(['modern', 'classic-ember'] as ThemeId[]).map((option) => {
+                  const selected = themeId === option
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => selectTheme(option)}
+                      className={`theme-option text-left ${selected ? 'theme-option-selected' : ''}`}
+                    >
+                      <span className={`theme-option-preview theme-option-preview-${option}`} aria-hidden="true">
+                        <span className="theme-option-preview-nav" />
+                        <span className="theme-option-preview-card" />
+                        <span className="theme-option-preview-accent" />
+                      </span>
+                      <span className="mt-3 flex items-start justify-between gap-3">
+                        <span>
+                          <strong className="block text-sm">{t(`settings.theme.presets.${option}.name`)}</strong>
+                          <span className="mt-1 block text-xs leading-5 text-m3-on-surface-variant">{t(`settings.theme.presets.${option}.description`)}</span>
+                        </span>
+                        {selected ? <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-m3-primary text-m3-on-primary"><Check size={14} /></span> : null}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-5 items-start border-t border-m3-outline/15 pt-5">
                 <div className="space-y-3">
-                  <p className="text-sm text-m3-on-surface-variant">{t('settings.theme.description')}</p>
+                  <p className="text-sm font-bold">{t('settings.theme.accent')}</p>
+                  <p className="text-xs text-m3-on-surface-variant">{t('settings.theme.accentDescription')}</p>
                   <div className="flex flex-wrap items-center gap-3">
                     <input
                       type="color"
@@ -352,11 +335,11 @@ export function SettingsPage() {
                     />
                     <input
                       type="text"
-                      value={primary}
+                      value={accentInput}
                       onChange={(e) => {
                         const v = e.target.value.trim()
-                        setPrimary(v)
-                        if (/^#[0-9a-fA-F]{6}$/.test(v)) handleColor(v)
+                        setAccentInput(v)
+                        if (isValidAccent(v)) handleColor(v)
                       }}
                       className="bg-m3-on-surface/5 border border-m3-outline/20 rounded-xl px-3 py-2 text-sm w-36"
                     />

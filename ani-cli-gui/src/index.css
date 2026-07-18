@@ -515,6 +515,75 @@
   @apply inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-m3-outline/15 bg-m3-surface-container/50 text-m3-on-surface transition-colors hover:bg-m3-on-surface/10;
 }
 
+.theme-option {
+  @apply rounded-2xl border border-m3-outline/20 bg-m3-surface/35 p-3 transition-all hover:border-m3-primary/50 hover:bg-m3-on-surface/5;
+}
+
+.theme-option-selected {
+  @apply border-m3-primary/60 bg-m3-primary/8;
+}
+
+.theme-option-preview {
+  position: relative;
+  display: block;
+  height: 5.5rem;
+  overflow: hidden;
+  border: 1px solid rgba(147, 143, 153, 0.24);
+  background: #1c1b1f;
+  border-radius: 1rem;
+}
+
+.theme-option-preview-nav,
+.theme-option-preview-card,
+.theme-option-preview-accent {
+  position: absolute;
+  display: block;
+}
+
+.theme-option-preview-nav {
+  inset: 0 auto 0 0;
+  width: 20%;
+  background: #211f26;
+}
+
+.theme-option-preview-card {
+  inset: 18% 8% 18% 28%;
+  border: 1px solid rgba(147, 143, 153, 0.18);
+  border-radius: 0.85rem;
+  background: #2a2730;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.theme-option-preview-accent {
+  right: 13%;
+  bottom: 28%;
+  width: 28%;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: #d0bcff;
+}
+
+.theme-option-preview-classic-ember {
+  border-radius: 0.4rem;
+  background: #0b0b0c;
+}
+
+.theme-option-preview-classic-ember .theme-option-preview-nav {
+  background: #171719;
+}
+
+.theme-option-preview-classic-ember .theme-option-preview-card {
+  inset: 14% 7% 14% 27%;
+  border-radius: 0.25rem;
+  background: #1f1f21;
+  box-shadow: none;
+}
+
+.theme-option-preview-classic-ember .theme-option-preview-accent {
+  border-radius: 0.15rem;
+  background: #f15a37;
+}
+
 .secret-sakura-mode {
   --color-m3-primary: #ff9bd2;
   --color-m3-on-primary: #3e0026;

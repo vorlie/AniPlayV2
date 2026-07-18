@@ -348,10 +348,22 @@ const resources = {
       settings: {
         theme: {
           title: 'Theme',
-          description: 'Choose your custom accent color.',
+          description: 'Choose the overall look of AniPlay. Each preset remembers its own accent color.',
+          accent: 'Accent color',
+          accentDescription: 'Customize the active preset without changing your other themes.',
           reset: 'Reset',
           preview: 'Preview',
           primaryButton: 'Primary Button',
+          presets: {
+            modern: {
+              name: 'Modern',
+              description: 'Soft Material surfaces, generous curves, glass, and ambient glow.',
+            },
+            'classic-ember': {
+              name: 'Classic Ember',
+              description: 'Compact near-black panels, crisp edges, and restrained effects.',
+            },
+          },
         },
         player: {
           title: 'Player',
@@ -805,10 +817,22 @@ const resources = {
       settings: {
         theme: {
           title: 'Motyw',
-          description: 'Wybierz własny kolor akcentu.',
+          description: 'Wybierz ogólny wygląd AniPlay. Każdy motyw zapamiętuje własny kolor akcentu.',
+          accent: 'Kolor akcentu',
+          accentDescription: 'Dostosuj aktywny motyw bez zmieniania pozostałych.',
           reset: 'Resetuj',
           preview: 'Podgląd',
           primaryButton: 'Przycisk główny',
+          presets: {
+            modern: {
+              name: 'Nowoczesny',
+              description: 'Miękkie powierzchnie Material, duże zaokrąglenia, szkło i poświata.',
+            },
+            'classic-ember': {
+              name: 'Classic Ember',
+              description: 'Kompaktowe, niemal czarne panele, ostre krawędzie i subtelne efekty.',
+            },
+          },
         },
         player: {
           title: 'Odtwarzacz',
