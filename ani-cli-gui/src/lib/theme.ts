@@ -35,6 +35,15 @@ function rgbToHex(r: number, g: number, b: number) {
   return `#${[r, g, b].map((value) => clamp(value).toString(16).padStart(2, '0')).join('')}`
 }
 
+function contrastTextFor({ r, g, b }: { r: number; g: number; b: number }) {
+  const channels = [r, g, b].map((value) => {
+    const channel = value / 255
+    return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4
+  })
+  const luminance = channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722
+  return luminance > 0.36 ? '#111113' : '#FFFFFF'
+}
+
 export function isThemeId(value: string | null): value is ThemeId {
   return value === 'modern' || value === 'classic-ember'
 }
@@ -67,7 +76,7 @@ export function applyTheme(themeId: ThemeId, accent: string, root: HTMLElement =
   const { r, g, b } = hexToRgb(safeAccent)
   const sourceColor = argbFromRgb(r, g, b)
   const dark = themeFromSourceColor(sourceColor, [{ name: 'custom-primary', value: sourceColor, blend: true }]).schemes.dark
-  const primary = hexFromArgb(dark.primary)
+  const primary = themeId === 'classic-ember' ? safeAccent.toUpperCase() : hexFromArgb(dark.primary)
 
   root.dataset.theme = themeId
   if (themeId === 'modern') {
@@ -80,7 +89,7 @@ export function applyTheme(themeId: ThemeId, accent: string, root: HTMLElement =
     root.style.setProperty('--color-m3-surface-variant', '#303034')
   }
   root.style.setProperty('--color-m3-primary', primary)
-  root.style.setProperty('--color-m3-on-primary', hexFromArgb(dark.onPrimary))
+  root.style.setProperty('--color-m3-on-primary', themeId === 'classic-ember' ? contrastTextFor({ r, g, b }) : hexFromArgb(dark.onPrimary))
   root.style.setProperty('--color-m3-primary-container', hexFromArgb(dark.primaryContainer))
   root.style.setProperty('--color-m3-on-primary-container', hexFromArgb(dark.onPrimaryContainer))
   root.style.setProperty('--color-m3-secondary', hexFromArgb(dark.secondary))

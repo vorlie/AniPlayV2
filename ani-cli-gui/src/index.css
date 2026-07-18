@@ -52,6 +52,14 @@
   --custom-display-name-styles-dark-2-color: #2e0041;
 }
 
+html {
+  color-scheme: dark;
+}
+
+html[data-theme='classic-ember'] {
+  font-size: 15px;
+}
+
 .font-tempo {
   font-family: 'Zilla Slab', serif;
 }
@@ -480,7 +488,7 @@
 /* Scrollbars */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(208, 188, 255, 0.55) rgba(147, 143, 153, 0.12);
+  scrollbar-color: var(--color-m3-primary) color-mix(in srgb, var(--color-m3-outline) 12%, transparent);
 }
 
 *::-webkit-scrollbar {
@@ -489,18 +497,18 @@
 }
 
 *::-webkit-scrollbar-track {
-  background: rgba(147, 143, 153, 0.12);
+  background: color-mix(in srgb, var(--color-m3-outline) 12%, transparent);
   border-radius: 999px;
 }
 
 *::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(208, 188, 255, 0.85), rgba(79, 55, 139, 0.85));
+  background: linear-gradient(180deg, var(--color-m3-primary), var(--color-m3-primary-container));
   border-radius: 999px;
-  border: 2px solid rgba(28, 27, 31, 0.55);
+  border: 2px solid color-mix(in srgb, var(--color-m3-surface) 70%, transparent);
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(234, 221, 255, 0.95), rgba(79, 55, 139, 0.95));
+  background: var(--color-m3-primary);
 }
 
 .section-label {
@@ -582,6 +590,124 @@
 .theme-option-preview-classic-ember .theme-option-preview-accent {
   border-radius: 0.15rem;
   background: #f15a37;
+}
+
+html[data-theme='classic-ember'] body {
+  background: #0b0b0c;
+}
+
+html[data-theme='classic-ember'] .app-shell {
+  padding: 0.75rem 1rem;
+}
+
+html[data-theme='classic-ember'] .ambient-background {
+  display: none;
+}
+
+html[data-theme='classic-ember'] .app-header {
+  margin-bottom: 0.85rem;
+}
+
+html[data-theme='classic-ember'] .app-main > .mb-4 {
+  margin-bottom: 0.75rem;
+}
+
+html[data-theme='classic-ember'] .m3-card {
+  border-color: color-mix(in srgb, var(--color-m3-outline) 18%, transparent);
+  border-radius: 0.55rem;
+  background: var(--color-m3-surface-container);
+  box-shadow: none;
+  backdrop-filter: none;
+  transition-duration: 140ms;
+}
+
+html[data-theme='classic-ember'] .m3-card-hover:hover {
+  border-color: color-mix(in srgb, var(--color-m3-primary) 45%, transparent);
+  background: color-mix(in srgb, var(--color-m3-surface-container) 92%, var(--color-m3-primary));
+}
+
+html[data-theme='classic-ember'] .m3-card.p-5,
+html[data-theme='classic-ember'] .m3-card.p-6,
+html[data-theme='classic-ember'] .m3-card.p-7 {
+  padding: 1rem;
+}
+
+html[data-theme='classic-ember'] .rounded-2xl {
+  border-radius: 0.5rem;
+}
+
+html[data-theme='classic-ember'] .rounded-xl {
+  border-radius: 0.35rem;
+}
+
+html[data-theme='classic-ember'] .section-label {
+  border-radius: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  letter-spacing: 0.11em;
+}
+
+html[data-theme='classic-ember'] .primary-action {
+  border-radius: 0.35rem;
+}
+
+html[data-theme='classic-ember'] .icon-button {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.35rem;
+  background: var(--color-m3-surface-container);
+}
+
+html[data-theme='classic-ember'] .primary-navigation {
+  gap: 0.15rem;
+  border-radius: 0.45rem;
+  background: var(--color-m3-surface-container);
+  padding: 0.3rem;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+html[data-theme='classic-ember'] .primary-navigation-item {
+  border-radius: 0.3rem;
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
+}
+
+html[data-theme='classic-ember'] .effect-neon .glow-layer {
+  display: none;
+}
+
+html[data-theme='classic-ember'] .effect-neon .text-layer {
+  color: var(--color-m3-primary);
+  animation: none;
+  -webkit-text-stroke-width: 0;
+}
+
+html[data-theme='classic-ember'] .theme-option {
+  border-radius: 0.45rem;
+  background: var(--color-m3-surface);
+}
+
+html[data-theme='classic-ember'] .theme-option-selected {
+  background: color-mix(in srgb, var(--color-m3-primary) 8%, var(--color-m3-surface));
+}
+
+html[data-theme='classic-ember'] .app-toast {
+  border-radius: 0.45rem;
+  background: rgba(26, 26, 28, 0.98);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.42);
+  backdrop-filter: none;
+}
+
+@media (max-width: 767px) {
+  html[data-theme='classic-ember'] .app-shell {
+    padding: 0.65rem;
+  }
+
+  html[data-theme='classic-ember'] .primary-navigation {
+    right: 0.65rem;
+    bottom: 0.65rem;
+    left: 0.65rem;
+  }
 }
 
 .secret-sakura-mode {
