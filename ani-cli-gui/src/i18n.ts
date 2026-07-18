@@ -170,6 +170,8 @@ const resources = {
         findEpisode: 'Find episode',
         playing: 'Playing',
         noMatchingEpisode: 'No matching episode.',
+        previousEpisodes: 'Previous episode range',
+        nextEpisodes: 'Next episode range',
         readyTitle: 'Ready when you are',
         readyBody: 'Choose an episode. AniPlay will gather every available server before playback starts.',
         loadingSourcesTitle: 'Loading episode {{episode}}',
@@ -301,6 +303,9 @@ const resources = {
         discovery: 'AniList discovery',
         dashboardTitle: 'Your anime dashboard.',
         dashboardDescription: "Discover, track, and open titles in AniPlay's playback catalog.",
+        viewDetails: 'View details',
+        discover: 'Discover',
+        library: 'My library',
         signedInAs: 'Signed in as',
         signOut: 'Sign out',
         signIn: 'Sign in with AniList',
@@ -348,10 +353,22 @@ const resources = {
       settings: {
         theme: {
           title: 'Theme',
-          description: 'Choose your custom accent color.',
+          description: 'Choose the overall look of AniPlay. Each preset remembers its own accent color.',
+          accent: 'Accent color',
+          accentDescription: 'Customize the active preset without changing your other themes.',
           reset: 'Reset',
           preview: 'Preview',
           primaryButton: 'Primary Button',
+          presets: {
+            modern: {
+              name: 'Modern',
+              description: 'Soft Material surfaces, generous curves, glass, and ambient glow.',
+            },
+            'classic-ember': {
+              name: 'Classic Ember',
+              description: 'Compact near-black panels, crisp edges, and restrained effects.',
+            },
+          },
         },
         player: {
           title: 'Player',
@@ -627,6 +644,8 @@ const resources = {
         findEpisode: 'Znajdź odcinek',
         playing: 'Odtwarzanie',
         noMatchingEpisode: 'Brak pasującego odcinka.',
+        previousEpisodes: 'Poprzedni zakres odcinków',
+        nextEpisodes: 'Następny zakres odcinków',
         readyTitle: 'Gotowe, kiedy Ty jesteś',
         readyBody: 'Wybierz odcinek. AniPlay zbierze dostępne serwery przed odtwarzaniem.',
         loadingSourcesTitle: 'Ładowanie odcinka {{episode}}',
@@ -758,6 +777,9 @@ const resources = {
         discovery: 'Odkrywanie AniList',
         dashboardTitle: 'Twój panel anime.',
         dashboardDescription: 'Odkrywaj, śledź i otwieraj tytuły w katalogu odtwarzania AniPlay.',
+        viewDetails: 'Zobacz szczegóły',
+        discover: 'Odkrywaj',
+        library: 'Moja biblioteka',
         signedInAs: 'Zalogowano jako',
         signOut: 'Wyloguj',
         signIn: 'Zaloguj przez AniList',
@@ -805,10 +827,22 @@ const resources = {
       settings: {
         theme: {
           title: 'Motyw',
-          description: 'Wybierz własny kolor akcentu.',
+          description: 'Wybierz ogólny wygląd AniPlay. Każdy motyw zapamiętuje własny kolor akcentu.',
+          accent: 'Kolor akcentu',
+          accentDescription: 'Dostosuj aktywny motyw bez zmieniania pozostałych.',
           reset: 'Resetuj',
           preview: 'Podgląd',
           primaryButton: 'Przycisk główny',
+          presets: {
+            modern: {
+              name: 'Nowoczesny',
+              description: 'Miękkie powierzchnie Material, duże zaokrąglenia, szkło i poświata.',
+            },
+            'classic-ember': {
+              name: 'Classic Ember',
+              description: 'Kompaktowe, niemal czarne panele, ostre krawędzie i subtelne efekty.',
+            },
+          },
         },
         player: {
           title: 'Odtwarzacz',

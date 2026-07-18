@@ -7,7 +7,7 @@
     "url": "https://github.com/vorlie/AniPlayV2.git"
   },
   "private": true,
-  "version": "1.13.2",
+  "version": "1.14.0",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -32,6 +32,7 @@
   "build": {
     "appId": "com.aniplayv2.app",
     "productName": "AniPlay",
+    "icon": "build/icon.png",
     "files": [
       "dist/**",
       "dist-electron/**",
@@ -68,8 +69,7 @@
       "target": [
         "portable",
         "nsis"
-      ],
-      "signAndEditExecutable": false
+      ]
     },
     "publish": {
       "provider": "github",

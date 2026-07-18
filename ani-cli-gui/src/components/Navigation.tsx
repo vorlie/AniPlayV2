@@ -28,7 +28,7 @@ export function Navigation({
   return (
     <nav
       aria-label={t('nav.primary')}
-      className={`fixed z-40 bottom-3 left-3 right-3 flex gap-1 rounded-2xl border border-m3-outline/20 bg-m3-surface-container/95 p-1.5 shadow-2xl backdrop-blur-2xl md:static md:w-auto md:shadow-lg ${className}`}
+      className={`primary-navigation fixed z-40 bottom-3 left-3 right-3 flex gap-1 rounded-2xl border border-m3-outline/20 bg-m3-surface-container/95 p-1.5 shadow-2xl backdrop-blur-2xl md:static md:w-auto md:shadow-lg ${className}`}
       style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}
     >
       {[...baseTabs, ...(hasActivePlayer ? [{ id: 'player', labelKey: 'nav.player', icon: Radio }] : [])].map(({ id, labelKey, icon: Icon }) => {
@@ -39,7 +39,7 @@ export function Navigation({
             type="button"
             onClick={() => setActiveTab(id)}
             aria-current={active ? 'page' : undefined}
-            className={`min-w-0 flex-1 md:flex-none px-2 md:px-4 py-2 rounded-xl flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-1.5 text-[11px] md:text-sm font-semibold transition-all ${active ? 'bg-m3-primary text-m3-on-primary shadow-sm' : 'text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface'} ${id === 'player' && !active ? 'text-m3-primary' : ''}`}
+            className={`primary-navigation-item min-w-0 flex-1 md:flex-none px-2 md:px-4 py-2 rounded-xl flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-1.5 text-[11px] md:text-sm font-semibold transition-all ${active ? 'bg-m3-primary text-m3-on-primary shadow-sm' : 'text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface'} ${id === 'player' && !active ? 'text-m3-primary' : ''}`}
           >
             <span className="relative">
               <Icon aria-hidden="true" size={17} />

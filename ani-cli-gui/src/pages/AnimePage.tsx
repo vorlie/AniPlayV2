@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AlertCircle, ArrowLeft, ExternalLink, Loader2, MonitorPlay, Search } from 'lucide-react'
+import { AlertCircle, ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Loader2, MonitorPlay, Search } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PlayerPage } from './PlayerPage'
 import { addHistory } from '../lib/history'
 import { getTranslationType, invokeEpisodes, invokeLinks, openProviderEpisode, TRANSLATION_TYPE_KEY, type CatalogProvider, type TranslationType } from '../lib/api'
+import type { AnimeDetails } from '../anilist-types'
 
 interface StreamLink {
   url: string
@@ -24,6 +25,8 @@ interface AnimePageProps {
   onEpisodeStarted?: (animeId: string, episode: string) => void
 }
 
+const EPISODES_PER_PAGE = 60
+
 export function AnimePage({
   anime,
   onBack,
@@ -43,6 +46,8 @@ export function AnimePage({
   const [error, setError] = useState<string | null>(null)
   const [browserFallbackEpisode, setBrowserFallbackEpisode] = useState<string | null>(null)
   const [aniListMetadata, setAniListMetadata] = useState(() => ({ mediaId: anime.aniListMediaId, coverUrl: anime.coverUrl }))
+  const [animeDetails, setAnimeDetails] = useState<AnimeDetails | null>(null)
+  const [episodePage, setEpisodePage] = useState(0)
   const [idleQuoteIndex, setIdleQuoteIndex] = useState<number | null>(null)
   const [sourceStatusIndex, setSourceStatusIndex] = useState(0)
   const restoredRef = useRef<string | null>(null)
@@ -57,8 +62,19 @@ export function AnimePage({
     }).catch(() => {})
   }, [anime, selectedTranslationType])
 
+  useEffect(() => {
+    if (!aniListMetadata.mediaId) return
+    let cancelled = false
+    void window.aniPlay?.aniList.media.get(aniListMetadata.mediaId).then((media) => {
+      if (!cancelled) setAnimeDetails(media)
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [aniListMetadata.mediaId])
+
   const handlePlay = useCallback((ep: string, translationType: TranslationType = selectedTranslationType) => {
     if (loadingEp === ep) return
+    const episodeIndex = episodes.indexOf(ep)
+    if (episodeIndex >= 0) setEpisodePage(Math.floor(episodeIndex / EPISODES_PER_PAGE))
     setLoadingEp(ep)
     setSourceStatusIndex(0)
     setError(null)
@@ -94,7 +110,7 @@ export function AnimePage({
       setError(cause instanceof Error ? cause.message : t('anime.lookupFailed'))
       if (anime.catalogProvider === 'desu' || anime.catalogProvider === 'docchi' || anime.catalogProvider === 'miruro' || anime.catalogProvider === 'anikoto') setBrowserFallbackEpisode(ep)
     })
-  }, [anime.id, anime.name, anime.catalogProvider, aniListMetadata.mediaId, aniListMetadata.coverUrl, initialEpisode, initialResumeSeconds, loadingEp, onEpisodeStarted, selectedTranslationType, t])
+  }, [anime.id, anime.name, anime.catalogProvider, aniListMetadata.mediaId, aniListMetadata.coverUrl, episodes, initialEpisode, initialResumeSeconds, loadingEp, onEpisodeStarted, selectedTranslationType, t])
 
   const selectTranslationType = useCallback((value: TranslationType) => {
     if (value === selectedTranslationType) return
@@ -184,6 +200,10 @@ export function AnimePage({
   const visibleEpisodes = episodeQuery.trim()
     ? episodes.filter((episode) => episode.includes(episodeQuery.trim()))
     : episodes
+  const episodePageCount = Math.max(1, Math.ceil(episodes.length / EPISODES_PER_PAGE))
+  const displayedEpisodes = episodeQuery.trim()
+    ? visibleEpisodes
+    : visibleEpisodes.slice(episodePage * EPISODES_PER_PAGE, (episodePage + 1) * EPISODES_PER_PAGE)
 
   return (
     <div className="flex-1 flex flex-col space-y-6">
@@ -220,8 +240,24 @@ export function AnimePage({
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4 lg:gap-5 flex-1 min-h-0">
-        <aside className="m3-card p-4 md:p-5 flex flex-col min-h-[300px] lg:min-h-0 lg:max-h-[calc(100vh-210px)]">
+      <div className="watch-workspace grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_300px] 2xl:grid-cols-[240px_minmax(0,1fr)_320px] flex-1 min-h-0">
+        <aside className="m3-card hidden min-h-0 overflow-hidden 2xl:col-start-1 2xl:row-start-1 2xl:flex 2xl:flex-col">
+          <div className="relative h-44 shrink-0 overflow-hidden bg-m3-surface-variant/25">
+            {aniListMetadata.coverUrl ? <><img src={aniListMetadata.coverUrl} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover opacity-30 blur-xl"/><img src={aniListMetadata.coverUrl} alt="" className="relative mx-auto h-full w-28 object-cover shadow-xl"/></> : null}
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            <h3 className="text-lg font-black leading-tight">{animeDetails?.title ?? anime.name}</h3>
+            <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-bold uppercase tracking-wide text-m3-on-surface-variant">
+              {animeDetails?.format ? <span>{animeDetails.format}</span> : null}
+              {animeDetails?.seasonYear ? <span>· {animeDetails.seasonYear}</span> : null}
+              {animeDetails?.averageScore ? <span>· ★ {animeDetails.averageScore}%</span> : null}
+            </div>
+            {animeDetails?.description ? <p className="mt-4 line-clamp-6 text-xs leading-5 text-m3-on-surface-variant">{animeDetails.description}</p> : null}
+            {animeDetails?.genres.length ? <div className="mt-4 flex flex-wrap gap-1.5">{animeDetails.genres.slice(0, 5).map((genre) => <span key={genre} className="rounded-full bg-m3-primary/10 px-2 py-1 text-[10px] font-bold text-m3-primary">{genre}</span>)}</div> : null}
+          </div>
+        </aside>
+
+        <aside className="m3-card p-4 flex flex-col min-h-[300px] lg:col-start-2 lg:row-start-1 lg:min-h-0 lg:max-h-[calc(100vh-190px)] lg:sticky lg:top-3 2xl:col-start-3">
           <h3 className="text-base md:text-lg font-bold mb-4 border-b border-m3-outline/20 pb-3 flex items-center justify-between">
             <span>{t('anime.episodes')}</span>
             <span className="text-xs bg-m3-primary/10 text-m3-primary px-2.5 py-1 rounded-full">{episodes.length || anime.episodes}</span>
@@ -250,6 +286,14 @@ export function AnimePage({
             </div>
           )}
 
+          {!loadingEpisodes && !episodeQuery.trim() && episodePageCount > 1 ? (
+            <div className="mb-3 flex items-center justify-between rounded-xl bg-m3-surface/45 p-1.5 text-xs font-bold text-m3-on-surface-variant">
+              <button type="button" className="icon-button !size-7" disabled={episodePage === 0} onClick={() => setEpisodePage((page) => Math.max(0, page - 1))} aria-label={t('anime.previousEpisodes')}><ChevronLeft size={14}/></button>
+              <span>{displayedEpisodes[0]}–{displayedEpisodes.at(-1)}</span>
+              <button type="button" className="icon-button !size-7" disabled={episodePage >= episodePageCount - 1} onClick={() => setEpisodePage((page) => Math.min(episodePageCount - 1, page + 1))} aria-label={t('anime.nextEpisodes')}><ChevronRight size={14}/></button>
+            </div>
+          ) : null}
+
           {loadingEpisodes ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="animate-m3-pulsate p-3 rounded-full bg-m3-primary/20">
@@ -257,27 +301,27 @@ export function AnimePage({
               </div>
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto pr-1 grid grid-cols-3 lg:grid-cols-1 gap-2 content-start">
-              {visibleEpisodes.map((ep) => {
+            <div className="flex-1 overflow-y-auto pr-1 grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-4 2xl:grid-cols-5 gap-1.5 content-start">
+              {displayedEpisodes.map((ep) => {
                 const isActive = playingEp === ep
                 return (
                   <button
                     key={ep}
                     disabled={loadingEp === ep}
-                    className={`w-full px-3 py-2.5 rounded-xl border text-sm transition-all font-bold flex items-center justify-between ${isActive ? 'bg-m3-primary text-m3-on-primary border-transparent' : 'border-m3-outline/20 bg-m3-surface-container/40 hover:bg-m3-primary hover:text-m3-on-primary hover:border-transparent'} ${loadingEp === ep ? 'opacity-50 cursor-wait animate-pulse' : ''}`}
+                    className={`w-full min-w-0 px-1.5 py-2 rounded-xl border text-xs transition-all font-bold flex items-center justify-center ${isActive ? 'bg-m3-primary text-m3-on-primary border-transparent' : 'border-m3-outline/20 bg-m3-surface-container/40 hover:bg-m3-primary hover:text-m3-on-primary hover:border-transparent'} ${loadingEp === ep ? 'opacity-50 cursor-wait animate-pulse' : ''}`}
                     onClick={() => handlePlay(ep)}
                   >
-                    <span>{t('anime.episode', { episode: ep })}</span>
-                    {loadingEp === ep ? <Loader2 size={13} className="animate-spin" /> : isActive && <span className="hidden lg:inline text-[10px] opacity-80">{t('anime.playing')}</span>}
+                    <span className="truncate">{ep}</span>
+                    {loadingEp === ep ? <Loader2 size={12} className="ml-1 shrink-0 animate-spin" /> : null}
                   </button>
                 )
               })}
-              {visibleEpisodes.length === 0 && <p className="col-span-full py-8 text-center text-sm text-m3-on-surface-variant">{t('anime.noMatchingEpisode')}</p>}
+              {displayedEpisodes.length === 0 && <p className="col-span-full py-8 text-center text-sm text-m3-on-surface-variant">{t('anime.noMatchingEpisode')}</p>}
             </div>
           )}
         </aside>
 
-        <section className="flex flex-col gap-3 min-h-[320px]">
+        <section className="flex flex-col gap-3 min-h-[320px] min-w-0 lg:col-start-1 lg:row-start-1 2xl:col-start-2">
           {playingLinks.length > 0 ? (
             <PlayerPage
               key={`${anime.id}:${playingEp}`}

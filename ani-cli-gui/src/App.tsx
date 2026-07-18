@@ -166,15 +166,15 @@ function App() {
   }, [notify, t])
 
   return (
-    <div className={`min-h-screen bg-m3-surface text-m3-on-surface p-3 md:p-5 relative overflow-hidden flex flex-col ${secretSakuraMode ? 'secret-sakura-mode' : ''}`}>
+    <div className={`app-shell min-h-screen bg-m3-surface text-m3-on-surface p-3 md:p-5 relative overflow-hidden flex flex-col ${secretSakuraMode ? 'secret-sakura-mode' : ''}`}>
       {/* Background Floats */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+      <div className="ambient-background absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-m3-primary/10 blur-[120px] rounded-full animate-blob"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[--custom-display-name-styles-dark-1-color] opacity-20 blur-[120px] rounded-full animate-blob animation-delay-2000"></div>
       </div>
 
       {/* Header */}
-      <header className="relative z-10 w-full max-w-[1500px] mx-auto flex items-center justify-between gap-3 mb-4 md:mb-5 draggable" style={{ WebkitAppRegion: 'drag' } as CSSProperties}>
+      <header className="app-header relative z-10 w-full max-w-[1500px] mx-auto flex items-center justify-between gap-3 mb-4 md:mb-5 draggable" style={{ WebkitAppRegion: 'drag' } as CSSProperties}>
         <div className="effect-container items-center gap-3">
           <button type="button" onClick={handleLogoClick} className="effect-neon aniplay-logo-button font-sakura text-3xl md:text-4xl tracking-wide select-none" aria-label="AniPlay">
             <span className="glow-layer">AniPlay</span>
@@ -191,7 +191,7 @@ function App() {
       </header>
 
       {/* Main Content Area */}
-      <main className="relative z-10 flex-1 flex flex-col w-full max-w-[1500px] mx-auto pb-20 md:pb-4">
+      <main className="app-main relative z-10 flex-1 flex flex-col w-full max-w-[1500px] mx-auto pb-20 md:pb-4">
         <div className="mb-4">
           <RemoteNoticeBanner provider={activeAnime?.catalogProvider} />
         </div>

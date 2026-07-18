@@ -61,6 +61,10 @@ export function normalizeCatalogMapping(value: CatalogMapping): CatalogMapping {
   return { ...value, catalogProvider: catalogProvider(value.catalogProvider) }
 }
 
+export function dedupeMedia(items: AnimeSummary[]): AnimeSummary[] {
+  return [...new Map(items.filter((item) => item.id > 0).map((item) => [item.id, item])).values()]
+}
+
 export function descriptionToPlainText(value: unknown): string {
   const source = text(value)
   if (!source) return 'No description available.'
@@ -275,12 +279,12 @@ export class AniListService {
     if (this.token && this.user) { try { privateData = record(await this.request(PRIVATE_DASHBOARD_QUERY, { userId: this.user.id }, true, true, `dashboard:user:${this.user.id}`)) } catch { const cached = this.cache.get(`dashboard:user:${this.user.id}`); if (cached) { privateData = record(cached.value); stale = true } } }
     const listGroups = array(record(privateData.lists).lists).map(record)
     const list = (status: string) => listGroups.filter((group) => group.status === status).flatMap((group) => array(group.entries).map((entry) => normalizeMedia(record(entry).media)))
-    return { session: this.getSession(), trending: array(record(publicData.trending).media).map(normalizeMedia), seasonal: array(record(publicData.seasonal).media).map(normalizeMedia), airing: array(record(publicData.airing).airingSchedules).map((value) => { const item = record(value); return { episode: number(item.episode) ?? 0, airingAt: number(item.airingAt) ?? 0, media: normalizeMedia(item.media) } }), recommendations: array(record(privateData.recommendations).recommendations).map((value) => normalizeMedia(record(value).mediaRecommendation)).filter((item) => item.id), current: list('CURRENT'), planning: list('PLANNING'), completed: list('COMPLETED'), stale }
+    return { session: this.getSession(), trending: array(record(publicData.trending).media).map(normalizeMedia), seasonal: array(record(publicData.seasonal).media).map(normalizeMedia), airing: array(record(publicData.airing).airingSchedules).map((value) => { const item = record(value); return { episode: number(item.episode) ?? 0, airingAt: number(item.airingAt) ?? 0, media: normalizeMedia(item.media) } }), recommendations: dedupeMedia(array(record(privateData.recommendations).recommendations).map((value) => normalizeMedia(record(value).mediaRecommendation))), current: list('CURRENT'), planning: list('PLANNING'), completed: list('COMPLETED'), stale }
   }
 
   async details(id: number): Promise<AnimeDetails> {
     const data = record(await this.request(DETAILS_QUERY, { id }, Boolean(this.token), true, `details:${id}:${this.user?.id ?? 'public'}`)); const media = record(data.Media); const summary = normalizeMedia(media)
-    return { ...summary, description: descriptionToPlainText(media.description), genres: array(media.genres).filter((x): x is string => typeof x === 'string'), status: text(media.status), season: text(media.season), relations: normalizeRelations(media.relations), recommendations: array(record(media.recommendations).nodes).map((node) => normalizeMedia(record(node).mediaRecommendation)).filter((item) => item.id) }
+    return { ...summary, description: descriptionToPlainText(media.description), genres: array(media.genres).filter((x): x is string => typeof x === 'string'), status: text(media.status), season: text(media.season), relations: normalizeRelations(media.relations), recommendations: dedupeMedia(array(record(media.recommendations).nodes).map((node) => normalizeMedia(record(node).mediaRecommendation))) }
   }
 
   async profile(): Promise<AniListProfile> {
