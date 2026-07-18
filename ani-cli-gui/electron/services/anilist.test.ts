@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { AniListService, descriptionToPlainText, normalizeCatalogMapping, normalizeMedia, normalizeRelations, scoreCandidate } from './anilist'
+import { AniListService, dedupeMedia, descriptionToPlainText, normalizeCatalogMapping, normalizeMedia, normalizeRelations, scoreCandidate } from './anilist'
 import type { CatalogMapping } from '../../src/anilist-types'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -40,6 +40,13 @@ describe('AniList normalization', () => {
 
     expect(relations).toHaveLength(1)
     expect(relations[0]).toMatchObject({ relationType: 'SEQUEL', media: { id: 2, title: 'Next season' } })
+  })
+
+  it('deduplicates repeated recommendations by AniList media ID', () => {
+    const yourName = normalizeMedia({ id: 21519, title: { english: 'Your Name.' } })
+    const frieren = normalizeMedia({ id: 154587, title: { english: 'Frieren' } })
+
+    expect(dedupeMedia([yourName, yourName, frieren, yourName])).toEqual([yourName, frieren])
   })
 })
 
