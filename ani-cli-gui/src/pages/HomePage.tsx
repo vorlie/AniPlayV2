@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
-import { CalendarClock, ChevronLeft, Flame, ListPlus, Loader2, LogIn, LogOut, Minus, Play, Plus, RotateCcw, Search, Sparkles, Star, TrendingUp, UserRound } from 'lucide-react'
+import { CalendarClock, ChevronLeft, Flame, ListPlus, Loader2, LogIn, LogOut, Minus, Play, Plus, RotateCcw, Search, Sparkles, TrendingUp, UserRound } from 'lucide-react'
 import { getCatalogProvider, getTranslationType, invokeSearch, type AnimeSearchResult, type CatalogProvider } from '../lib/api'
 import { readHistory, type HistoryEntry } from '../lib/history'
 import type { AnimeDetails, AnimeRelation, AnimeSummary, AniListStatus, CatalogCandidate, CatalogMapping, DashboardData, ListUpdateInput } from '../anilist-types'
@@ -123,6 +123,48 @@ function MediaCard({ media, label, onClick }: { media: AnimeSummary; label?: str
 function Section({ title, icon, items, onSelect, label }: { title: string; icon: React.ReactNode; items: AnimeSummary[]; onSelect: (item: AnimeSummary) => void; label?: string }) {
   if (!items.length) return null
   return <section className="space-y-3"><div className="flex items-center gap-2 text-m3-on-surface">{icon}<h3 className="text-lg font-black">{title}</h3></div><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">{items.map((item) => <MediaCard key={item.id} media={item} label={label} onClick={() => onSelect(item)} />)}</div></section>
+}
+
+function PosterCard({ media, onClick }: { media: AnimeSummary; onClick: () => void }) {
+  const { t } = useTranslation()
+  return (
+    <button type="button" onClick={onClick} className="group min-w-0 text-left">
+      <span className="relative block aspect-[2/3] overflow-hidden rounded-2xl border border-m3-outline/15 bg-m3-surface-variant/20">
+        {media.coverUrl ? <img src={media.coverUrl} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" loading="lazy" /> : <span className="block h-full" style={{ backgroundColor: media.accentColor }} />}
+        <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent px-2 pb-2 pt-7 text-[10px] font-black text-white">
+          {episodeLabel(media, t)}
+        </span>
+      </span>
+      <strong className="mt-2 block truncate text-xs group-hover:text-m3-primary">{media.title}</strong>
+      <span className="mt-0.5 block truncate text-[10px] text-m3-on-surface-variant">{media.format ?? t('home.animeFallback')}{media.averageScore ? ` · ★ ${media.averageScore}%` : ''}</span>
+    </button>
+  )
+}
+
+interface ShelfTab {
+  id: string
+  label: string
+  items: AnimeSummary[]
+}
+
+function DashboardShelf({ title, icon, tabs, onSelect }: { title: string; icon: React.ReactNode; tabs: ShelfTab[]; onSelect: (item: AnimeSummary) => void }) {
+  const availableTabs = tabs.filter((tab) => tab.items.length)
+  const [activeTab, setActiveTab] = useState(availableTabs[0]?.id ?? '')
+  if (!availableTabs.length) return null
+  const selected = availableTabs.find((tab) => tab.id === activeTab) ?? availableTabs[0]
+  return (
+    <section className="m3-card dashboard-shelf p-4 min-w-0">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="flex items-center gap-2 font-black">{icon}{title}</h3>
+        <div className="flex max-w-full gap-1 overflow-x-auto" role="tablist" aria-label={title}>
+          {availableTabs.map((tab) => <button key={tab.id} type="button" role="tab" aria-selected={selected.id === tab.id} onClick={() => setActiveTab(tab.id)} className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold ${selected.id === tab.id ? 'bg-m3-primary text-m3-on-primary' : 'text-m3-on-surface-variant hover:bg-m3-on-surface/10'}`}>{tab.label}</button>)}
+        </div>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {selected.items.slice(0, 6).map((item) => <PosterCard key={item.id} media={item} onClick={() => onSelect(item)} />)}
+      </div>
+    </section>
+  )
 }
 
 function RelationsSection({ items, onSelect, t }: { items: AnimeRelation[]; onSelect: (item: AnimeSummary) => void; t: TFunction }) {
@@ -390,18 +432,20 @@ export function HomePage({ setSearchQuery, setResults, onSelectAnime, onResume, 
 
   if (selectedId) return <DetailsView id={selectedId} onBack={() => { setSelectedId(null); onClearInitialSelection?.() }} onOpenAnime={openMapped} onChanged={load} />
   const history = readHistory().slice(0, 4)
-  return <div className="flex-1 flex flex-col gap-5">
-    <section className="m3-card p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4"><div><p className="section-label"><Flame size={14}/> {t('home.discovery')}</p><h2 className="mt-2 text-3xl md:text-4xl font-black">{t('home.dashboardTitle')}</h2><p className="mt-1 text-sm text-m3-on-surface-variant">{t('home.dashboardDescription')}</p></div>{dashboard?.session.authenticated ? <div className="flex items-center gap-3"><div className="text-right"><p className="text-xs text-m3-on-surface-variant">{t('home.signedInAs')}</p><p className="font-bold">{dashboard.session.user?.name}</p></div>{dashboard.session.user?.avatar ? <img src={dashboard.session.user.avatar} className="size-10 rounded-full" alt=""/> : <UserRound/>}<button onClick={() => void logout()} className="icon-button" title={t('home.signOut')}><LogOut size={18}/></button></div> : <button disabled={authBusy || !dashboard?.session.configured} onClick={() => void signIn()} className="primary-action px-4 py-2.5" title={dashboard?.session.configured ? undefined : t('home.signInUnavailable')}>{authBusy ? <Loader2 className="animate-spin" size={18}/> : <LogIn size={18}/>} {t('home.signIn')}</button>}</section>
+  const featured = dashboard?.current[0] ?? dashboard?.trending[0] ?? dashboard?.seasonal[0]
+  return <div className="home-dashboard flex-1 flex flex-col gap-4">
+    <section className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><p className="section-label"><Flame size={14}/> {t('home.discovery')}</p><h2 className="mt-2 text-2xl md:text-3xl font-black">{t('home.dashboardTitle')}</h2></div>{dashboard?.session.authenticated ? <div className="flex items-center gap-3"><div className="text-right"><p className="text-xs text-m3-on-surface-variant">{t('home.signedInAs')}</p><p className="font-bold">{dashboard.session.user?.name}</p></div>{dashboard.session.user?.avatar ? <img src={dashboard.session.user.avatar} className="size-10 rounded-full" alt=""/> : <UserRound/>}<button onClick={() => void logout()} className="icon-button" title={t('home.signOut')}><LogOut size={18}/></button></div> : <button disabled={authBusy || !dashboard?.session.configured} onClick={() => void signIn()} className="primary-action px-4 py-2.5" title={dashboard?.session.configured ? undefined : t('home.signInUnavailable')}>{authBusy ? <Loader2 className="animate-spin" size={18}/> : <LogIn size={18}/>} {t('home.signIn')}</button>}</section>
     {dashboard?.stale ? <p className="rounded-xl bg-amber-500/10 px-4 py-2 text-xs text-amber-200">{t('home.stale')}</p> : null}{error ? <p role="alert" className="rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</p> : null}
     {loading ? <div className="m3-card min-h-72 flex items-center justify-center"><Loader2 className="animate-spin text-m3-primary"/></div> : dashboard ? <>
-      {history.length ? <section className="space-y-3"><h3 className="flex items-center gap-2 text-lg font-black"><Play size={18} className="text-m3-primary"/> {t('home.continueWatching')}</h3><div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2.5">{history.map((item) => <button key={`${item.animeId}:${item.episode}`} onClick={() => onResume(item)} className="m3-card p-4 text-left hover:border-m3-primary/40"><p className="truncate font-bold">{item.animeName}</p><p className="mt-1 text-xs text-m3-on-surface-variant">{t('downloads.episode', { episode: item.episode })}</p></button>)}</div></section> : null}
-      <Section title={t('home.watching')} icon={<Play size={18} className="text-m3-primary"/>} items={dashboard.current} onSelect={(item) => setSelectedId(item.id)} />
-      <Section title={t('home.planning')} icon={<ListPlus size={18} className="text-m3-primary"/>} items={dashboard.planning} onSelect={(item) => setSelectedId(item.id)} />
-      <Section title={t('home.recommended')} icon={<Star size={18} className="text-m3-primary"/>} items={dashboard.recommendations} onSelect={(item) => setSelectedId(item.id)} />
-      {dashboard.airing.length ? <section className="space-y-3"><h3 className="flex items-center gap-2 text-lg font-black"><CalendarClock size={18} className="text-m3-primary"/> {t('home.airingSoon')}</h3><div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2.5">{dashboard.airing.map((item) => <MediaCard key={`${item.media.id}:${item.episode}`} media={item.media} label={t('home.airingLabel', { episode: item.episode, time: timeUntil(item.airingAt, t) })} onClick={() => setSelectedId(item.media.id)} />)}</div></section> : null}
-      <Section title={t('home.trending')} icon={<TrendingUp size={18} className="text-m3-primary"/>} items={dashboard.trending} onSelect={(item) => setSelectedId(item.id)} />
-      <Section title={t('home.seasonal')} icon={<Sparkles size={18} className="text-m3-primary"/>} items={dashboard.seasonal} onSelect={(item) => setSelectedId(item.id)} />
-      <Section title={t('home.completed')} icon={<Star size={18} className="text-m3-primary"/>} items={dashboard.completed} onSelect={(item) => setSelectedId(item.id)} />
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+        {featured ? <button type="button" onClick={() => setSelectedId(featured.id)} className="m3-card home-feature relative min-h-[300px] overflow-hidden text-left"><span className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${featured.bannerUrl || featured.coverUrl})` }} /><span className="absolute inset-0 bg-gradient-to-r from-m3-surface via-m3-surface/75 to-transparent"/><span className="relative flex min-h-[300px] max-w-xl flex-col justify-end p-6"><span className="section-label w-fit"><TrendingUp size={13}/> {t('home.trending')}</span><strong className="mt-3 text-3xl font-black md:text-4xl">{featured.title}</strong><span className="mt-2 text-sm text-m3-on-surface-variant">{episodeLabel(featured, t)}{featured.averageScore ? ` · ★ ${featured.averageScore}%` : ''}</span><span className="primary-action mt-5 w-fit px-5 py-2.5"><Play size={17}/> {t('home.viewDetails')}</span></span></button> : null}
+        <aside className="m3-card p-4"><h3 className="flex items-center gap-2 font-black"><CalendarClock size={18} className="text-m3-primary"/> {t('home.airingSoon')}</h3><div className="mt-3 grid gap-1.5">{dashboard.airing.slice(0, 6).map((item) => <button type="button" key={`${item.media.id}:${item.episode}`} onClick={() => setSelectedId(item.media.id)} className="flex items-center gap-3 rounded-xl p-2 text-left hover:bg-m3-on-surface/8">{item.media.coverUrl ? <img src={item.media.coverUrl} alt="" className="size-10 rounded-lg object-cover"/> : null}<span className="min-w-0 flex-1"><strong className="block truncate text-xs">{item.media.title}</strong><span className="mt-0.5 block text-[10px] text-m3-on-surface-variant">{t('home.airingLabel', { episode: item.episode, time: timeUntil(item.airingAt, t) })}</span></span></button>)}</div></aside>
+      </div>
+      {history.length ? <section><h3 className="mb-2 flex items-center gap-2 font-black"><Play size={18} className="text-m3-primary"/> {t('home.continueWatching')}</h3><div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{history.map((item) => <button key={`${item.animeId}:${item.episode}`} onClick={() => onResume(item)} className="m3-card flex items-center gap-3 p-3 text-left hover:border-m3-primary/40">{item.coverUrl ? <img src={item.coverUrl} alt="" className="h-14 w-10 rounded-lg object-cover"/> : null}<span className="min-w-0"><strong className="block truncate text-sm">{item.animeName}</strong><span className="mt-1 block text-xs text-m3-on-surface-variant">{t('downloads.episode', { episode: item.episode })}</span></span></button>)}</div></section> : null}
+      <div className="grid items-start gap-4 xl:grid-cols-2">
+        <DashboardShelf title={t('home.discover')} icon={<Sparkles size={18} className="text-m3-primary"/>} tabs={[{ id: 'trending', label: t('home.trending'), items: dashboard.trending }, { id: 'seasonal', label: t('home.seasonal'), items: dashboard.seasonal }, { id: 'recommended', label: t('home.recommended'), items: dashboard.recommendations }]} onSelect={(item) => setSelectedId(item.id)} />
+        <DashboardShelf title={t('home.library')} icon={<ListPlus size={18} className="text-m3-primary"/>} tabs={[{ id: 'watching', label: t('home.watching'), items: dashboard.current }, { id: 'planning', label: t('home.planning'), items: dashboard.planning }, { id: 'completed', label: t('home.completed'), items: dashboard.completed }]} onSelect={(item) => setSelectedId(item.id)} />
+      </div>
     </> : null}
   </div>
 }
