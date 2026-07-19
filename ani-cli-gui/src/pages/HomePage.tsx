@@ -11,8 +11,11 @@ interface HomePageProps {
   setResults: (val: AnimeSearchResult[]) => void
   onSelectAnime: (anime: AnimeSearchResult, options?: { episode?: string | null; resumeSeconds?: number | null }) => void
   onResume: (item: HistoryEntry) => void
-  initialSelectedId?: number | null
-  onClearInitialSelection?: () => void
+  selectedMediaId?: number | null
+  onOpenMedia?: (media: AnimeSummary, originLabel?: string) => void
+  onCloseMedia?: () => void
+  onMediaResolved?: (media: AnimeSummary) => void
+  view?: 'dashboard' | 'discover' | 'library'
 }
 
 interface EpisodeSuggestion {
@@ -167,6 +170,17 @@ function DashboardShelf({ title, icon, tabs, onSelect }: { title: string; icon: 
   )
 }
 
+function CollectionTabs({ tabs, active, onChange, label }: { tabs: Array<{ id: string; label: string; count: number }>; active: string; onChange: (id: string) => void; label: string }) {
+  return <div className="flex max-w-full gap-1 overflow-x-auto rounded-2xl border border-m3-outline/15 bg-m3-surface/35 p-1.5" role="tablist" aria-label={label}>
+    {tabs.map((tab) => <button key={tab.id} type="button" role="tab" aria-selected={active === tab.id} onClick={() => onChange(tab.id)} className={`flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition-colors ${active === tab.id ? 'bg-m3-primary text-m3-on-primary' : 'text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface'}`}><span>{tab.label}</span><span className={`rounded-full px-1.5 py-0.5 text-[10px] ${active === tab.id ? 'bg-m3-on-primary/15' : 'bg-m3-on-surface/8'}`}>{tab.count}</span></button>)}
+  </div>
+}
+
+function CollectionGrid({ items, onSelect, empty }: { items: AnimeSummary[]; onSelect: (item: AnimeSummary) => void; empty: string }) {
+  if (!items.length) return <div className="m3-card flex min-h-52 items-center justify-center p-6 text-center text-sm text-m3-on-surface-variant">{empty}</div>
+  return <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">{items.map((item) => <MediaCard key={item.id} media={item} onClick={() => onSelect(item)} />)}</div>
+}
+
 function RelationsSection({ items, onSelect, t }: { items: AnimeRelation[]; onSelect: (item: AnimeSummary) => void; t: TFunction }) {
   if (!items.length) return null
   return <section className="space-y-3"><div className="flex items-center gap-2 text-m3-on-surface"><ListPlus size={18} className="text-m3-primary"/><h3 className="text-lg font-black">{t('home.relations')}</h3></div><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">{items.map((item) => <MediaCard key={`${item.relationType}:${item.media.id}`} media={item.media} label={t(`home.relationTypes.${item.relationType.toLowerCase()}`)} onClick={() => onSelect(item.media)} />)}</div></section>
@@ -188,7 +202,7 @@ function NumberStepper({ label, value, onChange, max }: { label: string; value: 
   )
 }
 
-function DetailsView({ id, onBack, onOpenAnime, onChanged }: { id: number; onBack: () => void; onOpenAnime: (media: AnimeSummary, anime: AnimeSearchResult, suggestion: EpisodeSuggestion) => void; onChanged: () => void }) {
+function DetailsView({ id, onBack, onOpenAnime, onChanged, onOpenLinkedMedia, onMediaResolved }: { id: number; onBack: () => void; onOpenAnime: (media: AnimeSummary, anime: AnimeSearchResult, suggestion: EpisodeSuggestion) => void; onChanged: () => void; onOpenLinkedMedia?: (media: AnimeSummary) => void; onMediaResolved?: (media: AnimeSummary) => void }) {
   const { t } = useTranslation()
   const [media, setMedia] = useState<AnimeDetails | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -220,11 +234,12 @@ function DetailsView({ id, onBack, onOpenAnime, onChanged }: { id: number; onBac
 
   const showMedia = useCallback((item: AnimeDetails) => {
     setMedia(item)
+    onMediaResolved?.(item)
     setStatus(item.listState?.status ?? 'PLANNING')
     setProgress(item.listState?.progress ?? 0)
     setScore(item.listState?.score ?? 0)
     setRepeat(item.listState?.repeat ?? 0)
-  }, [])
+  }, [onMediaResolved])
 
   const searchForCandidates = useCallback(async (item: AnimeSummary, query: string) => {
     const response = await invokeSearch(query, provider)
@@ -287,6 +302,10 @@ function DetailsView({ id, onBack, onOpenAnime, onChanged }: { id: number; onBac
   }
 
   const openLinkedMedia = (item: AnimeSummary) => {
+    if (onOpenLinkedMedia) {
+      onOpenLinkedMedia(item)
+      return
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' })
     setMedia(null)
     setError(null)
@@ -329,7 +348,7 @@ function DetailsView({ id, onBack, onOpenAnime, onChanged }: { id: number; onBac
   return <div className="space-y-4">
     <section className="m3-card overflow-hidden relative"><div className="absolute inset-0 bg-cover bg-center opacity-35" style={media.bannerUrl ? { backgroundImage: `url(${media.bannerUrl})` } : { backgroundColor: media.accentColor }} /><div className="absolute inset-0 bg-gradient-to-b from-m3-surface/20 via-m3-surface/65 to-m3-surface" /><div className="relative p-5 md:p-7 flex flex-col md:flex-row gap-5 pt-24">
       <img src={media.coverUrl} alt="" className="w-36 h-52 object-cover rounded-2xl shadow-xl self-center md:self-end" />
-      <div className="flex-1 self-end"><button onClick={onBack} className="mb-3 inline-flex items-center gap-1 text-sm font-bold text-m3-primary"><ChevronLeft size={18}/> {t('home.dashboard')}</button><h2 className="text-3xl font-black">{media.title}</h2><div className="mt-2 flex flex-wrap gap-2 text-xs text-m3-on-surface-variant"><span>{media.format}</span><span>{media.season} {media.seasonYear}</span><span>{media.status}</span><span>{media.episodes ? t('home.episodeCount', { count: media.episodes }) : '?'}</span>{media.averageScore ? <span>★ {media.averageScore}%</span> : null}</div></div>
+      <div className="flex-1 self-end"><button onClick={onBack} className="mb-3 inline-flex items-center gap-1 text-sm font-bold text-m3-primary"><ChevronLeft size={18}/> {t('anilistWorkspace.back')}</button><h2 className="text-3xl font-black">{media.title}</h2><div className="mt-2 flex flex-wrap gap-2 text-xs text-m3-on-surface-variant"><span>{media.format}</span><span>{media.season} {media.seasonYear}</span><span>{media.status}</span><span>{media.episodes ? t('home.episodeCount', { count: media.episodes }) : '?'}</span>{media.averageScore ? <span>★ {media.averageScore}%</span> : null}</div></div>
     </div></section>
     {error ? <p role="alert" className="rounded-xl bg-red-500/10 p-3 text-sm text-red-300">{error}</p> : null}
     <div className="grid lg:grid-cols-[1fr_360px] gap-4">
@@ -410,18 +429,37 @@ function CandidateModal({ dialog, setDialog, onRetry, onChoose }: { dialog: Cand
   )
 }
 
-export function HomePage({ setSearchQuery, setResults, onSelectAnime, onResume, initialSelectedId = null, onClearInitialSelection }: HomePageProps) {
+export function HomePage({ setSearchQuery, setResults, onSelectAnime, onResume, selectedMediaId, onOpenMedia, onCloseMedia, onMediaResolved, view = 'dashboard' }: HomePageProps) {
   const { t } = useTranslation()
   const [dashboard, setDashboard] = useState<DashboardData | null>(null)
-  const [selectedId, setSelectedId] = useState<number | null>(() => initialSelectedId)
+  const [localSelectedId, setLocalSelectedId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [authBusy, setAuthBusy] = useState(false)
+  const [discoverTab, setDiscoverTab] = useState('trending')
+  const [libraryTab, setLibraryTab] = useState('current')
+  const [libraryQuery, setLibraryQuery] = useState('')
+  const [aniListQuery, setAniListQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<AnimeSummary[]>([])
+  const [searching, setSearching] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
 
   const load = useCallback(() => { setLoading(true); setError(null); void window.aniPlay!.aniList.dashboard.get().then(setDashboard).catch((cause: unknown) => setError(cause instanceof Error ? cause.message : t('home.unavailable'))).finally(() => setLoading(false)) }, [t])
   useEffect(() => { void window.aniPlay!.aniList.dashboard.get().then(setDashboard).catch((cause: unknown) => setError(cause instanceof Error ? cause.message : t('home.unavailable'))).finally(() => setLoading(false)) }, [t])
   const signIn = async () => { setAuthBusy(true); setError(null); try { await window.aniPlay!.aniList.auth.start(); load() } catch (cause) { setError(cause instanceof Error ? cause.message : t('home.signInFailed')) } finally { setAuthBusy(false) } }
   const logout = async () => { await window.aniPlay!.aniList.auth.logout(); load() }
+
+  const searchAniList = async () => {
+    const query = aniListQuery.trim()
+    if (!query || searching) return
+    setSearching(true); setSearchError(null)
+    try {
+      const items = await window.aniPlay!.aniList.media.search(query)
+      setSearchResults(items); setDiscoverTab('search')
+    } catch (cause) {
+      setSearchResults([]); setSearchError(cause instanceof Error ? cause.message : t('anilistWorkspace.searchFailed'))
+    } finally { setSearching(false) }
+  }
 
   const openMapped = (media: AnimeSummary, anime: AnimeSearchResult, suggestion: EpisodeSuggestion) => {
     const selection = { ...anime, aniListMediaId: media.id, coverUrl: media.coverUrl || undefined }
@@ -430,21 +468,66 @@ export function HomePage({ setSearchQuery, setResults, onSelectAnime, onResume, 
     onSelectAnime(selection, { episode: suggestion.episode, resumeSeconds: suggestion.resumeSeconds ?? null })
   }
 
-  if (selectedId) return <DetailsView id={selectedId} onBack={() => { setSelectedId(null); onClearInitialSelection?.() }} onOpenAnime={openMapped} onChanged={load} />
+  const selectedId = selectedMediaId !== undefined ? selectedMediaId : localSelectedId
+  const openMedia = (media: AnimeSummary, originLabel?: string) => onOpenMedia ? onOpenMedia(media, originLabel) : setLocalSelectedId(media.id)
+  const closeMedia = () => onCloseMedia ? onCloseMedia() : setLocalSelectedId(null)
+  if (selectedId) return <DetailsView key={selectedId} id={selectedId} onBack={closeMedia} onOpenAnime={openMapped} onChanged={load} onOpenLinkedMedia={(media) => openMedia(media)} onMediaResolved={onMediaResolved} />
   const history = readHistory().slice(0, 4)
   const featured = dashboard?.current[0] ?? dashboard?.trending[0] ?? dashboard?.seasonal[0]
+  const discoverCollections = dashboard ? {
+    trending: dashboard.trending,
+    seasonal: dashboard.seasonal,
+    airing: [...new Map(dashboard.airing.map((item) => [item.media.id, item.media])).values()],
+    recommended: dashboard.recommendations,
+    search: searchResults,
+  } : { trending: [], seasonal: [], airing: [], recommended: [], search: [] }
+  const libraryCollections: Record<string, AnimeSummary[]> = dashboard ? {
+    current: dashboard.current,
+    planning: dashboard.planning,
+    completed: dashboard.completed,
+    paused: dashboard.paused,
+    dropped: dashboard.dropped,
+    repeating: dashboard.repeating,
+  } : { current: [], planning: [], completed: [], paused: [], dropped: [], repeating: [] }
+  const normalizedLibraryQuery = libraryQuery.trim().toLowerCase()
+  const activeLibraryItems = (libraryCollections[libraryTab] ?? []).filter((item) => !normalizedLibraryQuery || [item.title, item.titleEnglish, item.titleRomaji, ...item.synonyms].some((title) => title?.toLowerCase().includes(normalizedLibraryQuery)))
+  const workspaceTitle = view === 'discover' ? t('anilistWorkspace.discoverTitle') : view === 'library' ? t('anilistWorkspace.libraryTitle') : t('home.dashboardTitle')
+  const workspaceDescription = view === 'discover' ? t('anilistWorkspace.discoverDescription') : view === 'library' ? t('anilistWorkspace.libraryDescription') : t('home.discovery')
   return <div className="home-dashboard flex-1 flex flex-col gap-4">
-    <section className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><p className="section-label"><Flame size={14}/> {t('home.discovery')}</p><h2 className="mt-2 text-2xl md:text-3xl font-black">{t('home.dashboardTitle')}</h2></div>{dashboard?.session.authenticated ? <div className="flex items-center gap-3"><div className="text-right"><p className="text-xs text-m3-on-surface-variant">{t('home.signedInAs')}</p><p className="font-bold">{dashboard.session.user?.name}</p></div>{dashboard.session.user?.avatar ? <img src={dashboard.session.user.avatar} className="size-10 rounded-full" alt=""/> : <UserRound/>}<button onClick={() => void logout()} className="icon-button" title={t('home.signOut')}><LogOut size={18}/></button></div> : <button disabled={authBusy || !dashboard?.session.configured} onClick={() => void signIn()} className="primary-action px-4 py-2.5" title={dashboard?.session.configured ? undefined : t('home.signInUnavailable')}>{authBusy ? <Loader2 className="animate-spin" size={18}/> : <LogIn size={18}/>} {t('home.signIn')}</button>}</section>
+    <section className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><p className="section-label"><Flame size={14}/> {workspaceDescription}</p><h2 className="mt-2 text-2xl md:text-3xl font-black">{workspaceTitle}</h2></div>{dashboard?.session.authenticated ? <div className="flex items-center gap-3"><div className="text-right"><p className="text-xs text-m3-on-surface-variant">{t('home.signedInAs')}</p><p className="font-bold">{dashboard.session.user?.name}</p></div>{dashboard.session.user?.avatar ? <img src={dashboard.session.user.avatar} className="size-10 rounded-full" alt=""/> : <UserRound/>}<button onClick={() => void logout()} className="icon-button" title={t('home.signOut')}><LogOut size={18}/></button></div> : <button disabled={authBusy || !dashboard?.session.configured} onClick={() => void signIn()} className="primary-action px-4 py-2.5" title={dashboard?.session.configured ? undefined : t('home.signInUnavailable')}>{authBusy ? <Loader2 className="animate-spin" size={18}/> : <LogIn size={18}/>} {t('profile.signIn')}</button>}</section>
     {dashboard?.stale ? <p className="rounded-xl bg-amber-500/10 px-4 py-2 text-xs text-amber-200">{t('home.stale')}</p> : null}{error ? <p role="alert" className="rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</p> : null}
-    {loading ? <div className="m3-card min-h-72 flex items-center justify-center"><Loader2 className="animate-spin text-m3-primary"/></div> : dashboard ? <>
+    {view === 'discover' && !loading && dashboard ? <>
+      <form onSubmit={(event) => { event.preventDefault(); void searchAniList() }} className="m3-card flex flex-col gap-2 p-3 sm:flex-row">
+        <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-m3-outline/20 bg-m3-surface/45 px-3"><Search size={17} className="shrink-0 text-m3-outline"/><input value={aniListQuery} onChange={(event) => setAniListQuery(event.target.value)} placeholder={t('anilistWorkspace.searchPlaceholder')} className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none"/></label>
+        <button type="submit" disabled={!aniListQuery.trim() || searching} className="primary-action justify-center px-5 py-3 disabled:opacity-50">{searching ? <Loader2 size={17} className="animate-spin"/> : <Search size={17}/>} {t('anilistWorkspace.search')}</button>
+      </form>
+      {searchError ? <p role="alert" className="rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-300">{searchError}</p> : null}
+      <CollectionTabs label={t('anilistWorkspace.discover')} active={discoverTab} onChange={setDiscoverTab} tabs={[
+        { id: 'trending', label: t('home.trending'), count: dashboard.trending.length },
+        { id: 'seasonal', label: t('home.seasonal'), count: dashboard.seasonal.length },
+        { id: 'airing', label: t('home.airingSoon'), count: discoverCollections.airing.length },
+        { id: 'recommended', label: t('home.recommended'), count: dashboard.recommendations.length },
+        ...(searchResults.length || discoverTab === 'search' ? [{ id: 'search', label: t('anilistWorkspace.searchResults'), count: searchResults.length }] : []),
+      ]}/>
+      <CollectionGrid items={discoverCollections[discoverTab as keyof typeof discoverCollections] ?? []} onSelect={(item) => openMedia(item, discoverTab === 'search' ? t('anilistWorkspace.searchResults') : discoverTab === 'airing' ? t('home.airingSoon') : t(`home.${discoverTab}`))} empty={t('anilistWorkspace.noDiscoverResults')}/>
+    </> : null}
+    {view === 'library' && !loading && dashboard ? <>
+      {history.length ? <section><h3 className="mb-2 flex items-center gap-2 font-black"><Play size={18} className="text-m3-primary"/> {t('home.continueWatching')}</h3><div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{history.map((item) => <button key={`${item.animeId}:${item.episode}`} onClick={() => onResume(item)} className="m3-card flex items-center gap-3 p-3 text-left hover:border-m3-primary/40">{item.coverUrl ? <img src={item.coverUrl} alt="" className="h-14 w-10 rounded-lg object-cover"/> : null}<span className="min-w-0"><strong className="block truncate text-sm">{item.animeName}</strong><span className="mt-1 block text-xs text-m3-on-surface-variant">{t('downloads.episode', { episode: item.episode })}</span></span></button>)}</div></section> : null}
+      {!dashboard.session.authenticated ? <div className="m3-card p-6 text-center"><ListPlus className="mx-auto text-m3-primary" size={30}/><h3 className="mt-3 text-xl font-black">{t('anilistWorkspace.librarySignInTitle')}</h3><p className="mx-auto mt-2 max-w-lg text-sm text-m3-on-surface-variant">{t('anilistWorkspace.librarySignInDescription')}</p></div> : <>
+        <label className="m3-card flex items-center gap-2 px-4"><Search size={17} className="text-m3-outline"/><input value={libraryQuery} onChange={(event) => setLibraryQuery(event.target.value)} placeholder={t('anilistWorkspace.filterLibrary')} className="min-w-0 flex-1 bg-transparent py-3.5 text-sm outline-none"/></label>
+        <CollectionTabs label={t('anilistWorkspace.library')} active={libraryTab} onChange={setLibraryTab} tabs={LIST_STATUSES.map((status) => ({ id: status.toLowerCase(), label: t(`home.statuses.${status.toLowerCase()}`), count: libraryCollections[status.toLowerCase()].length }))}/>
+        <CollectionGrid items={activeLibraryItems} onSelect={(item) => openMedia(item, t(`home.statuses.${libraryTab}`))} empty={normalizedLibraryQuery ? t('anilistWorkspace.noLibraryMatches') : t('anilistWorkspace.emptyStatus')}/>
+      </>}
+    </> : null}
+    {loading ? <div className="m3-card min-h-72 flex items-center justify-center"><Loader2 className="animate-spin text-m3-primary"/></div> : dashboard && view === 'dashboard' ? <>
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-        {featured ? <button type="button" onClick={() => setSelectedId(featured.id)} className="m3-card home-feature relative min-h-[300px] overflow-hidden text-left"><span className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${featured.bannerUrl || featured.coverUrl})` }} /><span className="absolute inset-0 bg-gradient-to-r from-m3-surface via-m3-surface/75 to-transparent"/><span className="relative flex min-h-[300px] max-w-xl flex-col justify-end p-6"><span className="section-label w-fit"><TrendingUp size={13}/> {t('home.trending')}</span><strong className="mt-3 text-3xl font-black md:text-4xl">{featured.title}</strong><span className="mt-2 text-sm text-m3-on-surface-variant">{episodeLabel(featured, t)}{featured.averageScore ? ` · ★ ${featured.averageScore}%` : ''}</span><span className="primary-action mt-5 w-fit px-5 py-2.5"><Play size={17}/> {t('home.viewDetails')}</span></span></button> : null}
-        <aside className="m3-card min-w-0 overflow-hidden p-4"><h3 className="flex items-center gap-2 font-black"><CalendarClock size={18} className="shrink-0 text-m3-primary"/> {t('home.airingSoon')}</h3><div className="mt-3 grid min-w-0 gap-1.5">{dashboard.airing.slice(0, 6).map((item) => <button type="button" key={`${item.media.id}:${item.episode}`} onClick={() => setSelectedId(item.media.id)} className="flex w-full min-w-0 items-center gap-3 overflow-hidden rounded-xl p-2 text-left hover:bg-m3-on-surface/8">{item.media.coverUrl ? <img src={item.media.coverUrl} alt="" className="size-10 shrink-0 rounded-lg object-cover"/> : null}<span className="min-w-0 flex-1 overflow-hidden"><strong className="block max-w-full truncate text-xs">{item.media.title}</strong><span className="mt-0.5 block max-w-full truncate text-[10px] text-m3-on-surface-variant">{t('home.airingLabel', { episode: item.episode, time: timeUntil(item.airingAt, t) })}</span></span></button>)}</div></aside>
+        {featured ? <button type="button" onClick={() => openMedia(featured)} className="m3-card home-feature relative min-h-[300px] overflow-hidden text-left"><span className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${featured.bannerUrl || featured.coverUrl})` }} /><span className="absolute inset-0 bg-gradient-to-r from-m3-surface via-m3-surface/75 to-transparent"/><span className="relative flex min-h-[300px] max-w-xl flex-col justify-end p-6"><span className="section-label w-fit"><TrendingUp size={13}/> {t('home.trending')}</span><strong className="mt-3 text-3xl font-black md:text-4xl">{featured.title}</strong><span className="mt-2 text-sm text-m3-on-surface-variant">{episodeLabel(featured, t)}{featured.averageScore ? ` · ★ ${featured.averageScore}%` : ''}</span><span className="primary-action mt-5 w-fit px-5 py-2.5"><Play size={17}/> {t('home.viewDetails')}</span></span></button> : null}
+        <aside className="m3-card min-w-0 overflow-hidden p-4"><h3 className="flex items-center gap-2 font-black"><CalendarClock size={18} className="shrink-0 text-m3-primary"/> {t('home.airingSoon')}</h3><div className="mt-3 grid min-w-0 gap-1.5">{dashboard.airing.slice(0, 6).map((item) => <button type="button" key={`${item.media.id}:${item.episode}`} onClick={() => openMedia(item.media)} className="flex w-full min-w-0 items-center gap-3 overflow-hidden rounded-xl p-2 text-left hover:bg-m3-on-surface/8">{item.media.coverUrl ? <img src={item.media.coverUrl} alt="" className="size-10 shrink-0 rounded-lg object-cover"/> : null}<span className="min-w-0 flex-1 overflow-hidden"><strong className="block max-w-full truncate text-xs">{item.media.title}</strong><span className="mt-0.5 block max-w-full truncate text-[10px] text-m3-on-surface-variant">{t('home.airingLabel', { episode: item.episode, time: timeUntil(item.airingAt, t) })}</span></span></button>)}</div></aside>
       </div>
       {history.length ? <section><h3 className="mb-2 flex items-center gap-2 font-black"><Play size={18} className="text-m3-primary"/> {t('home.continueWatching')}</h3><div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{history.map((item) => <button key={`${item.animeId}:${item.episode}`} onClick={() => onResume(item)} className="m3-card flex items-center gap-3 p-3 text-left hover:border-m3-primary/40">{item.coverUrl ? <img src={item.coverUrl} alt="" className="h-14 w-10 rounded-lg object-cover"/> : null}<span className="min-w-0"><strong className="block truncate text-sm">{item.animeName}</strong><span className="mt-1 block text-xs text-m3-on-surface-variant">{t('downloads.episode', { episode: item.episode })}</span></span></button>)}</div></section> : null}
       <div className="grid items-start gap-4 xl:grid-cols-2">
-        <DashboardShelf title={t('home.discover')} icon={<Sparkles size={18} className="text-m3-primary"/>} tabs={[{ id: 'trending', label: t('home.trending'), items: dashboard.trending }, { id: 'seasonal', label: t('home.seasonal'), items: dashboard.seasonal }, { id: 'recommended', label: t('home.recommended'), items: dashboard.recommendations }]} onSelect={(item) => setSelectedId(item.id)} />
-        <DashboardShelf title={t('home.library')} icon={<ListPlus size={18} className="text-m3-primary"/>} tabs={[{ id: 'watching', label: t('home.watching'), items: dashboard.current }, { id: 'planning', label: t('home.planning'), items: dashboard.planning }, { id: 'completed', label: t('home.completed'), items: dashboard.completed }]} onSelect={(item) => setSelectedId(item.id)} />
+        <DashboardShelf title={t('home.discover')} icon={<Sparkles size={18} className="text-m3-primary"/>} tabs={[{ id: 'trending', label: t('home.trending'), items: dashboard.trending }, { id: 'seasonal', label: t('home.seasonal'), items: dashboard.seasonal }, { id: 'recommended', label: t('home.recommended'), items: dashboard.recommendations }]} onSelect={(item) => openMedia(item)} />
+        <DashboardShelf title={t('home.library')} icon={<ListPlus size={18} className="text-m3-primary"/>} tabs={[{ id: 'watching', label: t('home.watching'), items: dashboard.current }, { id: 'planning', label: t('home.planning'), items: dashboard.planning }, { id: 'completed', label: t('home.completed'), items: dashboard.completed }]} onSelect={(item) => openMedia(item)} />
       </div>
     </> : null}
   </div>

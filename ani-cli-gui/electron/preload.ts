@@ -30,7 +30,10 @@ contextBridge.exposeInMainWorld('aniPlay', {
       get: () => ipcRenderer.invoke('anilist:profile'),
       export: (payload: ProfileSharePayload) => ipcRenderer.invoke('anilist:profile-export', payload),
     },
-    media: { get: (id: number) => ipcRenderer.invoke('anilist:media', id) },
+    media: {
+      get: (id: number) => ipcRenderer.invoke('anilist:media', id),
+      search: (query: string) => ipcRenderer.invoke('anilist:media-search', query),
+    },
     list: {
       update: (input: ListUpdateInput) => ipcRenderer.invoke('anilist:list-update', input),
       delete: (id: number) => ipcRenderer.invoke('anilist:list-delete', id),

@@ -77,7 +77,7 @@ interface AniPlayApi {
     auth: { status(): Promise<AniListSession>; start(): Promise<AniListSession>; logout(): Promise<AniListSession> }
     dashboard: { get(): Promise<DashboardData> }
     profile: { get(): Promise<AniListProfile>; export(payload: ProfileSharePayload): Promise<{ saved: boolean }> }
-    media: { get(id: number): Promise<AnimeDetails> }
+    media: { get(id: number): Promise<AnimeDetails>; search(query: string): Promise<AnimeSummary[]> }
     list: { update(input: ListUpdateInput): Promise<MediaListState>; delete(id: number): Promise<boolean> }
     mapping: {
       resolve(media: AnimeSummary, candidates: SearchResult[], translationType: TranslationType): Promise<CatalogResolution>

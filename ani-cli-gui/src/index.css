@@ -54,6 +54,7 @@
 
 html {
   color-scheme: dark;
+  scrollbar-gutter: stable;
 }
 
 html[data-theme='classic-ember'] {

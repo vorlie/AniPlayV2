@@ -49,7 +49,7 @@ const PROFILE_QUERY = `query Profile($userId: Int!) {
 fragment Card on Media { id title { english romaji userPreferred } synonyms coverImage { large color } bannerImage format seasonYear episodes averageScore nextAiringEpisode { episode airingAt } mediaListEntry { id status progress score repeat } }`
 
 const DETAILS_QUERY = `query Details($id: Int!) { Media(id: $id, type: ANIME) { id title { english romaji userPreferred } synonyms coverImage { extraLarge large color } bannerImage description(asHtml: false) genres format season seasonYear status episodes averageScore nextAiringEpisode { episode airingAt } mediaListEntry { id status progress score repeat } relations { edges { relationType node { type id title { english romaji userPreferred } synonyms coverImage { large color } bannerImage format seasonYear episodes averageScore nextAiringEpisode { episode airingAt } mediaListEntry { id status progress score repeat } } } } recommendations(perPage: 8, sort: RATING_DESC) { nodes { mediaRecommendation { id title { english romaji userPreferred } synonyms coverImage { large color } bannerImage format seasonYear episodes averageScore nextAiringEpisode { episode airingAt } mediaListEntry { id status progress score repeat } } } } } }`
-const SEARCH_QUERY = `query SearchMedia($search: String!) { Page(page: 1, perPage: 8) { media(search: $search, type: ANIME, isAdult: false, sort: SEARCH_MATCH) { id title { english romaji userPreferred } synonyms coverImage { extraLarge large color } bannerImage format seasonYear episodes averageScore } } }`
+const SEARCH_QUERY = `query SearchMedia($search: String!) { Page(page: 1, perPage: 20) { media(search: $search, type: ANIME, isAdult: false, sort: SEARCH_MATCH) { id title { english romaji userPreferred } synonyms coverImage { extraLarge large color } bannerImage format seasonYear episodes averageScore mediaListEntry { id status progress score repeat } } } }`
 
 function record(value: unknown): JsonObject { return value && typeof value === 'object' ? value as JsonObject : {} }
 function array(value: unknown): unknown[] { return Array.isArray(value) ? value : [] }
@@ -279,7 +279,14 @@ export class AniListService {
     if (this.token && this.user) { try { privateData = record(await this.request(PRIVATE_DASHBOARD_QUERY, { userId: this.user.id }, true, true, `dashboard:user:${this.user.id}`)) } catch { const cached = this.cache.get(`dashboard:user:${this.user.id}`); if (cached) { privateData = record(cached.value); stale = true } } }
     const listGroups = array(record(privateData.lists).lists).map(record)
     const list = (status: string) => listGroups.filter((group) => group.status === status).flatMap((group) => array(group.entries).map((entry) => normalizeMedia(record(entry).media)))
-    return { session: this.getSession(), trending: array(record(publicData.trending).media).map(normalizeMedia), seasonal: array(record(publicData.seasonal).media).map(normalizeMedia), airing: array(record(publicData.airing).airingSchedules).map((value) => { const item = record(value); return { episode: number(item.episode) ?? 0, airingAt: number(item.airingAt) ?? 0, media: normalizeMedia(item.media) } }), recommendations: dedupeMedia(array(record(privateData.recommendations).recommendations).map((value) => normalizeMedia(record(value).mediaRecommendation))), current: list('CURRENT'), planning: list('PLANNING'), completed: list('COMPLETED'), stale }
+    return { session: this.getSession(), trending: array(record(publicData.trending).media).map(normalizeMedia), seasonal: array(record(publicData.seasonal).media).map(normalizeMedia), airing: array(record(publicData.airing).airingSchedules).map((value) => { const item = record(value); return { episode: number(item.episode) ?? 0, airingAt: number(item.airingAt) ?? 0, media: normalizeMedia(item.media) } }), recommendations: dedupeMedia(array(record(privateData.recommendations).recommendations).map((value) => normalizeMedia(record(value).mediaRecommendation))), current: list('CURRENT'), planning: list('PLANNING'), completed: list('COMPLETED'), paused: list('PAUSED'), dropped: list('DROPPED'), repeating: list('REPEATING'), stale }
+  }
+
+  async searchMedia(query: string): Promise<AnimeSummary[]> {
+    const normalized = query.trim()
+    if (!normalized) return []
+    const data = record(await this.request(SEARCH_QUERY, { search: normalized }, Boolean(this.token), true, `media-search:${this.user?.id ?? 'public'}:${normalized.toLowerCase()}`))
+    return dedupeMedia(array(record(data.Page).media).map(normalizeMedia))
   }
 
   async details(id: number): Promise<AnimeDetails> {

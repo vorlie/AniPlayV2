@@ -63,6 +63,9 @@ export interface DashboardData {
   current: AnimeSummary[]
   planning: AnimeSummary[]
   completed: AnimeSummary[]
+  paused: AnimeSummary[]
+  dropped: AnimeSummary[]
+  repeating: AnimeSummary[]
   stale?: boolean
 }
 

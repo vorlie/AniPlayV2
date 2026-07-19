@@ -1,18 +1,21 @@
-# AniPlay 1.14.0
+# AniPlay 1.15.0-test.1
 
-## Highlights
+## AniList workspace
 
-- Added Modern and Classic Ember theme presets.
-- Added separate accent color settings for each theme. Theme and accent choices persist between sessions.
-- Reworked the home dashboard into a more compact workspace with quicker access to discovery, library, airing, and watch history sections.
-- Reworked the watch screen with a denser episode browser and an additional anime information panel on wide displays.
+- Combined the previous Home and Profile destinations into one AniList workspace.
+- Added separate Overview, Discover, and My Library views.
+- Added AniList title search alongside trending, seasonal, airing, and recommended collections.
+- Added full library browsing for Watching, Planning, Completed, Paused, Dropped, and Rewatching lists.
+- Added library title filtering and direct access to progress, score, status, and repeat management.
+- Kept Continue Watching available inside My Library.
 
-## Improvements
+## Navigation
 
-- Improved responsive layouts across the home and watch screens.
-- Prevented long airing titles from overflowing their cards.
-- Removed duplicate AniList recommendations from dashboards and anime details.
-- Added the AniPlay application icon and corrected the application window title.
+- Added Back and Forward navigation within the AniList workspace.
+- Added clickable, origin-aware breadcrumbs for profile favourites, discovery collections, library statuses, related anime, and recommendations.
+- Restored the previous scroll position when navigating backward or forward.
+- Preserved discovery searches, collection selection, library filters, and active list status while viewing anime details.
+- Stabilized the page scrollbar gutter to prevent horizontal layout movement between views.
 
 ## Verification
 

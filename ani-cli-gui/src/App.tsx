@@ -2,8 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSPrope
 import { BrowsePage } from './pages/BrowsePage'
 import { HistoryPage } from './pages/HistoryPage'
 import { AnimePage } from './pages/AnimePage'
-import { HomePage } from './pages/HomePage'
-import { ProfilePage } from './pages/ProfilePage'
+import { AniListPage } from './pages/AniListPage'
 import { Navigation } from './components/Navigation'
 import { AppNotifications, type AppNotification, type AppNotificationKind } from './components/AppNotifications'
 import { useTranslation } from 'react-i18next'
@@ -49,14 +48,14 @@ function initialNotifications(): AppNotification[] {
 
 function App() {
   const { t } = useTranslation()
-  const [activeTab, setActiveTab] = useState('home')
+  const [activeTab, setActiveTab] = useState('anilist')
   const [searchQuery, setSearchQuery] = useState('')
   const [results, setResults] = useState<AnimeSelection[]>([])
   const [activeAnime, setActiveAnime] = useState<AnimeSelection | null>(null)
   const [resumeEpisode, setResumeEpisode] = useState<string | null>(null)
   const [resumeProgressSeconds, setResumeProgressSeconds] = useState<number | null>(null)
   const [downloadState, setDownloadState] = useState<DownloadState | null>(null)
-  const [homeAniListOpenRequest, setHomeAniListOpenRequest] = useState<{ id: number; nonce: number } | null>(null)
+  const [aniListOpenRequest, setAniListOpenRequest] = useState<{ id: number; nonce: number } | null>(null)
   const [notifications, setNotifications] = useState<AppNotification[]>(initialNotifications)
   const [appVersion, setAppVersion] = useState<string | null>(null)
   const [secretSakuraMode, setSecretSakuraMode] = useState(false)
@@ -134,8 +133,8 @@ function App() {
   }
 
   const handleOpenAniListMedia = (id: number) => {
-    setHomeAniListOpenRequest({ id, nonce: Date.now() })
-    setActiveTab('home')
+    setAniListOpenRequest({ id, nonce: Date.now() })
+    setActiveTab('anilist')
   }
 
   const handleLogoClick = () => {
@@ -196,19 +195,16 @@ function App() {
           <RemoteNoticeBanner provider={activeAnime?.catalogProvider} />
         </div>
 
-        <div className={activeTab === 'home' ? 'flex flex-1 flex-col' : 'hidden'} aria-hidden={activeTab !== 'home'}>
-          <HomePage
-            key={homeAniListOpenRequest ? `anilist-${homeAniListOpenRequest.nonce}` : 'home'}
+        <div className={activeTab === 'anilist' ? 'flex flex-1 flex-col' : 'hidden'} aria-hidden={activeTab !== 'anilist'}>
+          <AniListPage
+            key={aniListOpenRequest?.nonce ?? 'anilist-workspace'}
             setSearchQuery={setSearchQuery}
             setResults={setResults}
             onSelectAnime={handleSelectAnime}
             onResume={handleResumeFromHistory}
-            initialSelectedId={homeAniListOpenRequest?.id ?? null}
-            onClearInitialSelection={() => setHomeAniListOpenRequest(null)}
+            initialSelectedId={aniListOpenRequest?.id ?? null}
           />
         </div>
-
-        {activeTab === 'profile' && <ProfilePage onOpenMedia={handleOpenAniListMedia} />}
 
         {activeTab === 'search' && (
           <BrowsePage

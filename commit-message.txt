@@ -1,1 +1,1 @@
-chore(release): prepare AniPlay 1.14.0
+chore(release): prepare AniPlay 1.15.0-test.1

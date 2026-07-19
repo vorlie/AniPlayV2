@@ -8,7 +8,7 @@ import { createAchievements } from '../lib/profile-achievements'
 import { EMPTY_VIEWING_SUMMARY, type ViewingSummary } from '../viewing-types'
 
 interface ProfilePageProps {
-  onOpenMedia: (id: number) => void
+  onOpenMedia: (media: AnimeSummary) => void
 }
 
 function StatCard({ icon, label, value, detail }: { icon: React.ReactNode; label: string; value: string; detail?: string }) {
@@ -154,7 +154,7 @@ export function ProfilePage({ onOpenMedia }: ProfilePageProps) {
       <AchievementsSection stats={profile.stats} facts={profile.achievementFacts} viewing={viewingSummary}/>
     </div>
 
-    {profile.favourites.length ? <section className="space-y-3"><div className="flex items-center gap-2"><Star className="text-m3-primary" size={19}/><h2 className="text-lg font-black">{t('profile.favourites')}</h2></div><div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-8">{profile.favourites.map((media) => <FavouriteCard key={media.id} media={media} onOpen={() => onOpenMedia(media.id)}/>)}</div></section> : null}
+    {profile.favourites.length ? <section className="space-y-3"><div className="flex items-center gap-2"><Star className="text-m3-primary" size={19}/><h2 className="text-lg font-black">{t('profile.favourites')}</h2></div><div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-8">{profile.favourites.map((media) => <FavouriteCard key={media.id} media={media} onOpen={() => onOpenMedia(media)}/>)}</div></section> : null}
     {profile.user.about ? <section className="m3-card p-5"><h2 className="text-lg font-black">{t('profile.about')}</h2><p className="mt-3 whitespace-pre-line text-sm leading-6 text-m3-on-surface-variant">{profile.user.about}</p></section> : null}
   </div>
 }
