@@ -11,6 +11,16 @@ interface ProfilePageProps {
   onOpenMedia: (media: AnimeSummary) => void
 }
 
+interface ProfileSnapshot {
+  session: AniListSession
+  profile: AniListProfile | null
+  viewingSummary: ViewingSummary
+  fetchedAt: number
+}
+
+let profileSnapshot: ProfileSnapshot | null = null
+const PROFILE_CACHE_TTL_MS = 5 * 60 * 1000
+
 function StatCard({ icon, label, value, detail }: { icon: React.ReactNode; label: string; value: string; detail?: string }) {
   return <article className="m3-card p-5"><div className="flex items-center justify-between text-m3-primary">{icon}<span className="text-[10px] font-black uppercase tracking-[0.16em] text-m3-on-surface-variant">{label}</span></div><p className="mt-4 text-3xl font-black">{value}</p>{detail ? <p className="mt-1 text-xs text-m3-on-surface-variant">{detail}</p> : null}</article>
 }
@@ -24,36 +34,42 @@ function FavouriteCard({ media, onOpen }: { media: AnimeSummary; onOpen: () => v
 
 export function ProfilePage({ onOpenMedia }: ProfilePageProps) {
   const { t, i18n } = useTranslation()
-  const [session, setSession] = useState<AniListSession | null>(null)
-  const [profile, setProfile] = useState<AniListProfile | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [session, setSession] = useState<AniListSession | null>(() => profileSnapshot?.session ?? null)
+  const [profile, setProfile] = useState<AniListProfile | null>(() => profileSnapshot?.profile ?? null)
+  const [loading, setLoading] = useState(() => profileSnapshot === null)
   const [authBusy, setAuthBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [shareOpen, setShareOpen] = useState(false)
   const [shareStyle, setShareStyle] = useState<ProfileShareStyle>('hero')
   const [exporting, setExporting] = useState(false)
   const [shareMessage, setShareMessage] = useState<string | null>(null)
-  const [viewingSummary, setViewingSummary] = useState<ViewingSummary>(EMPTY_VIEWING_SUMMARY)
+  const [viewingSummary, setViewingSummary] = useState<ViewingSummary>(() => profileSnapshot?.viewingSummary ?? EMPTY_VIEWING_SUMMARY)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
+  const load = useCallback(async (background = false) => {
+    if (!background) setLoading(true)
+    if (!background) setError(null)
     try {
       const nextSession = await window.aniPlay!.aniList.auth.status()
       setSession(nextSession)
       if (nextSession.authenticated) {
         const [nextProfile, nextViewingSummary] = await Promise.all([window.aniPlay!.aniList.profile.get(), window.aniPlay!.viewing.getSummary()])
+        profileSnapshot = { session: nextSession, profile: nextProfile, viewingSummary: nextViewingSummary, fetchedAt: Date.now() }
         setProfile(nextProfile); setViewingSummary(nextViewingSummary)
-      } else { setProfile(null); setViewingSummary(EMPTY_VIEWING_SUMMARY) }
+      } else {
+        profileSnapshot = { session: nextSession, profile: null, viewingSummary: EMPTY_VIEWING_SUMMARY, fetchedAt: Date.now() }
+        setProfile(null); setViewingSummary(EMPTY_VIEWING_SUMMARY)
+      }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t('profile.loadFailed'))
+      if (!background) setError(cause instanceof Error ? cause.message : t('profile.loadFailed'))
     } finally {
-      setLoading(false)
+      if (!background) setLoading(false)
     }
   }, [t])
 
   useEffect(() => {
-    const timer = window.setTimeout(() => void load(), 0)
+    const snapshotIsStale = profileSnapshot !== null && Date.now() - profileSnapshot.fetchedAt >= PROFILE_CACHE_TTL_MS
+    if (profileSnapshot !== null && !snapshotIsStale) return
+    const timer = window.setTimeout(() => void load(profileSnapshot !== null), 0)
     return () => window.clearTimeout(timer)
   }, [load])
 
@@ -66,9 +82,11 @@ export function ProfilePage({ onOpenMedia }: ProfilePageProps) {
   }
 
   const signOut = async () => {
-    await window.aniPlay!.aniList.auth.logout()
+    const nextSession = await window.aniPlay!.aniList.auth.logout()
+    profileSnapshot = { session: nextSession, profile: null, viewingSummary: EMPTY_VIEWING_SUMMARY, fetchedAt: Date.now() }
     setProfile(null)
-    setSession(await window.aniPlay!.aniList.auth.status())
+    setViewingSummary(EMPTY_VIEWING_SUMMARY)
+    setSession(nextSession)
   }
 
   const numberFormat = useMemo(() => new Intl.NumberFormat(i18n.language), [i18n.language])
@@ -124,7 +142,7 @@ export function ProfilePage({ onOpenMedia }: ProfilePageProps) {
       <div className="absolute inset-0 bg-gradient-to-t from-m3-surface-container via-m3-surface-container/65 to-transparent"/>
       <div className="relative flex min-h-64 flex-col justify-end gap-4 p-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex items-end gap-4">{profile.user.avatar ? <img src={profile.user.avatar} alt="" className="size-24 rounded-3xl border-4 border-m3-surface-container object-cover shadow-xl"/> : <div className="flex size-24 items-center justify-center rounded-3xl bg-m3-primary text-m3-on-primary"><UserRound size={42}/></div>}<div><p className="section-label">{t('profile.sectionLabel')}</p><h1 className="mt-2 text-3xl font-black sm:text-4xl">{profile.user.name}</h1><p className="mt-1 text-sm text-m3-on-surface-variant">{t('profile.summary', { count: profile.stats.count, completed })}</p></div></div>
-        <div className="flex gap-2"><button type="button" onClick={() => { setShareMessage(null); setShareOpen((open) => !open) }} className="primary-action px-4 py-2.5"><ImageDown size={18}/> {t('profile.share.button')}</button><button type="button" onClick={() => void load()} className="icon-button" title={t('profile.refresh')}><RefreshCw size={18}/></button><button type="button" onClick={() => void signOut()} className="icon-button" title={t('profile.signOut')}><LogOut size={18}/></button></div>
+        <div className="flex gap-2"><button type="button" onClick={() => { setShareMessage(null); setShareOpen((open) => !open) }} className="primary-action px-4 py-2.5"><ImageDown size={18}/> {t('profile.share.button')}</button><button type="button" onClick={() => void load()} className="icon-button" title={t('profile.refresh')}><RefreshCw className={loading ? 'animate-spin' : ''} size={18}/></button><button type="button" onClick={() => void signOut()} className="icon-button" title={t('profile.signOut')}><LogOut size={18}/></button></div>
       </div>
     </section>
 
