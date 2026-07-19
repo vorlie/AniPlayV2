@@ -1,4 +1,4 @@
-# AniPlay 1.15.0-test.1
+# AniPlay 1.15.0
 
 ## AniList workspace
 
