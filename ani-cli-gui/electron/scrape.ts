@@ -6,6 +6,7 @@ import { getDesuEpisodeLinks, getDesuEpisodes, searchDesu } from './providers/de
 import { getDocchiEpisodeLinks, getDocchiEpisodes, searchDocchi } from './providers/docchi'
 import { getMiruroEpisodeLinks, getMiruroEpisodes, searchMiruro } from './providers/miruro'
 import { getAnikotoEpisodeLinks, getAnikotoEpisodes, searchAnikoto } from './providers/anikoto'
+import { expandWixRepackagerUrl } from './providers/allanime-utils'
 import type { CatalogProvider } from '../src/catalog-types'
 import type { AllAnimeDebugInfo } from '../src/scraper-types'
 
@@ -107,9 +108,9 @@ export function reloadCipherMap(map: Record<string, string>): void {
 
 // ---- Scraper constants ----
 
-const ALLANIME_BASE = 'allanime.day'
-const ALLANIME_API = `https://api.${ALLANIME_BASE}`
-const ALLANIME_REFR = 'https://youtu-chan.com'
+const ALLANIME_PROVIDER_BASE = 'https://allanime.day'
+const ALLANIME_API = 'https://api.mkissa.net/api'
+const ALLANIME_REFR = 'https://mkissa.to/'
 const AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0'
 const DEBUG_ALLANIME = /^(1|true|yes|full)$/i.test(process.env.ANIPLAY_DEBUG_ALLANIME ?? '')
 export type TranslationType = 'sub' | 'dub'
@@ -138,7 +139,7 @@ export async function searchAnime(query: string, mode: TranslationType, catalogP
     countryOrigin: 'ALL',
   }
 
-  const json = await fetchJson(`${ALLANIME_API}/api`, {
+  const json = await fetchJson(ALLANIME_API, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -172,7 +173,7 @@ export async function getEpisodes(showId: string, mode: TranslationType, catalog
   if (catalogProvider === 'miruro') return getMiruroEpisodes(showId)
   if (catalogProvider === 'anikoto') return getAnikotoEpisodes(showId)
   const episodesListGql = `query ($showId: String!) { show( _id: $showId ) { _id availableEpisodesDetail }}`
-  const json = await fetchJson(`${ALLANIME_API}/api`, {
+  const json = await fetchJson(ALLANIME_API, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -214,6 +215,7 @@ interface AllAnimeCryptoMaterial {
   partA: string
   partB: string
   appJsUrl?: string
+  apiUrl?: string
   fetchedAt: string
   error?: string
 }
@@ -249,6 +251,7 @@ async function getAllAnimeCryptoMaterial(): Promise<AllAnimeCryptoMaterial> {
     if (!appJsUrl || !Number.isFinite(epoch) || !partB) throw new Error('AllAnime page did not expose crypto bootstrap data')
 
     const appJs = await fetchText(appJsUrl, { headers: { 'User-Agent': AGENT } }, 8_000)
+    const apiUrl = appJs.match(/https:\/\/[a-zA-Z0-9.-]+\/(?:allanimeapi|api)(?=["'])/)?.[0]
     const chunkPaths = [...new Set([...appJs.matchAll(/\.\.\/chunks\/[^"',\]]+\.js/g)].map((match) => match[0]))]
     let mask: string | undefined
     let buildId: string | undefined
@@ -275,6 +278,7 @@ async function getAllAnimeCryptoMaterial(): Promise<AllAnimeCryptoMaterial> {
       partA: mask,
       partB,
       appJsUrl,
+      apiUrl,
       fetchedAt,
     }
     allAnimeCryptoMaterial = { value, expiresAt: Date.now() + 30 * 60_000 }
@@ -309,7 +313,7 @@ export async function getAllAnimeDebugInfo(refresh = false): Promise<AllAnimeDeb
     partB: material.partB,
     derivedKeyHex: material.key.toString('hex'),
     queryHash: ALLANIME_QUERY_HASH,
-    apiUrl: ALLANIME_API,
+    apiUrl: material.apiUrl ?? ALLANIME_API,
     referer: ALLANIME_REFR,
     appJsUrl: material.appJsUrl,
     fetchedAt: material.fetchedAt,
@@ -354,6 +358,48 @@ function debugAllAnimeEpisodeResponse(label: string, body: string): void {
   const preview = full || body.length <= 4000 ? body : `${body.slice(0, 4000)}... [truncated ${body.length - 4000} chars]`
   console.log(`[scrape:allanime] ${label}: ${classifyAllAnimeEpisodeResponse(body)} (${body.length} bytes)`)
   console.log(preview)
+}
+
+function allAnimeGraphQLError(body: string): string | undefined {
+  try {
+    const parsed = JSON.parse(body) as unknown
+    if (!isObject(parsed) || !Array.isArray(parsed.errors)) return undefined
+    const messages = parsed.errors.flatMap((error): string[] => {
+      if (!isObject(error) || typeof error.message !== 'string') return []
+      return [error.message]
+    })
+    return messages.length > 0 ? messages.join('; ') : undefined
+  } catch {
+    return undefined
+  }
+}
+
+function allAnimeRateLimitSeconds(message: string): number | undefined {
+  if (!/too many requests|rate.?limit/i.test(message)) return undefined
+  const seconds = Number(message.match(/(?:try again in|retry after)\s+(\d+)\s*seconds?/i)?.[1] ?? 5)
+  return Math.min(30, Math.max(1, Number.isFinite(seconds) ? seconds : 5))
+}
+
+async function fetchAllAnimeEpisodeRaw(
+  input: string | URL,
+  init: RequestInit,
+  debugLabel: string,
+): Promise<string> {
+  for (let attempt = 0; attempt <= 2; attempt += 1) {
+    const response = await fetchChecked(input, init)
+    const rawText = await response.text()
+    debugAllAnimeEpisodeResponse(debugLabel, rawText)
+    const graphQLError = allAnimeGraphQLError(rawText)
+    const retryAfterSeconds = graphQLError ? allAnimeRateLimitSeconds(graphQLError) : undefined
+    if (retryAfterSeconds !== undefined && attempt < 2) {
+      console.warn(`[scrape] AllAnime rate limited the episode request; retrying in ${retryAfterSeconds} seconds.`)
+      await new Promise((resolve) => setTimeout(resolve, retryAfterSeconds * 1_000))
+      continue
+    }
+    if (graphQLError) throw new Error(graphQLError)
+    return rawText
+  }
+  throw new Error('AllAnime episode retry loop exhausted')
 }
 
 function processResponse(responseRaw: string, material: AllAnimeCryptoMaterial): unknown {
@@ -430,33 +476,33 @@ export async function getEpisodeLinks(showId: string, epNo: string, mode: Transl
     const queryHash = ALLANIME_QUERY_HASH
     const queryVars = { showId, translationType: mode, episodeString: epNo }
     const dynamicMaterial = await getAllAnimeCryptoMaterial()
-    const materials: AllAnimeCryptoMaterial[] = [
-      dynamicMaterial,
-      { ...dynamicMaterial, epoch: ALLANIME_EPOCH, buildId: ALLANIME_BUILD_ID, key: ALLANIME_STATIC_KEY, legacyCtr: true, source: 'fallback' as const, partA: ALLANIME_STATIC_PART_A, partB: ALLANIME_STATIC_PART_B },
-      { ...dynamicMaterial, epoch: ALLANIME_EPOCH, buildId: ALLANIME_LEGACY_BUILD_ID, key: ALLANIME_STATIC_KEY, legacyCtr: true, source: 'fallback' as const, partA: ALLANIME_STATIC_PART_A, partB: ALLANIME_STATIC_PART_B },
-    ].filter((material, index, items) => items.findIndex((item) => item.epoch === material.epoch && item.buildId === material.buildId && item.key.equals(material.key)) === index)
+    const materials: AllAnimeCryptoMaterial[] = dynamicMaterial.source === 'dynamic'
+      ? [dynamicMaterial]
+      : [
+          dynamicMaterial,
+          { ...dynamicMaterial, buildId: ALLANIME_LEGACY_BUILD_ID },
+        ].filter((material, index, items) => items.findIndex((item) => item.epoch === material.epoch && item.buildId === material.buildId && item.key.equals(material.key)) === index)
     let result: unknown = null
     let rawText = ''
     let lastEpisodeError: unknown
 
     for (const material of materials) {
       const extensions = { persistedQuery: { version: 1, sha256Hash: queryHash }, aaReq: createAllAnimeRequestToken(queryHash, material) }
-      const url = new URL(`${ALLANIME_API}/api`)
+      const apiUrl = material.apiUrl ?? ALLANIME_API
+      const url = new URL(apiUrl)
       url.searchParams.append('variables', JSON.stringify(queryVars))
       url.searchParams.append('extensions', JSON.stringify(extensions))
 
       try {
-        const response = await fetchChecked(url, {
+        rawText = await fetchAllAnimeEpisodeRaw(url, {
           method: 'GET',
           headers: {
             'User-Agent': AGENT,
             'Referer': ALLANIME_REFR,
-            'Origin': ALLANIME_REFR,
+            'Origin': new URL(ALLANIME_REFR).origin,
             'x-build-id': material.buildId,
           }
-        })
-        rawText = await response.text()
-        debugAllAnimeEpisodeResponse(`persisted episode query raw response (build ${material.buildId})`, rawText)
+        }, `persisted episode query raw response (build ${material.buildId})`)
         result = processResponse(rawText, material)
         const candidateSources = getEpisodeSourceValues(result)
         if (Array.isArray(candidateSources) || typeof candidateSources === 'string') break
@@ -471,24 +517,25 @@ export async function getEpisodeLinks(showId: string, epNo: string, mode: Transl
 
     if (result === null) {
         const episodeEmbedGql = `query ($showId: String!, $translationType: VaildTranslationTypeEnumType!, $episodeString: String!) { episode( showId: $showId translationType: $translationType episodeString: $episodeString ) { episodeString sourceUrls }}`
+        const episodeEmbedQueryHash = crypto.createHash('sha256').update(episodeEmbedGql).digest('hex')
         for (const material of materials) {
           try {
-            const response = await fetchChecked(`${ALLANIME_API}/api`, {
+            const apiUrl = material.apiUrl ?? ALLANIME_API
+            rawText = await fetchAllAnimeEpisodeRaw(apiUrl, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
                 'User-Agent': AGENT,
                 'Referer': ALLANIME_REFR,
+                'Origin': new URL(ALLANIME_REFR).origin,
                 'x-build-id': material.buildId,
               },
               body: JSON.stringify({
                 variables: queryVars,
                 query: episodeEmbedGql,
-                extensions: { aaReq: createAllAnimeRequestToken(queryHash, material) },
+                extensions: { aaReq: createAllAnimeRequestToken(episodeEmbedQueryHash, material) },
               }),
-            })
-            rawText = await response.text()
-            debugAllAnimeEpisodeResponse(`fallback episode query raw response (build ${material.buildId})`, rawText)
+            }, `fallback episode query raw response (build ${material.buildId})`)
             result = processResponse(rawText, material)
             const candidateSources = getEpisodeSourceValues(result)
             if (Array.isArray(candidateSources) || typeof candidateSources === 'string') break
@@ -528,7 +575,7 @@ export async function getEpisodeLinks(showId: string, epNo: string, mode: Transl
     const toAbsoluteUrl = (link: string): string => {
         if (!link) return ''
         if (link.startsWith('//')) return `https:${link}`
-        if (link.startsWith('/')) return `https://${ALLANIME_BASE}${link}`
+        if (link.startsWith('/')) return `${ALLANIME_PROVIDER_BASE}${link}`
         return link
     }
 
@@ -572,7 +619,7 @@ export async function getEpisodeLinks(showId: string, epNo: string, mode: Transl
                 headers: {
                     'User-Agent': AGENT,
                     'Referer': ALLANIME_REFR,
-                    'Origin': ALLANIME_REFR,
+                    'Origin': new URL(ALLANIME_REFR).origin,
                     'Range': 'bytes=0-0',
                     'Accept': '*/*'
                 },
@@ -657,14 +704,14 @@ export async function getEpisodeLinks(showId: string, epNo: string, mode: Transl
         if (!isAllanimeInternal) continue
 
         const clockUrl = providerUrl.replace('/clock', '/clock.json')
-        const fullProviderUrl = `https://${ALLANIME_BASE}${clockUrl}`
+        const fullProviderUrl = `${ALLANIME_PROVIDER_BASE}${clockUrl}`
         
         try {
             const providerRes = await fetchChecked(fullProviderUrl, {
                 headers: {
                     'User-Agent': AGENT,
                     'Referer': ALLANIME_REFR,
-                    'Origin': ALLANIME_REFR,
+                    'Origin': new URL(ALLANIME_REFR).origin,
                     'Accept': 'application/json, text/plain, */*'
                 },
             }, 8000)
@@ -682,15 +729,8 @@ export async function getEpisodeLinks(showId: string, epNo: string, mode: Transl
                     const link: string = linkObj.link || ''
                     // wixmp repackager - parse multi-quality from URL
                     if (link.includes('repackager.wixmp.com')) {
-                        const base = link.replace(/repackager\.wixmp\.com\//g, '').replace(/\.urlset.*/, '')
-                        const qualitiesMatch = link.match(/,([^/]*),\/mp4/);
-                        if (qualitiesMatch) {
-                            for (const q of qualitiesMatch[1].split(',')) {
-                                const qualityUrl = base.replace(/,[^/]*/g, `,${q}`)
-                                pushLink({ url: qualityUrl, resolution: q, hls: false, provider: source.sourceName || 'Default' })
-                            }
-                        } else {
-                            pushLink({ url: link, resolution: 'Auto', hls: false, provider: source.sourceName || 'Default' })
+                        for (const quality of expandWixRepackagerUrl(link)) {
+                            pushLink({ url: quality.url, resolution: quality.resolution, hls: false, provider: source.sourceName || 'Default' })
                         }
                     } else if (link.includes('.m3u8') || link.includes('master.m3u8') || linkObj.hls) {
                         pushLink({ url: link, resolution: linkObj.resolutionStr || 'Auto', hls: true, provider: source.sourceName || 'Default' })

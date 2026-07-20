@@ -1,1 +1,8 @@
-chore(release): prepare AniPlay 1.15.0
+fix(allanime): restore episode source resolution for 1.15.2
+
+- align crypto requests with the current MKissa API origin
+- discover the active API endpoint from the runtime bundle
+- sign fallback queries with their exact query hash
+- resolve internal provider URLs against the correct AllAnime host
+- generate valid Wix multi-quality media paths
+- back off on rate limits and avoid obsolete fallback storms
