@@ -197,12 +197,15 @@ export async function getEpisodes(showId: string, mode: TranslationType, catalog
     .sort((a, b) => parseFloat(a) - parseFloat(b))
 }
 
-const ALLANIME_EPOCH = 4128
-const ALLANIME_BUILD_ID = '12'
-const ALLANIME_LEGACY_BUILD_ID = '9'
+const ALLANIME_EPOCH = 6884
+const ALLANIME_BUILD_ID = '48'
+const ALLANIME_LEGACY_EPOCH = 4128
+const ALLANIME_LEGACY_BUILD_IDS = ['12', '9'] as const
 const ALLANIME_QUERY_HASH = 'd405d0edd690624b66baba3068e0edc3ac90f1597d898a1ec8db4e5c43c00fec'
-const ALLANIME_STATIC_PART_A = 'b1a9a4d051988f1b1b12dbb747439d9bd64b09ea17835600a7eaa4de87c1ad87'
-const ALLANIME_STATIC_PART_B = 'k7DLdv5SGiuEyGUtcncl5wQOR7r4aenLfDV3AOBKlAU='
+const ALLANIME_STATIC_PART_A = '31d8a1854219df5b4b32ce24763844b1a931cf58676389c1cc3517724841e6b2'
+const ALLANIME_STATIC_PART_B = 'wpcGkKCMVNdVjqDeOzDefCYootPktz/h2bPXfsITAho='
+const ALLANIME_LEGACY_PART_A = 'b1a9a4d051988f1b1b12dbb747439d9bd64b09ea17835600a7eaa4de87c1ad87'
+const ALLANIME_LEGACY_PART_B = 'k7DLdv5SGiuEyGUtcncl5wQOR7r4aenLfDV3AOBKlAU='
 const ALLANIME_STATIC_KEY = xorAllAnimeKey(ALLANIME_STATIC_PART_A, ALLANIME_STATIC_PART_B)
 const ALLANIME_RESPONSE_FALLBACK_SECRET = [88, 111, 116, 51, 54, 105, 51, 108, 75, 51].map((code) => String.fromCharCode(code)).join('')
 
@@ -221,6 +224,50 @@ interface AllAnimeCryptoMaterial {
 }
 
 let allAnimeCryptoMaterial: { value: AllAnimeCryptoMaterial; expiresAt: number } | null = null
+
+function fallbackAllAnimeCryptoMaterial(buildId: string, fetchedAt: string, error?: string): AllAnimeCryptoMaterial {
+  return {
+    epoch: ALLANIME_EPOCH,
+    buildId,
+    key: ALLANIME_STATIC_KEY,
+    legacyCtr: false,
+    source: 'fallback',
+    partA: ALLANIME_STATIC_PART_A,
+    partB: ALLANIME_STATIC_PART_B,
+    fetchedAt,
+    error,
+  }
+}
+
+function legacyAllAnimeCryptoMaterial(buildId: string, fetchedAt: string): AllAnimeCryptoMaterial {
+  return {
+    epoch: ALLANIME_LEGACY_EPOCH,
+    buildId,
+    key: xorAllAnimeKey(ALLANIME_LEGACY_PART_A, ALLANIME_LEGACY_PART_B),
+    legacyCtr: true,
+    source: 'fallback',
+    partA: ALLANIME_LEGACY_PART_A,
+    partB: ALLANIME_LEGACY_PART_B,
+    fetchedAt,
+  }
+}
+
+export function allAnimeMaterialCandidates(material: AllAnimeCryptoMaterial): AllAnimeCryptoMaterial[] {
+  const candidates = [material]
+  if (material.source === 'dynamic') {
+    if (material.epoch > 0) candidates.push({ ...material, epoch: material.epoch - 1 })
+    candidates.push({ ...material, epoch: material.epoch + 1 })
+  }
+  candidates.push(
+    fallbackAllAnimeCryptoMaterial(ALLANIME_BUILD_ID, material.fetchedAt),
+    ...ALLANIME_LEGACY_BUILD_IDS.map((buildId) => legacyAllAnimeCryptoMaterial(buildId, material.fetchedAt)),
+  )
+  return candidates.filter((candidate, index, items) => items.findIndex((item) => (
+    item.epoch === candidate.epoch
+    && item.buildId === candidate.buildId
+    && item.key.equals(candidate.key)
+  )) === index)
+}
 
 function xorAllAnimeKey(maskHex: string, partB: string): Buffer {
   const mask = Buffer.from(maskHex, 'hex')
@@ -285,17 +332,7 @@ async function getAllAnimeCryptoMaterial(): Promise<AllAnimeCryptoMaterial> {
     return value
   } catch (error: unknown) {
     const message = errorMessage(error)
-    const fallback: AllAnimeCryptoMaterial = {
-      epoch: ALLANIME_EPOCH,
-      buildId: ALLANIME_BUILD_ID,
-      key: ALLANIME_STATIC_KEY,
-      legacyCtr: true,
-      source: 'fallback',
-      partA: ALLANIME_STATIC_PART_A,
-      partB: ALLANIME_STATIC_PART_B,
-      fetchedAt,
-      error: message,
-    }
+    const fallback = fallbackAllAnimeCryptoMaterial(ALLANIME_BUILD_ID, fetchedAt, message)
     console.warn('[scrape] Dynamic AllAnime crypto material unavailable, using bundled fallback:', message)
     allAnimeCryptoMaterial = { value: fallback, expiresAt: Date.now() + 5 * 60_000 }
     return fallback
@@ -476,12 +513,7 @@ export async function getEpisodeLinks(showId: string, epNo: string, mode: Transl
     const queryHash = ALLANIME_QUERY_HASH
     const queryVars = { showId, translationType: mode, episodeString: epNo }
     const dynamicMaterial = await getAllAnimeCryptoMaterial()
-    const materials: AllAnimeCryptoMaterial[] = dynamicMaterial.source === 'dynamic'
-      ? [dynamicMaterial]
-      : [
-          dynamicMaterial,
-          { ...dynamicMaterial, buildId: ALLANIME_LEGACY_BUILD_ID },
-        ].filter((material, index, items) => items.findIndex((item) => item.epoch === material.epoch && item.buildId === material.buildId && item.key.equals(material.key)) === index)
+    const materials = allAnimeMaterialCandidates(dynamicMaterial)
     let result: unknown = null
     let rawText = ''
     let lastEpisodeError: unknown
@@ -502,7 +534,7 @@ export async function getEpisodeLinks(showId: string, epNo: string, mode: Transl
             'Origin': new URL(ALLANIME_REFR).origin,
             'x-build-id': material.buildId,
           }
-        }, `persisted episode query raw response (build ${material.buildId})`)
+        }, `persisted episode query raw response (epoch ${material.epoch}, build ${material.buildId})`)
         result = processResponse(rawText, material)
         const candidateSources = getEpisodeSourceValues(result)
         if (Array.isArray(candidateSources) || typeof candidateSources === 'string') break
@@ -510,45 +542,44 @@ export async function getEpisodeLinks(showId: string, epNo: string, mode: Transl
         lastEpisodeError = new Error('Episode response contained no source list')
       } catch (error: unknown) {
         lastEpisodeError = error
-        console.warn(`[scrape] Persisted episode query failed for build ${material.buildId}:`, errorMessage(error))
+        console.warn(`[scrape] Persisted episode query failed for epoch ${material.epoch}, build ${material.buildId}:`, errorMessage(error))
         result = null
+        if (allAnimeRateLimitSeconds(errorMessage(error)) !== undefined) throw error
+      }
+      if (result !== null) break
+
+      const episodeEmbedGql = `query ($showId: String!, $translationType: VaildTranslationTypeEnumType!, $episodeString: String!) { episode( showId: $showId translationType: $translationType episodeString: $episodeString ) { episodeString sourceUrls }}`
+      const episodeEmbedQueryHash = crypto.createHash('sha256').update(episodeEmbedGql).digest('hex')
+      try {
+        const apiUrl = material.apiUrl ?? ALLANIME_API
+        rawText = await fetchAllAnimeEpisodeRaw(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': AGENT,
+            'Referer': ALLANIME_REFR,
+            'Origin': new URL(ALLANIME_REFR).origin,
+            'x-build-id': material.buildId,
+          },
+          body: JSON.stringify({
+            variables: queryVars,
+            query: episodeEmbedGql,
+            extensions: { aaReq: createAllAnimeRequestToken(episodeEmbedQueryHash, material) },
+          }),
+        }, `fallback episode query raw response (epoch ${material.epoch}, build ${material.buildId})`)
+        result = processResponse(rawText, material)
+        const candidateSources = getEpisodeSourceValues(result)
+        if (Array.isArray(candidateSources) || typeof candidateSources === 'string') break
+        result = null
+        lastEpisodeError = new Error('Episode response contained no source list')
+      } catch (error: unknown) {
+        lastEpisodeError = error
+        console.warn(`[scrape] Fallback episode query failed for epoch ${material.epoch}, build ${material.buildId}:`, errorMessage(error))
+        if (allAnimeRateLimitSeconds(errorMessage(error)) !== undefined) throw error
       }
     }
 
-    if (result === null) {
-        const episodeEmbedGql = `query ($showId: String!, $translationType: VaildTranslationTypeEnumType!, $episodeString: String!) { episode( showId: $showId translationType: $translationType episodeString: $episodeString ) { episodeString sourceUrls }}`
-        const episodeEmbedQueryHash = crypto.createHash('sha256').update(episodeEmbedGql).digest('hex')
-        for (const material of materials) {
-          try {
-            const apiUrl = material.apiUrl ?? ALLANIME_API
-            rawText = await fetchAllAnimeEpisodeRaw(apiUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'User-Agent': AGENT,
-                'Referer': ALLANIME_REFR,
-                'Origin': new URL(ALLANIME_REFR).origin,
-                'x-build-id': material.buildId,
-              },
-              body: JSON.stringify({
-                variables: queryVars,
-                query: episodeEmbedGql,
-                extensions: { aaReq: createAllAnimeRequestToken(episodeEmbedQueryHash, material) },
-              }),
-            }, `fallback episode query raw response (build ${material.buildId})`)
-            result = processResponse(rawText, material)
-            const candidateSources = getEpisodeSourceValues(result)
-            if (Array.isArray(candidateSources) || typeof candidateSources === 'string') break
-            result = null
-            lastEpisodeError = new Error('Episode response contained no source list')
-          } catch (error: unknown) {
-            lastEpisodeError = error
-            console.warn(`[scrape] Fallback episode query failed for build ${material.buildId}:`, errorMessage(error))
-          }
-        }
-    }
-
-    if (result === null) throw new Error(`Episode response could not be decoded: ${errorMessage(lastEpisodeError)}`)
+    if (result === null) throw new Error(`Episode sources were unavailable after all request and decode fallbacks: ${errorMessage(lastEpisodeError)}`)
   
     debugAllAnimeEpisodeResponse('episode response before processing', rawText)
     let sourceValues = getEpisodeSourceValues(result)
