@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "updatedAt": "2026-07-20T04:09:05Z",
+  "notices": [
+    {
+      "id": "allanime-fixed-2026-07-07",
+      "severity": "update",
+      "title": "AllAnime playback fixed in 1.9.4",
+      "message": "AllAnime changed their backend, which broke episode source loading in older AniPlay versions. Update to 1.9.4 or newer to restore AllAnime playback. Miruro is also available as an English fallback provider.",
+      "providers": ["allanime"],
+      "minVersion": "1.9.0",
+      "maxVersion": "1.9.3",
+      "startsAt": "2026-07-07T12:00:00Z",
+      "endsAt": null,
+      "dismissible": true,
+      "link": "https://github.com/pystardust/ani-cli/issues/1763"
+    },
+    {
+      "id": "allanime-unstable-2026-07-08",
+      "severity": "warning",
+      "title": "AllAnime may be unstable",
+      "message": "AllAnime playback has become less reliable after recent upstream changes. If search or playback fails, switch to Anikoto, which is now the recommended English provider in AniPlay 1.9.7+.",
+      "providers": ["allanime"],
+      "minVersion": "1.9.4",
+      "maxVersion": null,
+      "startsAt": "2026-07-08T21:15:00Z",
+      "endsAt": "2026-07-20T04:09:05Z",
+      "dismissible": true,
+      "link": "https://github.com/pystardust/ani-cli/issues/1763"
+    },
+    {
+      "id": "allanime-build-48-2026-07-20",
+      "severity": "update",
+      "title": "AllAnime playback update required",
+      "message": "AllAnime moved to crypto build 48, which can cause episode source loading to fail in AniPlay 1.15.2 and older. Update to AniPlay 1.15.3 or newer to restore compatibility. Until then, switch to Anikoto, the recommended English fallback provider.",
+      "providers": ["allanime"],
+      "minVersion": "1.9.4",
+      "maxVersion": "1.15.2",
+      "startsAt": "2026-07-20T04:09:05Z",
+      "endsAt": null,
+      "dismissible": true,
+      "link": "https://github.com/vorlie/AniPlayV2/blob/main/ALLANIME-BUILD-48-INCIDENT.md"
+    }
+  ]
+}
