@@ -1,5 +1,17 @@
-import { WebSocket } from 'ws'
+import { createRequire } from 'node:module'
 import type { WatchTogetherContent, WatchTogetherCreateInput, WatchTogetherJoinInput, WatchTogetherPlaybackState, WatchTogetherState } from '../../src/watch-together-types'
+
+const require = createRequire(import.meta.url)
+const WEBSOCKET_OPEN = 1
+
+interface WatchSocket {
+  readyState: number
+  send(data: string): void
+  close(): void
+  on(event: 'open' | 'message' | 'close' | 'error', handler: (...args: any[]) => void): void
+}
+
+const { WebSocket: WebSocketCtor } = require('ws') as { WebSocket: new (url: string) => WatchSocket }
 
 const DEFAULT_ENDPOINT = 'https://watch-together.vorlie.pl'
 const MAX_RECONNECT_ATTEMPTS = 4
@@ -11,7 +23,7 @@ export interface WatchTogetherServiceConfig {
 }
 
 export class WatchTogetherService {
-  private ws: WebSocket | null = null
+  private ws: WatchSocket | null = null
   private reconnectAttempts = 0
   private reconnectTimer: NodeJS.Timeout | null = null
   private currentCode: string | null = null
@@ -134,24 +146,24 @@ export class WatchTogetherService {
   }
 
   async sendChat(body: string): Promise<void> {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) throw new Error('Watch Together is not connected')
+    if (!this.ws || this.ws.readyState !== WEBSOCKET_OPEN) throw new Error('Watch Together is not connected')
     const normalized = body.trim()
     if (!normalized) return
     this.ws.send(JSON.stringify({ type: 'chat', body: normalized.slice(0, 500) }))
   }
 
   async updatePlayback(payload: WatchTogetherPlaybackState): Promise<void> {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) throw new Error('Watch Together is not connected')
+    if (!this.ws || this.ws.readyState !== WEBSOCKET_OPEN) throw new Error('Watch Together is not connected')
     this.ws.send(JSON.stringify({ type: 'playback-command', payload }))
   }
 
   async setContent(content: WatchTogetherContent): Promise<void> {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) throw new Error('Watch Together is not connected')
+    if (!this.ws || this.ws.readyState !== WEBSOCKET_OPEN) throw new Error('Watch Together is not connected')
     this.ws.send(JSON.stringify({ type: 'content-change', content }))
   }
 
   async setReady(ready: boolean): Promise<void> {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) throw new Error('Watch Together is not connected')
+    if (!this.ws || this.ws.readyState !== WEBSOCKET_OPEN) throw new Error('Watch Together is not connected')
     this.ws.send(JSON.stringify({ type: 'ready', ready }))
   }
 
@@ -179,7 +191,7 @@ export class WatchTogetherService {
     if (!endpoint) throw new Error('Watch Together endpoint is not configured')
     const wsUrl = `${endpoint.replace(/^https?:/, 'wss:')}/v1/rooms/${encodeURIComponent(code)}/ws`
     this.ws?.close()
-    this.ws = new WebSocket(wsUrl)
+    this.ws = new WebSocketCtor(wsUrl)
     this.ws.on('open', () => {
       this.reconnectAttempts = 0
       this.ws?.send(JSON.stringify({

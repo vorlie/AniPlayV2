@@ -7,6 +7,8 @@ export interface WatchTogetherContent {
   episode: string
   translationType: 'sub' | 'dub'
   aniListMediaId?: number
+  streamUrl?: string
+  streamKind?: 'embed' | 'native'
 }
 
 export interface WatchTogetherPlaybackState {
