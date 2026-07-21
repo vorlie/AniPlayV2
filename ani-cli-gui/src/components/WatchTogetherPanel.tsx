@@ -32,7 +32,7 @@ export function WatchTogetherPanel({ anime, episode, translationType, isOpen, on
     void window.aniPlay.watchTogether.getState().then(setState).catch(() => {})
     const unsubscribe = window.aniPlay.watchTogether.onChanged((next) => setState(next))
     const unsubscribeInvite = window.aniPlay.watchTogether.onInvite((code) => {
-      setJoinCode(code)
+      setJoinCode(code.toUpperCase())
       onOpenChange(true)
     })
     void window.aniPlay.aniList.profile.get().then((profile) => {
@@ -43,9 +43,9 @@ export function WatchTogetherPanel({ anime, episode, translationType, isOpen, on
       unsubscribe()
       unsubscribeInvite()
     }
-  }, [isOpen, onOpenChange])
+  }, [isOpen, onOpenChange, t])
 
-  const headerTitle = useMemo(() => state?.code ? t('watchTogether.roomTitle', { code: state.code }) : t('watchTogether.title'), [state?.code, t])
+  const headerTitle = useMemo(() => state?.code ? t('watchTogether.roomTitle', { code: state.code }) : t('watchTogether.title'), [state, t])
 
   const handleCreate = async () => {
     const aniPlayApi = window.aniPlay
@@ -94,7 +94,11 @@ export function WatchTogetherPanel({ anime, episode, translationType, isOpen, on
     setIsBusy(true)
     setErrorMessage(null)
     try {
-      const nextState = await aniPlayApi.watchTogether.join({ code: joinCode.trim(), participantName: profileName, participantAvatar: profileAvatar })
+      const nextState = await aniPlayApi.watchTogether.join({
+        code: joinCode.trim().toUpperCase().replace(/\s+/g, ''),
+        participantName: profileName,
+        participantAvatar: profileAvatar,
+      })
       setState(nextState)
       onOpenChange(true)
     } catch (error) {
@@ -154,7 +158,13 @@ export function WatchTogetherPanel({ anime, episode, translationType, isOpen, on
                 {isBusy ? t('watchTogether.working') : t('watchTogether.createRoom')}
               </button>
               <div className="flex items-center gap-2 rounded-full border border-m3-outline/20 bg-m3-surface px-2 py-1">
-                <input value={joinCode} onChange={(event) => setJoinCode(event.target.value.toUpperCase())} placeholder={t('watchTogether.codePlaceholder')} className="w-24 bg-transparent px-2 py-1 text-sm outline-none" />
+                <input
+                  value={joinCode}
+                  onChange={(event) => setJoinCode(event.target.value.toUpperCase())}
+                  placeholder={t('watchTogether.codePlaceholder')}
+                  maxLength={8}
+                  className="w-24 bg-transparent px-2 py-1 text-sm outline-none"
+                />
                 <button type="button" disabled={isBusy || !joinCode.trim()} onClick={handleJoin} className="rounded-full bg-m3-surface-variant px-3 py-1.5 text-sm font-bold text-m3-on-surface disabled:opacity-50">
                   {t('watchTogether.joinRoom')}
                 </button>
@@ -197,7 +207,7 @@ export function WatchTogetherPanel({ anime, episode, translationType, isOpen, on
                     <span>{message.authorName}</span>
                     <span>{new Date(message.createdAt).toLocaleTimeString()}</span>
                   </div>
-                  <p className="mt-1 break-words">{message.body}</p>
+                  <p className="mt-1 wrap-break-word">{message.body}</p>
                 </div>
               )) : <p className="px-2 py-4 text-sm text-m3-on-surface-variant">{t('watchTogether.emptyState')}</p>}
             </div>

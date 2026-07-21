@@ -107,10 +107,11 @@ export class WatchTogetherService {
     const endpoint = this.resolveEndpoint()
     if (!endpoint) throw new Error('Watch Together endpoint is not configured')
     this.clearReconnectTimer()
-    this.currentCode = input.code
+    const code = input.code.trim().toUpperCase().replace(/\s+/g, '')
+    this.currentCode = code
     this.currentRole = 'guest'
     this.setState({
-      code: input.code,
+      code,
       connected: false,
       role: 'guest',
       status: 'connecting',
@@ -121,7 +122,7 @@ export class WatchTogetherService {
       participants: [],
       chat: [],
     })
-    await this.connect(input.code, input.participantName, input.participantAvatar ?? null, undefined, 'guest')
+    await this.connect(code, input.participantName, input.participantAvatar ?? null, undefined, 'guest')
     return this.getState()
   }
 
@@ -189,7 +190,9 @@ export class WatchTogetherService {
   private async connect(code: string, participantName: string, participantAvatar: string | null | undefined, hostToken: string | undefined, role: WatchTogetherState['role']): Promise<void> {
     const endpoint = this.resolveEndpoint()
     if (!endpoint) throw new Error('Watch Together endpoint is not configured')
-    const wsUrl = `${endpoint.replace(/^https?:/, 'wss:')}/v1/rooms/${encodeURIComponent(code)}/ws`
+    const url = new URL(`${endpoint.replace(/\/$/, '')}/v1/rooms/${encodeURIComponent(code)}/ws`)
+    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+    const wsUrl = url.toString()
     this.ws?.close()
     this.ws = new WebSocketCtor(wsUrl)
     this.ws.on('open', () => {

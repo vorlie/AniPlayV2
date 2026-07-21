@@ -10,3 +10,7 @@ bindings = [{ name = "WATCH_TOGETHER_ROOMS", class_name = "WatchTogetherRoom" }]
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["WatchTogetherRoom"]
+
+[observability.logs]
+enabled = false
+invocation_logs = true

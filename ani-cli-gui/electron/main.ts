@@ -377,7 +377,7 @@ function createWindow() {
     if (!input || typeof input !== 'object') throw new TypeError('Invalid watch together input')
     const payload = input as Record<string, unknown>
     return watchTogetherService.join({
-      code: requireString(payload.code, 'code', 20),
+      code: requireString(payload.code, 'code', 20).trim().toUpperCase(),
       participantName: requireString(payload.participantName, 'participantName', 80),
       participantAvatar: typeof payload.participantAvatar === 'string' ? payload.participantAvatar : null,
     })
