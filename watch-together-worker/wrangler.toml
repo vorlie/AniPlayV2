@@ -12,5 +12,5 @@ tag = "v1"
 new_sqlite_classes = ["WatchTogetherRoom"]
 
 [observability.logs]
-enabled = false
+enabled = true
 invocation_logs = true
