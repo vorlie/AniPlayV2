@@ -8,6 +8,7 @@ import type { UpdateState } from '../src/updater-types'
 import type { RemoteNoticeState } from '../src/remote-notice-types'
 import type { AdBlockSettings, AdBlockState } from '../src/adblock-types'
 import type { WatchSegmentInput } from '../src/viewing-types'
+import type { WatchTogetherContent, WatchTogetherCreateInput, WatchTogetherJoinInput, WatchTogetherPlaybackState, WatchTogetherState } from '../src/watch-together-types'
 
 contextBridge.exposeInMainWorld('aniPlay', {
   search: (query: string, translationType: TranslationType, catalogProvider: CatalogProvider, aniListFirstSearch?: boolean, includeAdultDocchi?: boolean) => ipcRenderer.invoke('search', query, translationType, catalogProvider, aniListFirstSearch, includeAdultDocchi),
@@ -58,6 +59,28 @@ contextBridge.exposeInMainWorld('aniPlay', {
   graphics: {
     getSettings: () => ipcRenderer.invoke('graphics:get-settings'),
     setSafeMode: (enabled: boolean) => ipcRenderer.invoke('graphics:set-safe-mode', enabled),
+  },
+  watchTogether: {
+    getConfig: () => ipcRenderer.invoke('watchTogether:get-config'),
+    getState: () => ipcRenderer.invoke('watchTogether:get-state'),
+    create: (input: WatchTogetherCreateInput): Promise<WatchTogetherState> => ipcRenderer.invoke('watchTogether:create', input),
+    join: (input: WatchTogetherJoinInput): Promise<WatchTogetherState> => ipcRenderer.invoke('watchTogether:join', input),
+    leave: () => ipcRenderer.invoke('watchTogether:leave'),
+    sendChat: (body: string) => ipcRenderer.invoke('watchTogether:send-chat', body),
+    updatePlayback: (payload: WatchTogetherPlaybackState) => ipcRenderer.invoke('watchTogether:update-playback', payload),
+    setContent: (content: WatchTogetherContent) => ipcRenderer.invoke('watchTogether:set-content', content),
+    setReady: (ready: boolean) => ipcRenderer.invoke('watchTogether:set-ready', ready),
+    consumeInvite: (code: string) => ipcRenderer.invoke('watchTogether:consume-invite', code),
+    onInvite: (callback: (code: string) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, code: string) => callback(code)
+      ipcRenderer.on('watchTogether:invite', listener)
+      return () => ipcRenderer.removeListener('watchTogether:invite', listener)
+    },
+    onChanged: (callback: (state: WatchTogetherState) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, state: WatchTogetherState) => callback(state)
+      ipcRenderer.on('watchTogether:changed', listener)
+      return () => ipcRenderer.removeListener('watchTogether:changed', listener)
+    },
   },
   adBlock: {
     getState: (): Promise<AdBlockState> => ipcRenderer.invoke('adblock:get-state'),

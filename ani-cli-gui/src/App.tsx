@@ -13,6 +13,8 @@ import { RemoteNoticeBanner } from './components/RemoteNoticeBanner'
 import type { CatalogProvider } from './catalog-types'
 import type { UpdateState } from './updater-types'
 import { playNotificationSound, shouldPlayNotificationSound, type NotificationSoundLevel } from './lib/notification-sounds'
+import { WatchTogetherPanel } from './components/WatchTogetherPanel'
+import { Sparkles } from 'lucide-react'
 
 interface AnimeSelection {
   id: string
@@ -59,6 +61,7 @@ function App() {
   const [notifications, setNotifications] = useState<AppNotification[]>(initialNotifications)
   const [appVersion, setAppVersion] = useState<string | null>(null)
   const [secretSakuraMode, setSecretSakuraMode] = useState(false)
+  const [watchTogetherOpen, setWatchTogetherOpen] = useState(false)
   const logoClickTimesRef = useRef<number[]>([])
   const watchedEpisodesRef = useRef(new Set<string>())
   const watchBadgeThresholdsRef = useRef(new Set<number>())
@@ -186,7 +189,13 @@ function App() {
             </span>
           )}
         </div>
-        <Navigation activeTab={activeTab} setActiveTab={setActiveTab} hasActivePlayer={activeAnime !== null} downloadCount={activeDownloadCount} />
+        <div className="flex items-center gap-2" style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
+          <button type="button" onClick={() => setWatchTogetherOpen(true)} className="inline-flex items-center gap-2 rounded-full border border-m3-outline/20 bg-m3-surface-container/90 px-3 py-2 text-sm font-semibold text-m3-on-surface shadow-sm">
+            <Sparkles size={16} />
+            <span>Watch Together</span>
+          </button>
+          <Navigation activeTab={activeTab} setActiveTab={setActiveTab} hasActivePlayer={activeAnime !== null} downloadCount={activeDownloadCount} />
+        </div>
       </header>
 
       {/* Main Content Area */}
@@ -225,6 +234,7 @@ function App() {
               initialEpisode={resumeEpisode}
               initialResumeSeconds={resumeProgressSeconds}
               onEpisodeStarted={handleEpisodeStarted}
+              onOpenWatchTogether={() => setWatchTogetherOpen(true)}
               onBack={() => {
                 setActiveAnime(null)
                 setResumeEpisode(null)
@@ -253,6 +263,7 @@ function App() {
       </main>
 
       <AppNotifications items={notifications} onDismiss={dismissNotification} />
+      <WatchTogetherPanel anime={activeAnime ?? undefined} episode={resumeEpisode ?? undefined} translationType="sub" isOpen={watchTogetherOpen} onOpenChange={setWatchTogetherOpen} />
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AlertCircle, ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Loader2, MonitorPlay, Search } from 'lucide-react'
+import { AlertCircle, ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Loader2, MonitorPlay, Search, Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PlayerPage } from './PlayerPage'
 import { addHistory } from '../lib/history'
@@ -23,6 +23,7 @@ interface AnimePageProps {
   initialEpisode?: string | null
   initialResumeSeconds?: number | null
   onEpisodeStarted?: (animeId: string, episode: string) => void
+  onOpenWatchTogether?: () => void
 }
 
 const EPISODES_PER_PAGE = 60
@@ -33,6 +34,7 @@ export function AnimePage({
   initialEpisode,
   initialResumeSeconds,
   onEpisodeStarted,
+  onOpenWatchTogether,
 }: AnimePageProps) {
   const { t } = useTranslation()
   const [episodes, setEpisodes] = useState<string[]>([])
@@ -215,10 +217,14 @@ export function AnimePage({
         >
           <ArrowLeft size={22} />
         </button>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-xs uppercase tracking-[0.18em] font-bold text-m3-primary">{t('anime.nowBrowsing')}</p>
           <h2 className="truncate font-tempo text-2xl md:text-3xl font-bold">{anime.name}</h2>
         </div>
+        <button type="button" onClick={onOpenWatchTogether} className="inline-flex items-center gap-2 rounded-full border border-m3-outline/20 bg-m3-surface-container/90 px-3 py-2 text-sm font-semibold text-m3-on-surface">
+          <Sparkles size={16} />
+          <span>Watch Together</span>
+        </button>
       </div>
 
       {error && (

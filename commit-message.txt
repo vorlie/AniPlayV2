@@ -1,8 +1,6 @@
-fix(allanime): restore episode source resolution for 1.15.2
+feat(watch-together): add beta room-based co-watching support for 1.16.0
 
-- align crypto requests with the current MKissa API origin
-- discover the active API endpoint from the runtime bundle
-- sign fallback queries with their exact query hash
-- resolve internal provider URLs against the correct AllAnime host
-- generate valid Wix multi-quality media paths
-- back off on rate limits and avoid obsolete fallback storms
+- add a Cloudflare Worker and Durable Object room backend
+- wire Electron IPC and UI for create/join/leave/chat flows
+- add deep-link invite handling and custom-domain deployment config
+- document safe deployment guidance for rollout

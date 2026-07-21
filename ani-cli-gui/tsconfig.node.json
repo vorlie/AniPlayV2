@@ -17,8 +17,8 @@
     /* Linting */
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
+    "erasableSyntaxOnly": false,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "electron/**/*.ts"]
+  "include": ["vite.config.ts", "electron/**/*.ts", "electron/**/*.d.ts"]
 }

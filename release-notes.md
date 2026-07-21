@@ -1,17 +1,19 @@
-# AniPlay 1.15.2
+# AniPlay 1.16.0
 
-## AllAnime playback
+## Watch Together beta
 
-- Restored episode source resolution after AllAnime's latest crypto and API changes.
-- AniPlay now follows the current MKissa API endpoint and sends crypto requests with the matching site identity.
-- Improved fallback query signing for compatibility with current protected episode queries.
-- Fixed internal provider URL resolution so decoded AllAnime sources can be loaded again.
-- Fixed malformed Wix quality URLs that caused valid default-provider streams to return HTTP 403.
-- Added rate-limit backoff and removed unnecessary legacy requests that could make temporary throttling worse.
-- AllAnime diagnostics now report the dynamically discovered API endpoint.
+- Added a new Watch Together experience with room creation and joining, participant presence, chat, and basic playback-state sharing.
+- Added a dedicated desktop UI panel plus player-page entry points for quick access to the feature.
+- Added Electron IPC and deep-link invite handling so rooms can be joined from `aniplay://watch/<code>` links.
+- Added a Cloudflare Worker and Durable Object backend for room coordination and WebSocket-based sync.
+
+## Deployment readiness
+
+- Added a deployable Worker package with health checks and support for custom domains such as `watch-together.vorlie.pl`.
+- Defaulted the desktop app to the custom Worker URL when no override is supplied.
+- Added a deployment checklist in the ignore folder to guide a safer rollout.
 
 ## Verification
 
-- All 62 automated tests pass.
-- ESLint passes without errors.
-- The production renderer and Electron bundles build successfully.
+- The desktop app production build succeeds.
+- The Worker configuration validates successfully with Wrangler dry-run for the custom route.

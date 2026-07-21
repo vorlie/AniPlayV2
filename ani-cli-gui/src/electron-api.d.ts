@@ -8,6 +8,7 @@ import type { AdBlockSettings, AdBlockState } from './adblock-types'
 import type { ProfileSharePayload } from './profile-share-types'
 import type { WatchSegmentInput, ViewingSummary } from './viewing-types'
 import type { AllAnimeDebugInfo } from './scraper-types'
+import type { WatchTogetherContent, WatchTogetherCreateInput, WatchTogetherJoinInput, WatchTogetherPlaybackState, WatchTogetherState } from './watch-together-types'
 
 interface SearchResult {
   id: string
@@ -99,6 +100,20 @@ interface AniPlayApi {
   graphics: {
     getSettings(): Promise<GraphicsSettings>
     setSafeMode(enabled: boolean): Promise<GraphicsSettings>
+  }
+  watchTogether: {
+    getConfig(): Promise<{ available: boolean; endpoint: string | null; message: string | null }>
+    getState(): Promise<WatchTogetherState>
+    create(input: WatchTogetherCreateInput): Promise<WatchTogetherState>
+    join(input: WatchTogetherJoinInput): Promise<WatchTogetherState>
+    leave(): Promise<void>
+    sendChat(body: string): Promise<void>
+    updatePlayback(payload: WatchTogetherPlaybackState): Promise<void>
+    setContent(content: WatchTogetherContent): Promise<void>
+    setReady(ready: boolean): Promise<void>
+    consumeInvite(code: string): Promise<void>
+    onInvite(callback: (code: string) => void): () => void
+    onChanged(callback: (state: WatchTogetherState) => void): () => void
   }
   adBlock: {
     getState(): Promise<AdBlockState>

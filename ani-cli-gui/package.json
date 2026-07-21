@@ -7,7 +7,7 @@
     "url": "https://github.com/vorlie/AniPlayV2.git"
   },
   "private": true,
-  "version": "1.15.3",
+  "version": "1.16.0",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -109,7 +109,8 @@
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-i18next": "^17.0.9",
-    "tailwind-merge": "^3.6.0"
+    "tailwind-merge": "^3.6.0",
+    "ws": "^8.21.1"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.10.2",
@@ -120,6 +121,7 @@
     "@types/node": "^24.13.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",

@@ -1,0 +1,12 @@
+name = "watch-together-worker"
+main = "src/worker.ts"
+compatibility_date = "2026-07-21"
+workers_dev = false
+routes = [{ pattern = "watch-together.vorlie.pl/*", zone_name = "vorlie.pl" }]
+
+[durable_objects]
+bindings = [{ name = "WATCH_TOGETHER_ROOMS", class_name = "WatchTogetherRoom" }]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["WatchTogetherRoom"]
