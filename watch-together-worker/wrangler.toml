@@ -1,4 +1,4 @@
-name = "watch-together-worker"
+name = "aniplay-watchtogether"
 main = "src/worker.ts"
 compatibility_date = "2026-07-21"
 workers_dev = false
