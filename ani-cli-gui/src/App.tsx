@@ -10,11 +10,12 @@ import type { HistoryEntry } from './lib/history'
 import type { DownloadState } from './download-types'
 import { DownloadsPage } from './pages/DownloadsPage'
 import { RemoteNoticeBanner } from './components/RemoteNoticeBanner'
-import type { CatalogProvider } from './catalog-types'
+import type { CatalogProvider, TranslationType } from './catalog-types'
 import type { UpdateState } from './updater-types'
 import { playNotificationSound, shouldPlayNotificationSound, type NotificationSoundLevel } from './lib/notification-sounds'
 import { WatchTogetherPanel } from './components/WatchTogetherPanel'
 import { Sparkles } from 'lucide-react'
+import type { WatchTogetherCreateContext, WatchTogetherState } from './watch-together-types'
 
 interface AnimeSelection {
   id: string
@@ -56,16 +57,20 @@ function App() {
   const [activeAnime, setActiveAnime] = useState<AnimeSelection | null>(null)
   const [resumeEpisode, setResumeEpisode] = useState<string | null>(null)
   const [resumeProgressSeconds, setResumeProgressSeconds] = useState<number | null>(null)
+  const [resumeTranslationType, setResumeTranslationType] = useState<TranslationType | null>(null)
   const [downloadState, setDownloadState] = useState<DownloadState | null>(null)
   const [aniListOpenRequest, setAniListOpenRequest] = useState<{ id: number; nonce: number } | null>(null)
   const [notifications, setNotifications] = useState<AppNotification[]>(initialNotifications)
   const [appVersion, setAppVersion] = useState<string | null>(null)
   const [secretSakuraMode, setSecretSakuraMode] = useState(false)
   const [watchTogetherOpen, setWatchTogetherOpen] = useState(false)
+  const [watchTogetherContext, setWatchTogetherContext] = useState<WatchTogetherCreateContext | null>(null)
+  const [watchTogetherInviteCode, setWatchTogetherInviteCode] = useState<string | null>(null)
   const logoClickTimesRef = useRef<number[]>([])
   const watchedEpisodesRef = useRef(new Set<string>())
   const watchBadgeThresholdsRef = useRef(new Set<number>())
   const updateNotificationKeysRef = useRef(new Set<string>())
+  const watchTogetherContentKeyRef = useRef<string | null>(null)
 
   const dismissNotification = useCallback((id: string) => {
     setNotifications((items) => items.filter((item) => item.id !== id))
@@ -80,6 +85,41 @@ function App() {
     if (!window.aniPlay) return
     void window.aniPlay.downloads.getState().then(setDownloadState)
     return window.aniPlay.downloads.onChanged(setDownloadState)
+  }, [])
+
+  useEffect(() => {
+    if (!window.aniPlay?.watchTogether) return
+    const handleRoomState = (room: WatchTogetherState) => {
+      if (!room.connected || !room.content) {
+        if (room.status === 'idle') watchTogetherContentKeyRef.current = null
+        return
+      }
+      const content = room.content
+      const contentKey = `${room.code}:${content.provider}:${content.showId}:${content.episode}:${content.translationType}`
+      if (watchTogetherContentKeyRef.current === contentKey) return
+      watchTogetherContentKeyRef.current = contentKey
+      setActiveAnime((current) => {
+        if (current?.id === content.showId && current.catalogProvider === content.provider) return current
+        return {
+          id: content.showId,
+          name: content.animeName,
+          episodes: 0,
+          aniListMediaId: content.aniListMediaId,
+          catalogProvider: content.provider as CatalogProvider,
+        }
+      })
+      setResumeEpisode(content.episode)
+      setResumeProgressSeconds(room.playback?.position ?? 0)
+      setResumeTranslationType(content.translationType)
+      setActiveTab('player')
+    }
+    void window.aniPlay.watchTogether.getState().then(handleRoomState).catch(() => {})
+    const unsubscribeState = window.aniPlay.watchTogether.onChanged(handleRoomState)
+    const unsubscribeInvite = window.aniPlay.watchTogether.onInvite((code) => {
+      setWatchTogetherInviteCode(code)
+      setWatchTogetherOpen(true)
+    })
+    return () => { unsubscribeState(); unsubscribeInvite() }
   }, [])
 
   const notifyUpdateState = useCallback((state: UpdateState) => {
@@ -126,11 +166,13 @@ function App() {
     })
     setResumeEpisode(item.episode)
     setResumeProgressSeconds(item.progressSeconds)
+    setResumeTranslationType(null)
   }
 
   const handleSelectAnime = (anime: AnimeSelection, options?: { episode?: string | null; resumeSeconds?: number | null }) => {
     setResumeEpisode(options?.episode ?? null)
     setResumeProgressSeconds(options?.resumeSeconds ?? null)
+    setResumeTranslationType(null)
     setActiveTab('player')
     setActiveAnime(anime)
   }
@@ -192,7 +234,7 @@ function App() {
         <div className="flex items-center gap-2" style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
           <button type="button" onClick={() => setWatchTogetherOpen(true)} className="inline-flex items-center gap-2 rounded-full border border-m3-outline/20 bg-m3-surface-container/90 px-3 py-2 text-sm font-semibold text-m3-on-surface shadow-sm">
             <Sparkles size={16} />
-            <span>Watch Together</span>
+            <span>{t('watchTogether.title')}</span>
           </button>
           <Navigation activeTab={activeTab} setActiveTab={setActiveTab} hasActivePlayer={activeAnime !== null} downloadCount={activeDownloadCount} />
         </div>
@@ -229,16 +271,19 @@ function App() {
         {activeAnime && (
           <div className={activeTab === 'player' ? 'flex flex-1 flex-col' : 'hidden'} aria-hidden={activeTab !== 'player'}>
             <AnimePage
-              key={activeAnime.id}
+              key={`${activeAnime.id}:${resumeTranslationType ?? 'default'}`}
               anime={activeAnime}
               initialEpisode={resumeEpisode}
               initialResumeSeconds={resumeProgressSeconds}
+              initialTranslationType={resumeTranslationType}
               onEpisodeStarted={handleEpisodeStarted}
               onOpenWatchTogether={() => setWatchTogetherOpen(true)}
+              onWatchTogetherContextChange={setWatchTogetherContext}
               onBack={() => {
                 setActiveAnime(null)
                 setResumeEpisode(null)
                 setResumeProgressSeconds(null)
+                setResumeTranslationType(null)
                 setActiveTab('search')
               }}
             />
@@ -263,7 +308,7 @@ function App() {
       </main>
 
       <AppNotifications items={notifications} onDismiss={dismissNotification} />
-      <WatchTogetherPanel anime={activeAnime ?? undefined} episode={resumeEpisode ?? undefined} translationType="sub" isOpen={watchTogetherOpen} onOpenChange={setWatchTogetherOpen} />
+      <WatchTogetherPanel key={watchTogetherInviteCode ?? 'watch-together'} anime={activeAnime ?? undefined} context={watchTogetherContext} inviteCode={watchTogetherInviteCode} isOpen={watchTogetherOpen} onOpenChange={setWatchTogetherOpen} />
     </div>
   )
 }

@@ -1,0 +1,36 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "aniplay-watchtogether",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-07-21",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "routes": [
+    { "pattern": "watch-together.vorlie.pl", "custom_domain": true }
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "WATCH_TOGETHER_ROOMS", "class_name": "WatchTogetherRoom" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["WatchTogetherRoom"] }
+  ],
+  "ratelimits": [
+    {
+      "name": "ROOM_CREATION_RATE_LIMIT",
+      "namespace_id": "16001",
+      "simple": { "limit": 10, "period": 60 }
+    },
+    {
+      "name": "ROOM_JOIN_RATE_LIMIT",
+      "namespace_id": "16002",
+      "simple": { "limit": 60, "period": 60 }
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": { "enabled": true, "invocation_logs": true }
+  }
+}

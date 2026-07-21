@@ -107,6 +107,7 @@ interface AniPlayApi {
     create(input: WatchTogetherCreateInput): Promise<WatchTogetherState>
     join(input: WatchTogetherJoinInput): Promise<WatchTogetherState>
     leave(): Promise<void>
+    reconnect(): Promise<WatchTogetherState>
     sendChat(body: string): Promise<void>
     updatePlayback(payload: WatchTogetherPlaybackState): Promise<void>
     setContent(content: WatchTogetherContent): Promise<void>

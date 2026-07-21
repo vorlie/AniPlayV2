@@ -7,8 +7,6 @@ export interface WatchTogetherContent {
   episode: string
   translationType: 'sub' | 'dub'
   aniListMediaId?: number
-  streamUrl?: string
-  streamKind?: 'embed' | 'native'
 }
 
 export interface WatchTogetherPlaybackState {
@@ -21,11 +19,13 @@ export interface WatchTogetherPlaybackState {
 
 export interface WatchTogetherParticipant {
   id: string
+  aniListId: number
   name: string
   avatar?: string | null
   role: WatchTogetherRole
   ready: boolean
   connected: boolean
+  connectedAt?: number
 }
 
 export interface WatchTogetherMessage {
@@ -44,21 +44,30 @@ export interface WatchTogetherState {
   playback: WatchTogetherPlaybackState | null
   participants: WatchTogetherParticipant[]
   chat: WatchTogetherMessage[]
-  status: 'idle' | 'connecting' | 'connected' | 'error'
+  status: 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'error'
   endpoint: string
+  serverTime?: string
   error?: string | null
+  errorCode?: string | null
 }
 
 export interface WatchTogetherCreateInput {
   content: WatchTogetherContent
   playback?: WatchTogetherPlaybackState
-  participantName: string
-  participantAvatar?: string | null
-  hostToken?: string
 }
 
 export interface WatchTogetherJoinInput {
   code: string
-  participantName: string
-  participantAvatar?: string | null
+}
+
+export interface WatchTogetherIdentity {
+  aniListId: number
+  name: string
+  avatar?: string | null
+}
+
+export interface WatchTogetherCreateContext {
+  content: WatchTogetherContent
+  playback: WatchTogetherPlaybackState
+  controllable: boolean
 }

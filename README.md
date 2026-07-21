@@ -2,7 +2,7 @@
 
 AniPlay is a Material You-inspired desktop anime browser and player built with Electron, React, TypeScript, and Vite. It combines third-party playback catalogs with AniList discovery, list management, profile statistics, achievements, local watch history, and downloads.
 
-The repository is currently at the 1.15.x line. Windows is the primary supported platform. An Electron Builder Linux target is available for testing, while macOS packaging is not configured.
+The repository is currently at the 1.16.x line. Windows is the primary supported platform. An Electron Builder Linux target is available for testing, while macOS packaging is not configured.
 
 AniPlay does not host anime or video files. Search results and playback links come from third-party providers, so availability and compatibility can change independently of the app.
 
@@ -45,6 +45,15 @@ Source availability, subtitles, native playback, and download support vary by pr
 - Related titles and profile favourites open directly inside AniPlay.
 
 AniList activity supplies account-wide statistics. Time-window achievements such as Binge Master, Weekend Warrior, Night Owl, and Golden Week use AniPlay's append-only local viewing ledger and begin accumulating only after the feature is installed.
+
+### Watch Together
+
+- Create ephemeral rooms from an actively playing direct video or HLS source, or join with a ten-character room code.
+- Synchronize host play, pause, seek, episode, and sub/dub changes while each participant resolves their own provider stream.
+- See AniList-linked participants and readiness, use bounded room chat, copy `aniplay://watch/<code>` invitations, and reconnect after network interruptions.
+- Transfer control to the longest-connected guest if the host does not return within ten seconds.
+
+Watch Together requires AniList sign-in and a controllable non-embed source. It does not send media URLs, provider headers/cookies, watch history, or AniList OAuth tokens to the coordination service. Guest volume, mute, subtitles, fullscreen, and picture-in-picture remain local.
 
 ### Downloads and desktop integration
 
@@ -159,6 +168,8 @@ npm run dev
 | `ANIPLAY_DEBUG_ALLANIME=full` | Include full AllAnime response bodies in logs; use carefully |
 | `ANIPLAY_ANIKOTO_NATIVE=true` | Experimentally attempt native MegaPlay source extraction in addition to embeds |
 | `ANIPLAY_STATUS_URL` | Override the remote provider-status document URL |
+| `ANIPLAY_WATCH_TOGETHER_URL` | Override the Watch Together Worker endpoint at runtime |
+| `VITE_WATCH_TOGETHER_URL` | Set the Watch Together Worker endpoint for a release build |
 
 Safe graphics mode can also be enabled persistently in Settings or for one launch with `--safe-graphics`.
 
@@ -176,7 +187,7 @@ Stored data includes:
 
 Profile images and AllAnime diagnostic JSON files are generated locally through native save dialogs. AniPlay does not upload them to a separate sharing service.
 
-Normal application features still contact their respective services: playback providers, AniList, GitHub update endpoints, the provider-status endpoint, filter-list hosts, image hosts, and Discord Desktop when Rich Presence is enabled.
+Normal application features still contact their respective services: playback providers, AniList, GitHub update endpoints, the provider-status endpoint, the optional Watch Together coordination Worker, filter-list hosts, image hosts, and Discord Desktop when Rich Presence is enabled.
 
 ## Discord Rich Presence
 

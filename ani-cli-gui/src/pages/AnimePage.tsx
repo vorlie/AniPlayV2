@@ -5,6 +5,8 @@ import { PlayerPage } from './PlayerPage'
 import { addHistory } from '../lib/history'
 import { getTranslationType, invokeEpisodes, invokeLinks, openProviderEpisode, TRANSLATION_TYPE_KEY, type CatalogProvider, type TranslationType } from '../lib/api'
 import type { AnimeDetails } from '../anilist-types'
+import { buildWatchTogetherContent } from '../lib/watch-together-content'
+import type { WatchTogetherCreateContext, WatchTogetherState } from '../watch-together-types'
 
 interface StreamLink {
   url: string
@@ -22,8 +24,10 @@ interface AnimePageProps {
   onBack: () => void
   initialEpisode?: string | null
   initialResumeSeconds?: number | null
+  initialTranslationType?: TranslationType | null
   onEpisodeStarted?: (animeId: string, episode: string) => void
   onOpenWatchTogether?: () => void
+  onWatchTogetherContextChange?: (context: WatchTogetherCreateContext | null) => void
 }
 
 const EPISODES_PER_PAGE = 60
@@ -33,8 +37,10 @@ export function AnimePage({
   onBack,
   initialEpisode,
   initialResumeSeconds,
+  initialTranslationType,
   onEpisodeStarted,
   onOpenWatchTogether,
+  onWatchTogetherContextChange,
 }: AnimePageProps) {
   const { t } = useTranslation()
   const [episodes, setEpisodes] = useState<string[]>([])
@@ -42,7 +48,7 @@ export function AnimePage({
   const [playingLinks, setPlayingLinks] = useState<StreamLink[]>([])
   const [playingEp, setPlayingEp] = useState<string>('')
   const [playingTranslationType, setPlayingTranslationType] = useState<TranslationType>('sub')
-  const [selectedTranslationType, setSelectedTranslationType] = useState<TranslationType>(getTranslationType)
+  const [selectedTranslationType, setSelectedTranslationType] = useState<TranslationType>(initialTranslationType ?? getTranslationType)
   const [loadingEp, setLoadingEp] = useState<string | null>(null)
   const [episodeQuery, setEpisodeQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -52,10 +58,31 @@ export function AnimePage({
   const [episodePage, setEpisodePage] = useState(0)
   const [idleQuoteIndex, setIdleQuoteIndex] = useState<number | null>(null)
   const [sourceStatusIndex, setSourceStatusIndex] = useState(0)
+  const [watchTogetherState, setWatchTogetherState] = useState<WatchTogetherState | null>(null)
   const restoredRef = useRef<string | null>(null)
   const supportsTranslationSwitch = anime.catalogProvider !== 'desu' && anime.catalogProvider !== 'docchi'
   const episodesKey = `${anime.catalogProvider}:${anime.id}:${selectedTranslationType}`
   const loadingEpisodes = loadedEpisodesKey !== episodesKey
+  const watchTogetherGuestLocked = watchTogetherState?.connected === true && watchTogetherState.role === 'guest'
+
+  useEffect(() => {
+    if (!window.aniPlay?.watchTogether) return
+    void window.aniPlay.watchTogether.getState().then(setWatchTogetherState).catch(() => {})
+    return window.aniPlay.watchTogether.onChanged(setWatchTogetherState)
+  }, [])
+
+  useEffect(() => {
+    if (!playingEp || playingLinks.length === 0) {
+      onWatchTogetherContextChange?.(null)
+      return
+    }
+    onWatchTogetherContextChange?.({
+      content: buildWatchTogetherContent(anime, playingEp, playingTranslationType),
+      playback: { position: 0, paused: true, revision: 0 },
+      controllable: playingLinks.some((link) => !link.embed),
+    })
+    return () => onWatchTogetherContextChange?.(null)
+  }, [anime, onWatchTogetherContextChange, playingEp, playingLinks, playingTranslationType])
 
   useEffect(() => {
     if (anime.aniListMediaId && anime.coverUrl) return
@@ -75,6 +102,7 @@ export function AnimePage({
 
   const handlePlay = useCallback((ep: string, translationType: TranslationType = selectedTranslationType) => {
     if (loadingEp === ep) return
+    if (watchTogetherGuestLocked && watchTogetherState?.content?.episode !== ep) return
     const episodeIndex = episodes.indexOf(ep)
     if (episodeIndex >= 0) setEpisodePage(Math.floor(episodeIndex / EPISODES_PER_PAGE))
     setLoadingEp(ep)
@@ -112,10 +140,13 @@ export function AnimePage({
       setError(cause instanceof Error ? cause.message : t('anime.lookupFailed'))
       if (anime.catalogProvider === 'desu' || anime.catalogProvider === 'docchi' || anime.catalogProvider === 'miruro' || anime.catalogProvider === 'anikoto') setBrowserFallbackEpisode(ep)
     })
-  }, [anime.id, anime.name, anime.catalogProvider, aniListMetadata.mediaId, aniListMetadata.coverUrl, episodes, initialEpisode, initialResumeSeconds, loadingEp, onEpisodeStarted, selectedTranslationType, t])
+    if (watchTogetherState?.connected && watchTogetherState.role === 'host') {
+      void window.aniPlay?.watchTogether.setContent(buildWatchTogetherContent(anime, ep, translationType)).catch(() => {})
+    }
+  }, [anime, aniListMetadata.mediaId, aniListMetadata.coverUrl, episodes, initialEpisode, initialResumeSeconds, loadingEp, onEpisodeStarted, selectedTranslationType, t, watchTogetherGuestLocked, watchTogetherState])
 
   const selectTranslationType = useCallback((value: TranslationType) => {
-    if (value === selectedTranslationType) return
+    if (value === selectedTranslationType || watchTogetherGuestLocked) return
     localStorage.setItem(TRANSLATION_TYPE_KEY, value)
     setSelectedTranslationType(value)
     setPlayingLinks([])
@@ -126,7 +157,7 @@ export function AnimePage({
       setPlayingEp('')
       handlePlay(episode, value)
     }
-  }, [handlePlay, playingEp, selectedTranslationType])
+  }, [handlePlay, playingEp, selectedTranslationType, watchTogetherGuestLocked])
 
   useEffect(() => {
     let cancelled = false
@@ -223,7 +254,7 @@ export function AnimePage({
         </div>
         <button type="button" onClick={onOpenWatchTogether} className="inline-flex items-center gap-2 rounded-full border border-m3-outline/20 bg-m3-surface-container/90 px-3 py-2 text-sm font-semibold text-m3-on-surface">
           <Sparkles size={16} />
-          <span>Watch Together</span>
+          <span>{t('watchTogether.title')}</span>
         </button>
       </div>
 
@@ -276,6 +307,7 @@ export function AnimePage({
                   key={value}
                   type="button"
                   onClick={() => selectTranslationType(value)}
+                  disabled={watchTogetherGuestLocked}
                   aria-pressed={selectedTranslationType === value}
                   className={`flex-1 px-3 py-2 rounded-lg text-sm font-bold transition-colors ${selectedTranslationType === value ? 'bg-m3-primary text-m3-on-primary' : 'hover:bg-m3-on-surface/10'}`}
                 >
@@ -313,7 +345,7 @@ export function AnimePage({
                 return (
                   <button
                     key={ep}
-                    disabled={loadingEp === ep}
+                    disabled={loadingEp === ep || (watchTogetherGuestLocked && playingEp !== ep)}
                     className={`w-full min-w-0 px-1.5 py-2 rounded-xl border text-xs transition-all font-bold flex items-center justify-center ${isActive ? 'bg-m3-primary text-m3-on-primary border-transparent' : 'border-m3-outline/20 bg-m3-surface-container/40 hover:bg-m3-primary hover:text-m3-on-primary hover:border-transparent'} ${loadingEp === ep ? 'opacity-50 cursor-wait animate-pulse' : ''}`}
                     onClick={() => handlePlay(ep)}
                   >

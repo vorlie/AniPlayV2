@@ -66,6 +66,7 @@ contextBridge.exposeInMainWorld('aniPlay', {
     create: (input: WatchTogetherCreateInput): Promise<WatchTogetherState> => ipcRenderer.invoke('watchTogether:create', input),
     join: (input: WatchTogetherJoinInput): Promise<WatchTogetherState> => ipcRenderer.invoke('watchTogether:join', input),
     leave: () => ipcRenderer.invoke('watchTogether:leave'),
+    reconnect: () => ipcRenderer.invoke('watchTogether:reconnect'),
     sendChat: (body: string) => ipcRenderer.invoke('watchTogether:send-chat', body),
     updatePlayback: (payload: WatchTogetherPlaybackState) => ipcRenderer.invoke('watchTogether:update-playback', payload),
     setContent: (content: WatchTogetherContent) => ipcRenderer.invoke('watchTogether:set-content', content),

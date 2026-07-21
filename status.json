@@ -40,6 +40,32 @@
       "endsAt": null,
       "dismissible": true,
       "link": "https://github.com/vorlie/AniPlayV2/blob/main/ALLANIME-BUILD-48-INCIDENT.md"
+    },
+    {
+      "id": "watch-together-broken-2026-07-21",
+      "severity": "warning",
+      "title": "Watch Together is currently broken",
+      "message": "Watch Together room creation and joining are currently failing. A fix is being investigated, and the feature may be unavailable until the issue is resolved.",
+      "providers": ["all"],
+      "minVersion": "1.16.0",
+      "maxVersion": null,
+      "startsAt": "2026-07-21T00:00:00Z",
+      "endsAt": null,
+      "dismissible": true,
+      "link": "https://github.com/vorlie/AniPlayV2/issues"
+    },
+    {
+      "id": "watch-together-fixed-2026-07-22",
+      "severity": "update",
+      "title": "Watch Together has been fixed",
+      "message": "Watch Together room creation and joining have been restored in AniPlay 1.16.1. Update to this version or newer to regain access to the feature.",
+      "providers": ["all"],
+      "minVersion": "1.16.0",
+      "maxVersion": "1.16.1",
+      "startsAt": "2026-07-22T00:00:00Z",
+      "endsAt": null,
+      "dismissible": true,
+      "link": "https://github.com/vorlie/AniPlayV2/issues"
     }
   ]
 }

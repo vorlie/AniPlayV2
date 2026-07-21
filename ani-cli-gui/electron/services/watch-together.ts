@@ -1,20 +1,40 @@
-import { createRequire } from 'node:module'
-import type { WatchTogetherContent, WatchTogetherCreateInput, WatchTogetherJoinInput, WatchTogetherPlaybackState, WatchTogetherState } from '../../src/watch-together-types'
-
-const require = createRequire(import.meta.url)
-const WEBSOCKET_OPEN = 1
-
-interface WatchSocket {
-  readyState: number
-  send(data: string): void
-  close(): void
-  on(event: 'open' | 'message' | 'close' | 'error', handler: (...args: any[]) => void): void
-}
-
-const { WebSocket: WebSocketCtor } = require('ws') as { WebSocket: new (url: string) => WatchSocket }
+import WebSocket, { type RawData } from 'ws'
+import type {
+  WatchTogetherContent,
+  WatchTogetherCreateInput,
+  WatchTogetherIdentity,
+  WatchTogetherJoinInput,
+  WatchTogetherMessage,
+  WatchTogetherParticipant,
+  WatchTogetherPlaybackState,
+  WatchTogetherRole,
+  WatchTogetherState,
+} from '../../src/watch-together-types'
 
 const DEFAULT_ENDPOINT = 'https://watch-together.vorlie.pl'
-const MAX_RECONNECT_ATTEMPTS = 4
+const PROTOCOL_VERSION = 1
+const CONNECT_TIMEOUT_MS = 12_000
+const RECONNECT_WINDOW_MS = 90_000
+const RECONNECT_DELAYS_MS = [1_000, 2_000, 4_000, 8_000, 15_000]
+const HEARTBEAT_MS = 25_000
+const ROOM_CODE_PATTERN = /^[0-9A-HJKMNP-TV-Z]{10}$/
+
+type JsonRecord = Record<string, unknown>
+
+interface ServerSnapshot {
+  code: string
+  content: WatchTogetherContent
+  playback: WatchTogetherPlaybackState
+  participants: WatchTogetherParticipant[]
+  chat: WatchTogetherMessage[]
+  role: WatchTogetherRole
+  serverTime: string
+}
+
+type ServerMessage =
+  | { type: 'snapshot'; snapshot: ServerSnapshot }
+  | { type: 'error'; code: string; error: string }
+  | { type: 'pong'; serverTime: string }
 
 export interface WatchTogetherServiceConfig {
   available: boolean
@@ -22,293 +42,411 @@ export interface WatchTogetherServiceConfig {
   message: string | null
 }
 
+function record(value: unknown): JsonRecord | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonRecord : null
+}
+
+function onlyKeys(value: JsonRecord, allowed: readonly string[]): boolean {
+  return Object.keys(value).every((key) => allowed.includes(key))
+}
+
+function finite(value: unknown, min = 0): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= min
+}
+
+function text(value: unknown, max: number): string | null {
+  return typeof value === 'string' && value.trim() && value.length <= max ? value : null
+}
+
+export function normalizeWatchTogetherCode(value: string): string {
+  const code = value.trim().toUpperCase().replace(/[\s-]+/g, '')
+  if (!ROOM_CODE_PATTERN.test(code)) throw new Error('Room codes contain 10 Crockford Base32 characters')
+  return code
+}
+
+function parseContent(value: unknown): WatchTogetherContent | null {
+  const item = record(value)
+  if (!item) return null
+  const keys = Object.keys(item)
+  if (keys.some((key) => !['provider', 'showId', 'animeName', 'episode', 'translationType', 'aniListMediaId'].includes(key))) return null
+  const provider = text(item.provider, 32)
+  const showId = text(item.showId, 200)
+  const animeName = text(item.animeName, 200)
+  const episode = text(item.episode, 32)
+  if (!provider || !showId || !animeName || !episode || (item.translationType !== 'sub' && item.translationType !== 'dub')) return null
+  if (item.aniListMediaId !== undefined && (!Number.isInteger(item.aniListMediaId) || !finite(item.aniListMediaId, 1))) return null
+  return {
+    provider,
+    showId,
+    animeName,
+    episode,
+    translationType: item.translationType,
+    ...(typeof item.aniListMediaId === 'number' ? { aniListMediaId: item.aniListMediaId } : {}),
+  }
+}
+
+function parsePlayback(value: unknown): WatchTogetherPlaybackState | null {
+  const item = record(value)
+  if (!item || !onlyKeys(item, ['position', 'paused', 'duration', 'revision', 'updatedAt']) || !finite(item.position) || typeof item.paused !== 'boolean' || !Number.isInteger(item.revision) || !finite(item.revision)) return null
+  if (item.duration !== undefined && !finite(item.duration)) return null
+  if (item.updatedAt !== undefined && !text(item.updatedAt, 64)) return null
+  return {
+    position: item.position,
+    paused: item.paused,
+    revision: item.revision,
+    ...(typeof item.duration === 'number' ? { duration: item.duration } : {}),
+    ...(typeof item.updatedAt === 'string' ? { updatedAt: item.updatedAt } : {}),
+  }
+}
+
+function parseParticipant(value: unknown): WatchTogetherParticipant | null {
+  const item = record(value)
+  if (!item || !onlyKeys(item, ['id', 'aniListId', 'name', 'avatar', 'role', 'ready', 'connected', 'connectedAt']) || !text(item.id, 80) || !Number.isInteger(item.aniListId) || !finite(item.aniListId, 1) || !text(item.name, 80)) return null
+  if (item.role !== 'host' && item.role !== 'guest') return null
+  if (typeof item.ready !== 'boolean' || typeof item.connected !== 'boolean') return null
+  if (item.avatar !== undefined && item.avatar !== null && !text(item.avatar, 500)) return null
+  if (item.connectedAt !== undefined && !finite(item.connectedAt)) return null
+  return {
+    id: item.id as string,
+    aniListId: item.aniListId as number,
+    name: item.name as string,
+    avatar: item.avatar as string | null | undefined,
+    role: item.role,
+    ready: item.ready,
+    connected: item.connected,
+    connectedAt: item.connectedAt as number | undefined,
+  }
+}
+
+function parseChat(value: unknown): WatchTogetherMessage | null {
+  const item = record(value)
+  if (!item || !onlyKeys(item, ['id', 'authorId', 'authorName', 'body', 'createdAt']) || !text(item.id, 80) || !text(item.authorId, 80) || !text(item.authorName, 80) || !text(item.body, 500) || !text(item.createdAt, 64)) return null
+  return { id: item.id as string, authorId: item.authorId as string, authorName: item.authorName as string, body: item.body as string, createdAt: item.createdAt as string }
+}
+
+export function parseWatchTogetherServerMessage(data: RawData): ServerMessage | null {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(typeof data === 'string' ? data : data.toString('utf8')) as unknown
+  } catch {
+    return null
+  }
+  const message = record(parsed)
+  if (!message || typeof message.type !== 'string') return null
+  if (message.type === 'error') {
+    if (!onlyKeys(message, ['type', 'code', 'error'])) return null
+    const code = text(message.code, 80)
+    const error = text(message.error, 500)
+    return code && error ? { type: 'error', code, error } : null
+  }
+  if (message.type === 'pong') {
+    if (!onlyKeys(message, ['type', 'serverTime'])) return null
+    const serverTime = text(message.serverTime, 64)
+    return serverTime ? { type: 'pong', serverTime } : null
+  }
+  if (message.type !== 'snapshot' || !onlyKeys(message, ['type', 'snapshot'])) return null
+  const snapshot = record(message.snapshot)
+  if (!snapshot || !onlyKeys(snapshot, ['code', 'content', 'playback', 'participants', 'chat', 'role', 'serverTime'])) return null
+  const code = (() => {
+    try { return typeof snapshot.code === 'string' ? normalizeWatchTogetherCode(snapshot.code) : null }
+    catch { return null }
+  })()
+  const content = parseContent(snapshot.content)
+  const playback = parsePlayback(snapshot.playback)
+  const participants = Array.isArray(snapshot.participants) ? snapshot.participants.map(parseParticipant) : []
+  const chat = Array.isArray(snapshot.chat) ? snapshot.chat.map(parseChat) : []
+  const serverTime = text(snapshot.serverTime, 64)
+  if (!code || !content || !playback || participants.some((item) => item === null) || chat.some((item) => item === null) || !serverTime) return null
+  if (snapshot.role !== 'host' && snapshot.role !== 'guest') return null
+  return {
+    type: 'snapshot',
+    snapshot: {
+      code,
+      content,
+      playback,
+      participants: participants as WatchTogetherParticipant[],
+      chat: chat as WatchTogetherMessage[],
+      role: snapshot.role,
+      serverTime,
+    },
+  }
+}
+
+function validateIdentity(identity: WatchTogetherIdentity): WatchTogetherIdentity {
+  if (!Number.isInteger(identity.aniListId) || identity.aniListId <= 0 || !identity.name.trim()) throw new Error('Sign in to AniList before using Watch Together')
+  return { aniListId: identity.aniListId, name: identity.name.trim().slice(0, 80), avatar: identity.avatar ?? null }
+}
+
+export function resolveWatchTogetherEndpoint(value: string): string {
+  const url = new URL(value.trim())
+  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname))) {
+    throw new Error('Watch Together must use HTTPS (HTTP is allowed only for local development)')
+  }
+  if (url.username || url.password || url.search || url.hash) throw new Error('The Watch Together endpoint is invalid')
+  return url.toString().replace(/\/$/, '')
+}
+
 export class WatchTogetherService {
-  private ws: WatchSocket | null = null
-  private reconnectAttempts = 0
+  private ws: WebSocket | null = null
   private reconnectTimer: NodeJS.Timeout | null = null
+  private heartbeatTimer: NodeJS.Timeout | null = null
+  private reconnectStartedAt = 0
+  private reconnectAttempt = 0
+  private generation = 0
+  private intentionalClose = false
   private currentCode: string | null = null
-  private currentRole: WatchTogetherState['role'] | null = null
+  private currentIdentity: WatchTogetherIdentity | null = null
+  private hostToken: string | undefined
   private state: WatchTogetherState = {
-    code: '',
-    connected: false,
-    role: 'guest',
-    content: null,
-    playback: null,
-    participants: [],
-    chat: [],
-    status: 'idle',
-    endpoint: DEFAULT_ENDPOINT,
-    error: null,
+    code: '', connected: false, role: 'guest', content: null, playback: null,
+    participants: [], chat: [], status: 'idle', endpoint: DEFAULT_ENDPOINT, error: null, errorCode: null,
   }
 
-  private onChanged: ((state: WatchTogetherState) => void) | undefined
-  private onInvite: ((code: string) => void) | undefined
-
-  constructor(onChanged?: (state: WatchTogetherState) => void, onInvite?: (code: string) => void) {
-    this.onChanged = onChanged
-    this.onInvite = onInvite
-  }
+  constructor(
+    private readonly onChanged?: (state: WatchTogetherState) => void,
+    private readonly onInvite?: (code: string) => void,
+  ) {}
 
   getConfig(): WatchTogetherServiceConfig {
-    const endpoint = this.resolveEndpoint()
-    if (!endpoint) {
-      return { available: false, endpoint: null, message: 'Watch Together is not configured for this build. Set ANIPLAY_WATCH_TOGETHER_URL or VITE_WATCH_TOGETHER_URL.' }
+    try {
+      return { available: true, endpoint: this.resolveEndpoint(), message: null }
+    } catch (error) {
+      return { available: false, endpoint: null, message: error instanceof Error ? error.message : 'Watch Together is not configured' }
     }
-    return { available: true, endpoint, message: null }
   }
 
-  getState(): WatchTogetherState {
-    return this.state
-  }
+  getState(): WatchTogetherState { return this.state }
 
-  async create(input: WatchTogetherCreateInput): Promise<WatchTogetherState> {
+  async create(input: WatchTogetherCreateInput, identity: WatchTogetherIdentity): Promise<WatchTogetherState> {
     const endpoint = this.resolveEndpoint()
-    if (!endpoint) throw new Error('Watch Together endpoint is not configured')
-    this.clearReconnectTimer()
+    const profile = validateIdentity(identity)
     const response = await fetch(`${endpoint}/v1/rooms`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        content: input.content,
-        playback: input.playback ?? { position: 0, paused: true, revision: 0 },
-        participant: {
-          name: input.participantName.trim(),
-          avatar: input.participantAvatar ?? null,
-          hostToken: input.hostToken ?? 'host-token',
-        },
-      }),
+      body: JSON.stringify({ content: input.content, playback: input.playback ?? { position: 0, paused: true, revision: 0 } }),
+      signal: AbortSignal.timeout(CONNECT_TIMEOUT_MS),
     })
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({})) as { error?: string }
-      throw new Error(payload.error ?? 'The room could not be created')
+    const payload = await response.json() as { code?: unknown; hostToken?: unknown; error?: unknown }
+    if (!response.ok || typeof payload.code !== 'string' || typeof payload.hostToken !== 'string') {
+      throw new Error(typeof payload.error === 'string' ? payload.error : 'The room could not be created')
     }
-
-    const payload = await response.json() as { code: string; hostToken: string }
-    this.currentCode = payload.code
-    this.currentRole = 'host'
-    this.setState({
-      code: payload.code,
-      connected: false,
-      role: 'host',
-      status: 'connecting',
-      endpoint,
-      error: null,
-      content: input.content,
-      playback: input.playback ?? { position: 0, paused: true, revision: 0 },
-      participants: [],
-      chat: [],
-    })
-    await this.connect(payload.code, input.participantName, input.participantAvatar ?? null, payload.hostToken, 'host')
-    return this.getState()
+    const code = normalizeWatchTogetherCode(payload.code)
+    this.prepareConnection(code, profile, payload.hostToken, 'host', input.content, input.playback ?? { position: 0, paused: true, revision: 0 })
+    await this.connect(true)
+    return this.state
   }
 
-  async join(input: WatchTogetherJoinInput): Promise<WatchTogetherState> {
-    const endpoint = this.resolveEndpoint()
-    if (!endpoint) throw new Error('Watch Together endpoint is not configured')
-    this.clearReconnectTimer()
-    const code = input.code.trim().toUpperCase().replace(/\s+/g, '')
-    this.currentCode = code
-    this.currentRole = 'guest'
-    this.setState({
-      code,
-      connected: false,
-      role: 'guest',
-      status: 'connecting',
-      endpoint,
-      error: null,
-      content: null,
-      playback: null,
-      participants: [],
-      chat: [],
-    })
-    await this.connect(code, input.participantName, input.participantAvatar ?? null, undefined, 'guest')
-    return this.getState()
+  async join(input: WatchTogetherJoinInput, identity: WatchTogetherIdentity): Promise<WatchTogetherState> {
+    const code = normalizeWatchTogetherCode(input.code)
+    this.prepareConnection(code, validateIdentity(identity), undefined, 'guest', null, null)
+    await this.connect(true)
+    return this.state
+  }
+
+  async reconnect(): Promise<WatchTogetherState> {
+    if (!this.currentCode || !this.currentIdentity) throw new Error('There is no room to reconnect to')
+    this.clearTimers()
+    this.reconnectStartedAt = Date.now()
+    this.reconnectAttempt = 0
+    await this.connect(true)
+    return this.state
   }
 
   async leave(): Promise<void> {
-    this.clearReconnectTimer()
-    this.ws?.close()
+    this.intentionalClose = true
+    this.generation += 1
+    this.clearTimers()
+    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify({ type: 'leave' }))
+    this.ws?.close(1000, 'left room')
     this.ws = null
     this.currentCode = null
-    this.currentRole = null
+    this.currentIdentity = null
+    this.hostToken = undefined
     this.setState({
-      code: '',
-      connected: false,
-      role: 'guest',
-      status: 'idle',
-      endpoint: this.resolveEndpoint() ?? DEFAULT_ENDPOINT,
-      error: null,
-      content: null,
-      playback: null,
-      participants: [],
-      chat: [],
+      code: '', connected: false, role: 'guest', status: 'idle', endpoint: this.safeEndpoint(), error: null, errorCode: null,
+      content: null, playback: null, participants: [], chat: [],
     })
   }
 
   async sendChat(body: string): Promise<void> {
-    if (!this.ws || this.ws.readyState !== WEBSOCKET_OPEN) throw new Error('Watch Together is not connected')
-    const normalized = body.trim()
+    const normalized = body.replace(/\s+/g, ' ').trim()
     if (!normalized) return
-    this.ws.send(JSON.stringify({ type: 'chat', body: normalized.slice(0, 500) }))
+    this.send({ type: 'chat', body: normalized.slice(0, 500) })
   }
 
   async updatePlayback(payload: WatchTogetherPlaybackState): Promise<void> {
-    if (!this.ws || this.ws.readyState !== WEBSOCKET_OPEN) throw new Error('Watch Together is not connected')
-    this.ws.send(JSON.stringify({ type: 'playback-command', payload }))
+    if (this.state.role !== 'host') throw new Error('Only the room host can control playback')
+    this.send({ type: 'playback-command', payload: { position: payload.position, paused: payload.paused, ...(payload.duration === undefined ? {} : { duration: payload.duration }) } })
   }
 
   async setContent(content: WatchTogetherContent): Promise<void> {
-    if (!this.ws || this.ws.readyState !== WEBSOCKET_OPEN) throw new Error('Watch Together is not connected')
-    this.ws.send(JSON.stringify({ type: 'content-change', content }))
+    if (this.state.role !== 'host') throw new Error('Only the room host can change the episode')
+    this.send({ type: 'content-change', content })
   }
 
-  async setReady(ready: boolean): Promise<void> {
-    if (!this.ws || this.ws.readyState !== WEBSOCKET_OPEN) throw new Error('Watch Together is not connected')
-    this.ws.send(JSON.stringify({ type: 'ready', ready }))
-  }
-
-  async consumeInvite(code: string): Promise<void> {
-    if (!code) return
-    this.onInvite?.(code)
-  }
+  async setReady(ready: boolean): Promise<void> { this.send({ type: 'ready', ready }) }
+  async consumeInvite(code: string): Promise<void> { this.onInvite?.(normalizeWatchTogetherCode(code)) }
 
   shutdown(): void {
-    this.clearReconnectTimer()
+    this.intentionalClose = true
+    this.generation += 1
+    this.clearTimers()
     this.ws?.close()
     this.ws = null
   }
 
-  private resolveEndpoint(): string | null {
-    const runtimeOverride = process.env.ANIPLAY_WATCH_TOGETHER_URL?.trim()
-    if (runtimeOverride) return runtimeOverride
-    const buildOverride = process.env.VITE_WATCH_TOGETHER_URL?.trim()
-    if (buildOverride) return buildOverride
-    return DEFAULT_ENDPOINT
+  private prepareConnection(
+    code: string,
+    identity: WatchTogetherIdentity,
+    hostToken: string | undefined,
+    role: WatchTogetherRole,
+    content: WatchTogetherContent | null,
+    playback: WatchTogetherPlaybackState | null,
+  ): void {
+    this.intentionalClose = true
+    this.generation += 1
+    this.clearTimers()
+    this.ws?.close()
+    this.ws = null
+    this.intentionalClose = false
+    this.currentCode = code
+    this.currentIdentity = identity
+    this.hostToken = hostToken
+    this.reconnectStartedAt = Date.now()
+    this.reconnectAttempt = 0
+    this.setState({
+      code, connected: false, role, status: 'connecting', endpoint: this.resolveEndpoint(), error: null, errorCode: null,
+      content, playback, participants: [], chat: [],
+    })
   }
 
-  private async connect(code: string, participantName: string, participantAvatar: string | null | undefined, hostToken: string | undefined, role: WatchTogetherState['role']): Promise<void> {
+  private async connect(failFast: boolean): Promise<void> {
+    if (!this.currentCode || !this.currentIdentity) throw new Error('Room connection state is missing')
+    const code = this.currentCode
+    const identity = this.currentIdentity
     const endpoint = this.resolveEndpoint()
-    if (!endpoint) throw new Error('Watch Together endpoint is not configured')
-    const url = new URL(`${endpoint.replace(/\/$/, '')}/v1/rooms/${encodeURIComponent(code)}/ws`)
+    const generation = ++this.generation
+    const url = new URL(`${endpoint}/v1/rooms/${encodeURIComponent(code)}/ws`)
     url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = url.toString()
     this.ws?.close()
-    this.ws = new WebSocketCtor(wsUrl)
-    this.ws.on('open', () => {
-      this.reconnectAttempts = 0
-      this.ws?.send(JSON.stringify({
-        type: 'hello',
-        version: 1,
-        participant: { name: participantName.trim(), avatar: participantAvatar ?? null },
-        hostToken,
-        role,
-      }))
-    })
+    const socket = new WebSocket(url)
+    this.ws = socket
 
-    this.ws.on('message', (data: unknown) => {
-      const message = typeof data === 'string' ? data : String(data)
-      try {
-        const payload = JSON.parse(message) as {
-          type?: string
-          room?: Partial<WatchTogetherState>
-          snapshot?: { code?: string; content?: WatchTogetherContent | null; playback?: WatchTogetherPlaybackState | null; participants?: WatchTogetherState['participants']; chat?: WatchTogetherState['chat']; role?: WatchTogetherState['role'] }
-          error?: string
-        }
-        if (payload.type === 'snapshot' && payload.snapshot) {
-          this.setState({
-            code: payload.snapshot.code ?? code,
-            connected: true,
-            role: payload.snapshot.role ?? role,
-            status: 'connected',
-            endpoint,
-            error: null,
-            content: payload.snapshot.content ?? null,
-            playback: payload.snapshot.playback ?? null,
-            participants: payload.snapshot.participants ?? [],
-            chat: payload.snapshot.chat ?? [],
-          })
+    await new Promise<void>((resolve, reject) => {
+      let settled = false
+      const finish = (error?: Error) => {
+        if (settled) return
+        settled = true
+        clearTimeout(timeout)
+        if (error) reject(error)
+        else resolve()
+      }
+      const timeout = setTimeout(() => {
+        socket.close(4008, 'connection timeout')
+        finish(new Error('The room connection timed out'))
+      }, CONNECT_TIMEOUT_MS)
+
+      socket.on('open', () => {
+        socket.send(JSON.stringify({
+          type: 'hello', version: PROTOCOL_VERSION, participant: identity,
+          ...(this.hostToken ? { hostToken: this.hostToken } : {}),
+        }))
+      })
+      socket.on('message', (data: RawData) => {
+        if (generation !== this.generation) return
+        const message = parseWatchTogetherServerMessage(data)
+        if (!message) {
+          this.setConnectionError('INVALID_SERVER_MESSAGE', 'The room returned an invalid response')
+          socket.close(4007, 'invalid server message')
+          finish(new Error('The room returned an invalid response'))
           return
         }
-        if (payload.type === 'error') {
-          this.setState({
-            code,
-            connected: false,
-            role,
-            status: 'error',
-            endpoint,
-            error: payload.error ?? 'The room connection failed',
-            content: this.state.content,
-            playback: this.state.playback,
-            participants: this.state.participants,
-            chat: this.state.chat,
-          })
+        if (message.type === 'pong') return
+        if (message.type === 'error') {
+          this.setState({ ...this.state, error: message.error, errorCode: message.code })
+          if (!this.state.connected) finish(new Error(message.error))
+          return
         }
-      } catch {
+        const snapshot = message.snapshot
+        this.reconnectAttempt = 0
+        this.reconnectStartedAt = Date.now()
         this.setState({
-          code,
-          connected: false,
-          role,
-          status: 'error',
-          endpoint,
-          error: 'The room payload was invalid',
-          content: this.state.content,
-          playback: this.state.playback,
-          participants: this.state.participants,
-          chat: this.state.chat,
+          code: snapshot.code, connected: true, role: snapshot.role, status: 'connected', endpoint,
+          error: null, errorCode: null, content: snapshot.content, playback: snapshot.playback,
+          participants: snapshot.participants, chat: snapshot.chat, serverTime: snapshot.serverTime,
         })
-      }
-    })
-
-    this.ws.on('close', () => {
-      this.ws = null
-      if (this.currentCode && this.currentRole && this.reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-        const delay = 1000 * Math.pow(2, this.reconnectAttempts)
-        this.reconnectAttempts += 1
-        this.reconnectTimer = setTimeout(() => {
-          void this.connect(code, participantName, participantAvatar, hostToken, role).catch(() => {})
-        }, delay)
-      } else {
-        this.setState({
-          code,
-          connected: false,
-          role,
-          status: 'error',
-          endpoint,
-          error: 'The room connection was closed',
-          content: this.state.content,
-          playback: this.state.playback,
-          participants: this.state.participants,
-          chat: this.state.chat,
-        })
-      }
-    })
-
-    this.ws.on('error', () => {
-      this.setState({
-        code,
-        connected: false,
-        role,
-        status: 'error',
-        endpoint,
-        error: 'The room connection failed',
-        content: this.state.content,
-        playback: this.state.playback,
-        participants: this.state.participants,
-        chat: this.state.chat,
+        this.startHeartbeat(generation)
+        finish()
+      })
+      socket.on('error', () => {
+        if (generation !== this.generation) return
+        this.setConnectionError('CONNECTION_FAILED', 'The room connection failed')
+        if (failFast) finish(new Error('The room connection failed'))
+      })
+      socket.on('close', () => {
+        if (generation !== this.generation) return
+        this.ws = null
+        this.stopHeartbeat()
+        if (this.intentionalClose || !this.currentCode) return
+        this.scheduleReconnect()
+        finish(new Error(this.state.error ?? 'The room connection was closed'))
       })
     })
   }
 
-  private setState(next: WatchTogetherState): void {
-    this.state = { ...this.state, ...next }
-    this.onChanged?.(this.state)
+  private scheduleReconnect(): void {
+    const elapsed = Date.now() - this.reconnectStartedAt
+    if (elapsed >= RECONNECT_WINDOW_MS) {
+      this.setConnectionError('RECONNECT_EXHAUSTED', 'The room could not reconnect. Try again manually.')
+      return
+    }
+    const base = RECONNECT_DELAYS_MS[Math.min(this.reconnectAttempt, RECONNECT_DELAYS_MS.length - 1)] ?? 15_000
+    const delay = Math.round(base * (0.8 + Math.random() * 0.4))
+    this.reconnectAttempt += 1
+    this.setState({ ...this.state, connected: false, status: 'reconnecting', error: 'Reconnecting…', errorCode: null })
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null
+      void this.connect(false).catch(() => {})
+    }, Math.min(delay, Math.max(0, RECONNECT_WINDOW_MS - elapsed)))
   }
 
-  private clearReconnectTimer(): void {
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer)
-      this.reconnectTimer = null
-    }
+  private send(payload: object): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) throw new Error('Watch Together is not connected')
+    this.ws.send(JSON.stringify(payload))
+  }
+
+  private startHeartbeat(generation: number): void {
+    this.stopHeartbeat()
+    this.heartbeatTimer = setInterval(() => {
+      if (generation === this.generation && this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify({ type: 'ping' }))
+    }, HEARTBEAT_MS)
+  }
+
+  private stopHeartbeat(): void {
+    if (this.heartbeatTimer) clearInterval(this.heartbeatTimer)
+    this.heartbeatTimer = null
+  }
+
+  private clearTimers(): void {
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
+    this.reconnectTimer = null
+    this.stopHeartbeat()
+  }
+
+  private resolveEndpoint(): string {
+    return resolveWatchTogetherEndpoint(process.env.ANIPLAY_WATCH_TOGETHER_URL?.trim() || process.env.VITE_WATCH_TOGETHER_URL?.trim() || DEFAULT_ENDPOINT)
+  }
+
+  private safeEndpoint(): string {
+    try { return this.resolveEndpoint() } catch { return DEFAULT_ENDPOINT }
+  }
+
+  private setConnectionError(code: string, error: string): void {
+    this.setState({ ...this.state, connected: false, status: 'error', error, errorCode: code })
+  }
+
+  private setState(next: WatchTogetherState): void {
+    this.state = { ...next }
+    this.onChanged?.(this.state)
   }
 }

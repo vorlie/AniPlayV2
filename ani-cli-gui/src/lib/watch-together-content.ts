@@ -13,10 +13,8 @@ export function buildWatchTogetherContent(
   anime: WatchTogetherAnimeLike,
   episode: string,
   translationType: TranslationType,
-  streamUrl?: string,
-  streamKind?: WatchTogetherContent['streamKind'],
 ): WatchTogetherContent {
-  const content: WatchTogetherContent = {
+  return {
     provider: anime.catalogProvider,
     showId: anime.id,
     animeName: anime.name,
@@ -24,11 +22,4 @@ export function buildWatchTogetherContent(
     translationType,
     aniListMediaId: anime.aniListMediaId,
   }
-
-  if (streamUrl && (anime.catalogProvider === 'anikoto' || streamKind)) {
-    content.streamUrl = streamUrl
-    content.streamKind = streamKind ?? 'embed'
-  }
-
-  return content
 }

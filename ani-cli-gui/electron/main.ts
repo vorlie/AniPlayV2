@@ -11,7 +11,7 @@ import { AniListService } from './services/anilist'
 import type { AnimeSummary, ListUpdateInput } from '../src/anilist-types'
 import type { AnimeSearchResult } from '../src/catalog-types'
 import type { CatalogProvider } from '../src/catalog-types'
-import type { WatchTogetherContent, WatchTogetherPlaybackState } from '../src/watch-together-types'
+import type { WatchTogetherContent, WatchTogetherIdentity, WatchTogetherPlaybackState } from '../src/watch-together-types'
 import { DiscordPresenceService, validatePlayback } from './services/discord-presence'
 import { getDesuEpisodePageUrl } from './providers/desu'
 import { getDocchiEpisodePageUrl } from './providers/docchi'
@@ -45,6 +45,9 @@ let remoteNoticeService: RemoteNoticeService
 let adBlockService: AdBlockService
 let viewingLogService: ViewingLogService
 let watchTogetherService: WatchTogetherService
+let pendingWatchTogetherInvite: string | null = null
+const hasSingleInstanceLock = app.requestSingleInstanceLock()
+if (!hasSingleInstanceLock) app.quit()
 
 const PROJECT_PAGES = {
   repository: 'https://github.com/vorlie/AniPlayV2',
@@ -55,6 +58,13 @@ const PROJECT_PAGES = {
 
 const GRAPHICS_SETTINGS_FILE = 'graphics-settings.json'
 const PROFILE_IMAGE_MAX_BYTES = 5 * 1024 * 1024
+const WATCH_TOGETHER_CODE_PATTERN = /^[0-9A-HJKMNP-TV-Z]{10}$/
+
+function watchTogetherIdentity(): WatchTogetherIdentity {
+  const session = aniListService.getSession()
+  if (!session.authenticated || !session.user) throw new Error('Sign in to AniList before using Watch Together')
+  return { aniListId: session.user.id, name: session.user.name, avatar: session.user.avatar ?? null }
+}
 
 interface GraphicsSettings {
   safeGraphicsMode: boolean
@@ -335,6 +345,10 @@ function createWindow() {
 
   win.webContents.on('did-finish-load', () => {
     win?.webContents.send('main-process-message', (new Date).toLocaleString())
+    if (pendingWatchTogetherInvite) {
+      win?.webContents.send('watchTogether:invite', pendingWatchTogetherInvite)
+      pendingWatchTogetherInvite = null
+    }
   })
 
   win.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
@@ -367,10 +381,7 @@ function createWindow() {
     return watchTogetherService.create({
       content: payload.content as WatchTogetherContent,
       playback: payload.playback as WatchTogetherPlaybackState,
-      participantName: requireString(payload.participantName, 'participantName', 80),
-      participantAvatar: typeof payload.participantAvatar === 'string' ? payload.participantAvatar : null,
-      hostToken: typeof payload.hostToken === 'string' ? payload.hostToken : undefined,
-    })
+    }, watchTogetherIdentity())
   })
   ipcMain.handle('watchTogether:join', async (event, input: unknown) => {
     assertTrustedSender(event)
@@ -378,13 +389,15 @@ function createWindow() {
     const payload = input as Record<string, unknown>
     return watchTogetherService.join({
       code: requireString(payload.code, 'code', 20).trim().toUpperCase(),
-      participantName: requireString(payload.participantName, 'participantName', 80),
-      participantAvatar: typeof payload.participantAvatar === 'string' ? payload.participantAvatar : null,
-    })
+    }, watchTogetherIdentity())
   })
   ipcMain.handle('watchTogether:leave', async (event) => {
     assertTrustedSender(event)
     await watchTogetherService.leave()
+  })
+  ipcMain.handle('watchTogether:reconnect', async (event) => {
+    assertTrustedSender(event)
+    return watchTogetherService.reconnect()
   })
   ipcMain.handle('watchTogether:send-chat', async (event, body: unknown) => {
     assertTrustedSender(event)
@@ -799,33 +812,40 @@ function createWindow() {
   }
 }
 
-function handleOpenUrl(_event: unknown, url: string): void {
+function extractWatchTogetherInvite(value: string): string | null {
   try {
-    const parsed = new URL(url)
-    if (parsed.protocol !== 'aniplay:') return
-    const next = parsed.pathname.replace(/^\/+/, '').replace(/^watch\//, '')
-    if (!next) return
-    void watchTogetherService.consumeInvite(next)
-    if (win && !win.isDestroyed()) {
-      if (win.isMinimized()) win.restore()
-      win.focus()
-      win.webContents.send('watchTogether:invite', next)
-    }
+    const parsed = new URL(value)
+    if (parsed.protocol !== 'aniplay:') return null
+    const path = parsed.hostname === 'watch' ? parsed.pathname : parsed.pathname.replace(/^\/watch(?=\/|$)/, '')
+    const code = decodeURIComponent(path).replace(/[\s/-]+/g, '').toUpperCase()
+    return WATCH_TOGETHER_CODE_PATTERN.test(code) ? code : null
   } catch {
-    // no-op
+    return null
   }
 }
 
+function deliverWatchTogetherInvite(value: string): void {
+  const code = extractWatchTogetherInvite(value)
+  if (!code) return
+  pendingWatchTogetherInvite = code
+  if (watchTogetherService) void watchTogetherService.consumeInvite(code)
+  if (!win || win.isDestroyed() || win.webContents.isLoadingMainFrame()) return
+  if (win.isMinimized()) win.restore()
+  win.focus()
+  win.webContents.send('watchTogether:invite', code)
+  pendingWatchTogetherInvite = null
+}
+
+function handleOpenUrl(event: { preventDefault?: () => void }, url: string): void {
+  event.preventDefault?.()
+  deliverWatchTogetherInvite(url)
+}
+
+app.on('open-url', handleOpenUrl)
+
 app.on('second-instance', (_event, argv) => {
-  const code = argv.find((item) => item.startsWith('aniplay://watch/'))?.replace('aniplay://watch/', '')
-  if (code) {
-    void watchTogetherService.consumeInvite(code)
-    if (win && !win.isDestroyed()) {
-      if (win.isMinimized()) win.restore()
-      win.focus()
-      win.webContents.send('watchTogether:invite', code)
-    }
-  }
+  const invite = argv.find((item) => extractWatchTogetherInvite(item))
+  if (invite) deliverWatchTogetherInvite(invite)
 })
 
 app.on('window-all-closed', () => {
@@ -843,10 +863,9 @@ app.on('activate', () => {
   }
 })
 
-app.whenReady().then(() => {
-  if (process.defaultApp) {
-    app.setAsDefaultProtocolClient('aniplay')
-  }
+if (hasSingleInstanceLock) void app.whenReady().then(() => {
+  if (process.defaultApp && process.argv[1]) app.setAsDefaultProtocolClient('aniplay', process.execPath, [resolve(process.argv[1])])
+  else app.setAsDefaultProtocolClient('aniplay')
   watchTogetherService = new WatchTogetherService(
     (state) => {
       if (win && !win.isDestroyed()) win.webContents.send('watchTogether:changed', state)
@@ -878,4 +897,7 @@ app.whenReady().then(() => {
   adBlockService.initialize(session.defaultSession)
   configureMediaRequestHeaders()
   createWindow()
+  const coldStartInvite = process.argv.find((item) => extractWatchTogetherInvite(item))
+  if (coldStartInvite) deliverWatchTogetherInvite(coldStartInvite)
+  else if (pendingWatchTogetherInvite) deliverWatchTogetherInvite(`aniplay://watch/${pendingWatchTogetherInvite}`)
 })

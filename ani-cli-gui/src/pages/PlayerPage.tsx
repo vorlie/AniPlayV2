@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { addHistory } from '../lib/history'
 import type { CatalogProvider } from '../catalog-types'
 import type { TranslationType } from '../download-types'
+import type { WatchTogetherState } from '../watch-together-types'
 
 interface StreamLink {
   url: string
@@ -34,6 +35,7 @@ interface PlayerPageProps {
 const SAVE_THROTTLE_MS = 5000
 const PRESENCE_SYNC_MS = 15000
 const WATCH_CHECKPOINT_MS = 5 * 60_000
+const ROOM_CHECKPOINT_MS = 15_000
 
 function toResumeSeconds(value: number | null | undefined) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return null
@@ -113,6 +115,8 @@ export function PlayerPage({
   const lastPresenceAtRef = useRef(0)
   const playingRef = useRef(false)
   const watchSegmentRef = useRef<{ startedAt: number; fromSeconds: number } | null>(null)
+  const applyingRoomPlaybackRef = useRef(false)
+  const lastRoomRevisionRef = useRef(-1)
   const [activeIdx, setActiveIdx] = useState(0)
   const [showServers, setShowServers] = useState(false)
   const [failed, setFailed] = useState<Set<number>>(new Set())
@@ -131,11 +135,91 @@ export function PlayerPage({
   const [duration, setDuration] = useState(0)
   const [isPip, setIsPip] = useState(false)
   const [downloadStatus, setDownloadStatus] = useState<'idle' | 'starting' | 'queued' | 'error'>('idle')
+  const [watchTogetherState, setWatchTogetherState] = useState<WatchTogetherState | null>(null)
+  const [roomAutoplayBlocked, setRoomAutoplayBlocked] = useState(false)
 
   const activeLink = links[activeIdx]
   const resumeSeconds = useMemo(() => toResumeSeconds(initialResumeSeconds), [initialResumeSeconds])
   const isEmbedLink = Boolean(activeLink?.embed)
   const activeEmbedOrigin = useMemo(() => embedOrigin(activeLink), [activeLink])
+  const roomMatchesPlayer = Boolean(
+    watchTogetherState?.connected
+    && watchTogetherState.content
+    && watchTogetherState.content.showId === animeId
+    && watchTogetherState.content.episode === episode
+    && watchTogetherState.content.translationType === translationType,
+  )
+  const roomGuestLocked = roomMatchesPlayer && watchTogetherState?.role === 'guest'
+
+  useEffect(() => {
+    if (!window.aniPlay?.watchTogether) return
+    void window.aniPlay.watchTogether.getState().then(setWatchTogetherState).catch(() => {})
+    return window.aniPlay.watchTogether.onChanged(setWatchTogetherState)
+  }, [])
+
+  useEffect(() => {
+    if (!roomMatchesPlayer || !activeLink?.embed) return
+    const directIndex = links.findIndex((link) => !link.embed)
+    if (directIndex < 0 || directIndex === activeIdx) return
+    const selectDirectSource = window.setTimeout(() => setActiveIdx(directIndex), 0)
+    return () => window.clearTimeout(selectDirectSource)
+  }, [activeIdx, activeLink?.embed, links, roomMatchesPlayer])
+
+  const sendRoomPlayback = useCallback((video: HTMLVideoElement) => {
+    if (!roomMatchesPlayer || watchTogetherState?.role !== 'host' || applyingRoomPlaybackRef.current) return
+    void window.aniPlay?.watchTogether.updatePlayback({
+      position: Math.max(0, video.currentTime || 0),
+      paused: video.paused,
+      duration: Number.isFinite(video.duration) && video.duration > 0 ? video.duration : undefined,
+      revision: 0, // The room server assigns the authoritative revision.
+    }).catch(() => {})
+  }, [roomMatchesPlayer, watchTogetherState?.role])
+
+  useEffect(() => {
+    const video = videoRef.current
+    const playback = watchTogetherState?.playback
+    if (!video || !roomGuestLocked || !playback || activeLink?.embed || playback.revision <= lastRoomRevisionRef.current) return
+    lastRoomRevisionRef.current = playback.revision
+    const updatedAt = playback.updatedAt ? Date.parse(playback.updatedAt) : Date.now()
+    const elapsedSeconds = playback.paused || !Number.isFinite(updatedAt) ? 0 : Math.max(0, (Date.now() - updatedAt) / 1000)
+    const target = Math.max(0, Math.min(playback.duration ?? Number.POSITIVE_INFINITY, playback.position + elapsedSeconds))
+    const drift = target - video.currentTime
+    applyingRoomPlaybackRef.current = true
+    if (Math.abs(drift) > 1.5) {
+      video.currentTime = target
+      video.playbackRate = 1
+    } else {
+      video.playbackRate = Math.abs(drift) < 0.35 ? 1 : drift > 0 ? 1.03 : 0.97
+    }
+    if (playback.paused) video.pause()
+    else void video.play().then(() => {
+      setRoomAutoplayBlocked(false)
+      return window.aniPlay?.watchTogether.setReady(true)
+    }).catch(() => {
+      setRoomAutoplayBlocked(true)
+      return window.aniPlay?.watchTogether.setReady(false)
+    })
+    const release = window.setTimeout(() => { applyingRoomPlaybackRef.current = false }, 300)
+    const resetRate = window.setTimeout(() => { video.playbackRate = 1 }, 5_000)
+    return () => { window.clearTimeout(release); window.clearTimeout(resetRate) }
+  }, [activeLink?.embed, roomGuestLocked, watchTogetherState?.playback])
+
+  useEffect(() => {
+    if (!roomMatchesPlayer) return
+    void window.aniPlay?.watchTogether.setReady(Boolean(activeLink && !activeLink.embed && videoRef.current?.readyState && videoRef.current.readyState >= 2)).catch(() => {})
+    return () => { void window.aniPlay?.watchTogether.setReady(false).catch(() => {}) }
+  }, [activeLink, roomMatchesPlayer])
+
+  useEffect(() => {
+    if (!roomMatchesPlayer || watchTogetherState?.role !== 'host') return
+    const video = videoRef.current
+    if (video && !activeLink?.embed) sendRoomPlayback(video)
+    const timer = window.setInterval(() => {
+      const currentVideo = videoRef.current
+      if (currentVideo && !activeLink?.embed) sendRoomPlayback(currentVideo)
+    }, ROOM_CHECKPOINT_MS)
+    return () => window.clearInterval(timer)
+  }, [activeLink?.embed, roomMatchesPlayer, sendRoomPlayback, watchTogetherState?.role])
 
   const saveProgress = useCallback((force = false) => {
     if (!animeId || !animeName || !episode) return
@@ -286,6 +370,7 @@ export function PlayerPage({
 
     const handleLoadedMetadata = () => {
       applyResumePosition()
+      if (roomMatchesPlayer) void window.aniPlay?.watchTogether.setReady(true).catch(() => {})
     }
 
     video.addEventListener('loadedmetadata', handleLoadedMetadata)
@@ -297,6 +382,7 @@ export function PlayerPage({
       hls.attachMedia(video)
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         applyResumePosition()
+        if (roomMatchesPlayer) void window.aniPlay?.watchTogether.setReady(true).catch(() => {})
         video.play().catch(() => {})
       })
     } else {
@@ -313,7 +399,7 @@ export function PlayerPage({
         hlsRef.current = null
       }
     }
-  }, [activeIdx, activeLink, resumeSeconds])
+  }, [activeIdx, activeLink, resumeSeconds, roomMatchesPlayer])
 
   useEffect(() => {
     const onPipEnter = () => setIsPip(true)
@@ -392,9 +478,12 @@ export function PlayerPage({
     latestTimeRef.current = video.currentTime || 0
     latestDurationRef.current = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : latestDurationRef.current
     setIsPlaying(true)
+    setRoomAutoplayBlocked(false)
     playingRef.current = true
     startWatchSegment()
     updatePresence(true, true)
+    if (roomMatchesPlayer) void window.aniPlay?.watchTogether.setReady(true).catch(() => {})
+    sendRoomPlayback(video)
   }
 
   const handlePause = (video: HTMLVideoElement) => {
@@ -405,6 +494,7 @@ export function PlayerPage({
     flushWatchSegment(false)
     saveProgress(true)
     updatePresence(false, true)
+    sendRoomPlayback(video)
   }
 
   const handleEnded = (video: HTMLVideoElement) => {
@@ -419,6 +509,7 @@ export function PlayerPage({
   }
 
   const togglePlay = () => {
+    if (roomGuestLocked) return
     const video = videoRef.current
     if (!video) return
     if (video.paused) video.play().catch(() => {})
@@ -443,6 +534,7 @@ export function PlayerPage({
   }
 
   const seek = (t: number) => {
+    if (roomGuestLocked) return
     const video = videoRef.current
     if (!video) return
     const wasPlaying = !video.paused
@@ -453,6 +545,7 @@ export function PlayerPage({
     setCurrentTime(nextTime)
     if (wasPlaying) { playingRef.current = true; startWatchSegment() }
     updatePresence(!video.paused, true)
+    sendRoomPlayback(video)
   }
 
   const skipForward = () => {
@@ -483,6 +576,7 @@ export function PlayerPage({
   }
 
   const handleBack = () => {
+    if (roomMatchesPlayer && !window.confirm(t('watchTogether.leavePlaybackConfirm'))) return
     saveProgress(true)
     playingRef.current = false
     flushWatchSegment(false)
@@ -550,6 +644,23 @@ export function PlayerPage({
         </div>
       </div>
 
+      {roomGuestLocked && roomAutoplayBlocked ? (
+        <button
+          type="button"
+          className="absolute inset-0 z-30 m-auto h-fit w-fit rounded-full bg-m3-primary px-5 py-3 font-black text-m3-on-primary shadow-2xl"
+          onClick={() => {
+            const video = videoRef.current
+            if (!video) return
+            void video.play().then(() => {
+              setRoomAutoplayBlocked(false)
+              return window.aniPlay?.watchTogether.setReady(true)
+            }).catch(() => {})
+          }}
+        >
+          {t('watchTogether.autoplayBlocked')}
+        </button>
+      ) : null}
+
       {isOverlay ? (
         <div className="flex-1 flex items-center justify-center bg-black">
           {isEmbedLink ? (
@@ -563,11 +674,11 @@ export function PlayerPage({
             <video
               ref={videoRef}
               className="w-full h-full object-contain"
-              controls={useNativeControls}
+              controls={useNativeControls && !roomGuestLocked}
               autoPlay
               onError={tryNextServer}
               onPlaying={(e) => handlePlaying(e.currentTarget)}
-              onWaiting={() => { playingRef.current = false; flushWatchSegment(false) }}
+              onWaiting={() => { playingRef.current = false; flushWatchSegment(false); if (roomMatchesPlayer) void window.aniPlay?.watchTogether.setReady(false).catch(() => {}) }}
               onPause={(e) => handlePause(e.currentTarget)}
               onEnded={(e) => handleEnded(e.currentTarget)}
               onTimeUpdate={(e) => handleTimeUpdate(e.currentTarget)}
@@ -598,11 +709,11 @@ export function PlayerPage({
               <video
                 ref={videoRef}
                 className="w-full h-full object-contain"
-                controls={useNativeControls}
+                controls={useNativeControls && !roomGuestLocked}
                 autoPlay
                 onError={tryNextServer}
                 onPlaying={(e) => handlePlaying(e.currentTarget)}
-                onWaiting={() => { playingRef.current = false; flushWatchSegment(false) }}
+                onWaiting={() => { playingRef.current = false; flushWatchSegment(false); if (roomMatchesPlayer) void window.aniPlay?.watchTogether.setReady(false).catch(() => {}) }}
                 onPause={(e) => handlePause(e.currentTarget)}
                 onEnded={(e) => handleEnded(e.currentTarget)}
                 onTimeUpdate={(e) => handleTimeUpdate(e.currentTarget)}

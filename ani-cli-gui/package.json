@@ -7,7 +7,7 @@
     "url": "https://github.com/vorlie/AniPlayV2.git"
   },
   "private": true,
-  "version": "1.16.0",
+  "version": "1.16.1",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -33,6 +33,9 @@
     "appId": "com.aniplayv2.app",
     "productName": "AniPlay",
     "icon": "build/icon.png",
+    "protocols": [
+      { "name": "AniPlay Watch Together", "schemes": ["aniplay"] }
+    ],
     "files": [
       "dist/**",
       "dist-electron/**",

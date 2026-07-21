@@ -14,7 +14,7 @@ export default defineConfig({
         vite: {
           build: {
             rollupOptions: {
-              external: ['hls.js', 'discord-rpc', 'cheerio', 'electron-updater']
+              external: ['hls.js', 'discord-rpc', 'cheerio', 'electron-updater', 'ws']
             }
           }
         }
