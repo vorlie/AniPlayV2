@@ -171,7 +171,7 @@ export class WatchTogetherService {
     if (runtimeOverride) return runtimeOverride
     const buildOverride = process.env.VITE_WATCH_TOGETHER_URL?.trim()
     if (buildOverride) return buildOverride
-    return null
+    return DEFAULT_ENDPOINT
   }
 
   private async connect(code: string, participantName: string, participantAvatar: string | null | undefined, hostToken: string | undefined, role: WatchTogetherState['role']): Promise<void> {
