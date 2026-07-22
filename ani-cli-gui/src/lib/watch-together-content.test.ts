@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildWatchTogetherContent, hasControllableWatchTogetherSource, shouldWarnAboutUncontrollableAnikotoSource } from './watch-together-content'
+import { buildWatchTogetherContent, hasControllableWatchTogetherSource, shouldWarnAboutUncontrollableAnikotoSource, watchTogetherContentMatches } from './watch-together-content'
 
 describe('watch together content', () => {
   it('distinguishes controllable native streams from embed-only Anikoto playback', () => {
@@ -32,5 +32,13 @@ describe('watch together content', () => {
 
     expect(content.provider).toBe('allanime')
     expect(Object.keys(content)).toEqual(['provider', 'showId', 'animeName', 'episode', 'translationType', 'aniListMediaId'])
+  })
+
+  it('matches the active player using every stable room identifier', () => {
+    const content = buildWatchTogetherContent({ id: '42', name: 'Room Anime', catalogProvider: 'anikoto' }, '6', 'sub')
+    expect(watchTogetherContentMatches(content, 'anikoto', '42', '6', 'sub')).toBe(true)
+    expect(watchTogetherContentMatches(content, 'allanime', '42', '6', 'sub')).toBe(false)
+    expect(watchTogetherContentMatches(content, 'anikoto', '42', '7', 'sub')).toBe(false)
+    expect(watchTogetherContentMatches(content, 'anikoto', '42', '6', 'dub')).toBe(false)
   })
 })
