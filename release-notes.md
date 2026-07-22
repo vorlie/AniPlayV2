@@ -1,49 +1,43 @@
-## AniPlay 1.16.1 — Watch Together Stability Update
+Yes, `1.16.2` fits as a patch release. The version bump is already present locally in `package.json` and `package-lock.json`.
 
-AniPlay 1.16.1 is a major stabilization and UX pass for the Watch Together beta introduced in 1.16.0.
+# AniPlay 1.16.2
 
-### Highlights
+This patch completes Watch Together integration for the existing Anikoto provider.
 
-- Redesigned the Watch Together interface with separate lobby and connected-room views.
-- Added synchronized play, pause, seek, episode, and sub/dub changes.
-- Added room chat, participant avatars, readiness indicators, and host identification.
-- Added automatic reconnection and host transfer when the original host disconnects.
-- Added `aniplay://watch/<code>` invite links with cold-start and running-app handling.
-- Participants resolve streams locally, allowing different providers when necessary.
+## Anikoto Watch Together
 
-### Fixes
+- Anikoto now attempts to resolve a controllable native HLS stream by default.
+- Watch Together automatically switches from the MegaPlay embed to the native stream.
+- Play, pause, seeking, and drift correction now use the existing Watch Together synchronization system.
+- Each participant resolves streams locally; media URLs are never sent through the Cloudflare Worker.
+- The MegaPlay embed remains available as a normal playback fallback.
 
-- Fixed playback updates creating a feedback loop and triggering “Playback commands are arriving too quickly.”
-- Fixed packaged Electron builds crashing while loading `ws` with `require("events")`.
-- Fixed room snapshots repeatedly restarting playback synchronization.
-- Prevented guests from changing synchronized episodes or playback state.
-- Prevented chat and participant updates from unnecessarily navigating the application.
-- Automatically selects a direct source when an embedded player cannot be synchronized.
-- Improved handling for blocked autoplay, buffering, drift correction, and reconnect failures.
+## Playback and download fixes
 
-### Worker improvements
+- Added the required MegaPlay headers for KotoCDN media.
+- Added KotoCDN CORS handling in Electron.
+- Applied the same provider headers to Anikoto downloads.
+- Improved room matching by verifying the catalog provider as well as the show and episode.
 
-- Rebuilt room coordination around Cloudflare Durable Objects and WebSocket hibernation.
-- Added persistent room state, bounded chat history, participant limits, and room expiration.
-- Added server-authoritative playback revisions and host roles.
-- Added secure host capability tokens with only their SHA-256 hashes stored.
-- Added validation, message-size limits, command throttling, and room creation/join rate limits.
-- Added deterministic protocol and Durable Object integration tests.
+## Fallback handling
 
-### Privacy
+If AniPlay cannot resolve a controllable Anikoto stream:
 
-Watch Together never sends media URLs, provider headers, cookies, AniList OAuth tokens, or local watch history to the coordination Worker. Each participant independently resolves and plays the episode.
+- Ordinary embed playback remains available.
+- Watch Together displays a clear warning that synchronized playback is unavailable.
+- Room creation remains disabled for embed-only playback instead of creating an unsynchronized room.
 
-Watch Together requires:
+Native Anikoto resolution can be explicitly disabled with:
 
-- An AniList account.
-- A direct video or HLS source.
-- Access to the configured Watch Together Worker.
+```text
+ANIPLAY_ANIKOTO_NATIVE=false
+```
 
-Existing rooms from older beta builds should be recreated after updating.
+## Validation
 
-### Validation
+- Production build completed successfully.
+- ESLint passed.
+- All 74 tests passed.
+- Live Anikoto testing returned both the embed fallback and a native HLS stream with subtitles.
 
-- 69 desktop tests passing.
-- Worker protocol and integration tests passing.
-- ESLint, TypeScript, production builds, and Wrangler deployment checks passing.
+**Full changelog:** [1.16.1...1.16.2](https://github.com/vorlie/AniPlayV2/compare/1.16.1...1.16.2)
