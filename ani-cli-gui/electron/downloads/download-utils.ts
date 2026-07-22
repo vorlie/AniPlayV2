@@ -68,17 +68,45 @@ export function mediaHeaders(url: string): Record<string, string> {
   }
 }
 
-export function buildFfmpegArgs(url: string, outputPath: string): string[] {
+export interface DownloadSubtitleTrack {
+  label: string
+  url: string
+}
+
+function ffmpegInputArgs(url: string): string[] {
   const headers = mediaHeaders(url)
   const headerText = Object.entries(headers).map(([key, value]) => `${key}: ${value}`).join('\r\n') + '\r\n'
-  return [
-    '-y', '-headers', headerText,
-    '-i', url,
+  return ['-headers', headerText, '-i', url]
+}
+
+export function buildFfmpegArgs(url: string, outputPath: string, subtitles: DownloadSubtitleTrack[] = []): string[] {
+  const args = [
+    '-y',
+    ...ffmpegInputArgs(url),
+  ]
+  for (const track of subtitles) args.push(...ffmpegInputArgs(track.url))
+  args.push(
     '-map', '0:v:0?', '-map', '0:a:0?',
-    '-c', 'copy', '-movflags', '+faststart',
+  )
+  for (let index = 0; index < subtitles.length; index += 1) {
+    args.push('-map', `${index + 1}:0`)
+  }
+  args.push('-c:v', 'copy', '-c:a', 'copy')
+  if (subtitles.length) {
+    args.push('-c:s', 'mov_text')
+    for (let index = 0; index < subtitles.length; index += 1) {
+      args.push(
+        `-metadata:s:s:${index}`, `title=${sanitizeFilePart(subtitles[index].label, 80)}`,
+        `-disposition:s:${index}`, index === 0 ? 'default' : '0',
+      )
+    }
+  }
+  args.push(
+    '-movflags', '+faststart',
     '-progress', 'pipe:1', '-nostats', '-loglevel', 'error',
     '-f', 'mp4', outputPath,
-  ]
+  )
+  return args
 }
 
 export function recoverInterruptedJobs(jobs: DownloadJob[], now = Date.now()): DownloadJob[] {

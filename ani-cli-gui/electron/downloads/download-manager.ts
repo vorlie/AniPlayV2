@@ -183,7 +183,7 @@ export class DownloadManager {
       const shouldRelayHls = link.hls && isMegaPlayMediaHost(new URL(link.url).hostname)
       const relay = shouldRelayHls ? await startHlsMimeProxy(link.url, mediaHeaders(link.url)) : null
       try {
-        await this.runFfmpeg(job, relay?.url ?? link.url, partialPath)
+        await this.runFfmpeg(job, relay?.url ?? link.url, partialPath, link.subtitles ?? [])
       } finally {
         await relay?.close()
       }
@@ -206,8 +206,8 @@ export class DownloadManager {
     }
   }
 
-  private runFfmpeg(job: DownloadJob, url: string, partialPath: string): Promise<void> {
-    const args = buildFfmpegArgs(url, partialPath)
+  private runFfmpeg(job: DownloadJob, url: string, partialPath: string, subtitles: { label: string; url: string }[]): Promise<void> {
+    const args = buildFfmpegArgs(url, partialPath, subtitles)
     return new Promise((resolvePromise, reject) => {
       let stderr = ''
       let stdoutBuffer = ''

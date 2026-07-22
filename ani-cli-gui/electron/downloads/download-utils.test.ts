@@ -54,6 +54,21 @@ describe('download utilities', () => {
     expect(mediaHeaders('https://megap.kotocdn.site/anime/master.m3u8').Referer).toBe('https://megaplay.buzz/')
   })
 
+  it('maps Anikoto subtitle tracks into MP4 downloads', () => {
+    const args = buildFfmpegArgs('https://megap.kotocdn.site/master.m3u8', 'episode.part.mp4', [
+      { label: 'English', url: 'https://megap.kotocdn.site/subtitles/en.vtt' },
+      { label: 'Polski', url: 'https://megap.kotocdn.site/subtitles/pl.ass' },
+    ])
+    expect(args).toContain('mov_text')
+    expect(args).toContain('title=English')
+    expect(args).toContain('title=Polski')
+    expect(args).toContain('1:0')
+    expect(args).toContain('2:0')
+    expect(args).toContain('-disposition:s:0')
+    expect(args).toContain('default')
+    expect(args.filter((value) => value === '-headers')).toHaveLength(3)
+  })
+
   it('runs queued jobs oldest-first', () => {
     expect(nextQueuedJob([job('new', 'queued', 2), job('old', 'queued', 1)])?.id).toBe('old')
   })
