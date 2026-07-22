@@ -1,5 +1,3 @@
-Yes, `1.16.2` fits as a patch release. The version bump is already present locally in `package.json` and `package-lock.json`.
-
 # AniPlay 1.16.2
 
 This patch completes Watch Together integration for the existing Anikoto provider.
