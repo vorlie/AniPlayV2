@@ -38,3 +38,19 @@ export function buildWatchTogetherContent(
     aniListMediaId: anime.aniListMediaId,
   }
 }
+
+export function watchTogetherContentMatches(
+  content: WatchTogetherContent | null | undefined,
+  provider: CatalogProvider,
+  showId: string | undefined,
+  episode: string | undefined,
+  translationType: TranslationType,
+): boolean {
+  return Boolean(
+    content
+    && content.provider === provider
+    && content.showId === showId
+    && content.episode === episode
+    && content.translationType === translationType,
+  )
+}

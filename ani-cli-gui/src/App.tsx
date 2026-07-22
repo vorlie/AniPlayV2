@@ -13,9 +13,10 @@ import { RemoteNoticeBanner } from './components/RemoteNoticeBanner'
 import type { CatalogProvider, TranslationType } from './catalog-types'
 import type { UpdateState } from './updater-types'
 import { playNotificationSound, shouldPlayNotificationSound, type NotificationSoundLevel } from './lib/notification-sounds'
-import { WatchTogetherPanel } from './components/WatchTogetherPanel'
+import { WatchTogetherSetupDialog } from './components/WatchTogetherSetupDialog'
 import { Sparkles } from 'lucide-react'
-import type { WatchTogetherCreateContext, WatchTogetherState } from './watch-together-types'
+import type { WatchTogetherCreateContext } from './watch-together-types'
+import { useWatchTogether } from './contexts/WatchTogetherContext'
 
 interface AnimeSelection {
   id: string
@@ -65,7 +66,8 @@ function App() {
   const [secretSakuraMode, setSecretSakuraMode] = useState(false)
   const [watchTogetherOpen, setWatchTogetherOpen] = useState(false)
   const [watchTogetherContext, setWatchTogetherContext] = useState<WatchTogetherCreateContext | null>(null)
-  const [watchTogetherInviteCode, setWatchTogetherInviteCode] = useState<string | null>(null)
+  const [watchTogetherPlayerNonce, setWatchTogetherPlayerNonce] = useState(0)
+  const { state: watchTogetherState, inviteCode: watchTogetherInviteCode, setCompanionOpen } = useWatchTogether()
   const logoClickTimesRef = useRef<number[]>([])
   const watchedEpisodesRef = useRef(new Set<string>())
   const watchBadgeThresholdsRef = useRef(new Set<number>())
@@ -88,39 +90,46 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (!window.aniPlay?.watchTogether) return
-    const handleRoomState = (room: WatchTogetherState) => {
-      if (!room.connected || !room.content) {
-        if (room.status === 'idle') watchTogetherContentKeyRef.current = null
-        return
-      }
-      const content = room.content
-      const contentKey = `${room.code}:${content.provider}:${content.showId}:${content.episode}:${content.translationType}`
-      if (watchTogetherContentKeyRef.current === contentKey) return
-      watchTogetherContentKeyRef.current = contentKey
-      setActiveAnime((current) => {
-        if (current?.id === content.showId && current.catalogProvider === content.provider) return current
-        return {
-          id: content.showId,
-          name: content.animeName,
-          episodes: 0,
-          aniListMediaId: content.aniListMediaId,
-          catalogProvider: content.provider as CatalogProvider,
-        }
-      })
-      setResumeEpisode(content.episode)
-      setResumeProgressSeconds(room.playback?.position ?? 0)
-      setResumeTranslationType(content.translationType)
-      setActiveTab('player')
+    const room = watchTogetherState
+    if (!room?.connected || !room.content) {
+      if (room?.status === 'idle') watchTogetherContentKeyRef.current = null
+      return
     }
-    void window.aniPlay.watchTogether.getState().then(handleRoomState).catch(() => {})
-    const unsubscribeState = window.aniPlay.watchTogether.onChanged(handleRoomState)
-    const unsubscribeInvite = window.aniPlay.watchTogether.onInvite((code) => {
-      setWatchTogetherInviteCode(code)
-      setWatchTogetherOpen(true)
+    const content = room.content
+    const contentKey = `${room.code}:${content.provider}:${content.showId}:${content.episode}:${content.translationType}`
+    if (watchTogetherContentKeyRef.current === contentKey) return
+    watchTogetherContentKeyRef.current = contentKey
+    setActiveAnime((current) => {
+      if (current?.id === content.showId && current.catalogProvider === content.provider) return current
+      return {
+        id: content.showId,
+        name: content.animeName,
+        episodes: 0,
+        aniListMediaId: content.aniListMediaId,
+        catalogProvider: content.provider as CatalogProvider,
+      }
     })
-    return () => { unsubscribeState(); unsubscribeInvite() }
-  }, [])
+    setResumeEpisode(content.episode)
+    setResumeProgressSeconds(room.playback?.position ?? 0)
+    setResumeTranslationType(content.translationType)
+    setActiveTab('player')
+  }, [watchTogetherState])
+
+  const openWatchTogether = useCallback(() => {
+    if (watchTogetherState?.code) {
+      setActiveTab('player')
+      setCompanionOpen(true)
+      return
+    }
+    setWatchTogetherOpen(true)
+  }, [setCompanionOpen, watchTogetherState?.code])
+
+  const openGlobalWatchTogether = useCallback(() => {
+    if (watchTogetherState?.code) {
+      setWatchTogetherPlayerNonce((nonce) => nonce + 1)
+    }
+    openWatchTogether()
+  }, [openWatchTogether, watchTogetherState?.code])
 
   const notifyUpdateState = useCallback((state: UpdateState) => {
     setAppVersion(state.currentVersion)
@@ -232,7 +241,7 @@ function App() {
           )}
         </div>
         <div className="flex items-center gap-2" style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
-          <button type="button" onClick={() => setWatchTogetherOpen(true)} className="inline-flex items-center gap-2 rounded-full border border-m3-outline/20 bg-m3-surface-container/90 px-3 py-2 text-sm font-semibold text-m3-on-surface shadow-sm">
+          <button type="button" onClick={openGlobalWatchTogether} className="inline-flex items-center gap-2 rounded-full border border-m3-outline/20 bg-m3-surface-container/90 px-3 py-2 text-sm font-semibold text-m3-on-surface shadow-sm">
             <Sparkles size={16} />
             <span>{t('watchTogether.title')}</span>
           </button>
@@ -271,13 +280,13 @@ function App() {
         {activeAnime && (
           <div className={activeTab === 'player' ? 'flex flex-1 flex-col' : 'hidden'} aria-hidden={activeTab !== 'player'}>
             <AnimePage
-              key={`${activeAnime.id}:${resumeTranslationType ?? 'default'}`}
+              key={`${activeAnime.id}:${resumeTranslationType ?? 'default'}:${watchTogetherPlayerNonce}`}
               anime={activeAnime}
               initialEpisode={resumeEpisode}
               initialResumeSeconds={resumeProgressSeconds}
               initialTranslationType={resumeTranslationType}
               onEpisodeStarted={handleEpisodeStarted}
-              onOpenWatchTogether={() => setWatchTogetherOpen(true)}
+              onOpenWatchTogether={openWatchTogether}
               onWatchTogetherContextChange={setWatchTogetherContext}
               onBack={() => {
                 setActiveAnime(null)
@@ -308,7 +317,7 @@ function App() {
       </main>
 
       <AppNotifications items={notifications} onDismiss={dismissNotification} />
-      <WatchTogetherPanel key={watchTogetherInviteCode ?? 'watch-together'} anime={activeAnime ?? undefined} context={watchTogetherContext} inviteCode={watchTogetherInviteCode} isOpen={watchTogetherOpen} onOpenChange={setWatchTogetherOpen} />
+      <WatchTogetherSetupDialog key={watchTogetherInviteCode ?? 'watch-together'} anime={activeAnime ?? undefined} context={watchTogetherContext} isOpen={watchTogetherOpen || Boolean(watchTogetherInviteCode)} onOpenChange={setWatchTogetherOpen} />
     </div>
   )
 }

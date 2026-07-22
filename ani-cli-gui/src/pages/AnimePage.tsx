@@ -6,7 +6,8 @@ import { addHistory } from '../lib/history'
 import { getTranslationType, invokeEpisodes, invokeLinks, openProviderEpisode, TRANSLATION_TYPE_KEY, type CatalogProvider, type TranslationType } from '../lib/api'
 import type { AnimeDetails } from '../anilist-types'
 import { buildWatchTogetherContent, hasControllableWatchTogetherSource } from '../lib/watch-together-content'
-import type { WatchTogetherCreateContext, WatchTogetherState } from '../watch-together-types'
+import type { WatchTogetherCreateContext } from '../watch-together-types'
+import { useWatchTogether } from '../contexts/WatchTogetherContext'
 
 interface StreamLink {
   url: string
@@ -58,18 +59,12 @@ export function AnimePage({
   const [episodePage, setEpisodePage] = useState(0)
   const [idleQuoteIndex, setIdleQuoteIndex] = useState<number | null>(null)
   const [sourceStatusIndex, setSourceStatusIndex] = useState(0)
-  const [watchTogetherState, setWatchTogetherState] = useState<WatchTogetherState | null>(null)
+  const { state: watchTogetherState, setContent: setWatchTogetherContent } = useWatchTogether()
   const restoredRef = useRef<string | null>(null)
   const supportsTranslationSwitch = anime.catalogProvider !== 'desu' && anime.catalogProvider !== 'docchi'
   const episodesKey = `${anime.catalogProvider}:${anime.id}:${selectedTranslationType}`
   const loadingEpisodes = loadedEpisodesKey !== episodesKey
   const watchTogetherGuestLocked = watchTogetherState?.connected === true && watchTogetherState.role === 'guest'
-
-  useEffect(() => {
-    if (!window.aniPlay?.watchTogether) return
-    void window.aniPlay.watchTogether.getState().then(setWatchTogetherState).catch(() => {})
-    return window.aniPlay.watchTogether.onChanged(setWatchTogetherState)
-  }, [])
 
   useEffect(() => {
     if (!playingEp || playingLinks.length === 0) {
@@ -141,9 +136,9 @@ export function AnimePage({
       if (anime.catalogProvider === 'desu' || anime.catalogProvider === 'docchi' || anime.catalogProvider === 'miruro' || anime.catalogProvider === 'anikoto') setBrowserFallbackEpisode(ep)
     })
     if (watchTogetherState?.connected && watchTogetherState.role === 'host') {
-      void window.aniPlay?.watchTogether.setContent(buildWatchTogetherContent(anime, ep, translationType)).catch(() => {})
+      void setWatchTogetherContent(buildWatchTogetherContent(anime, ep, translationType)).catch(() => {})
     }
-  }, [anime, aniListMetadata.mediaId, aniListMetadata.coverUrl, episodes, initialEpisode, initialResumeSeconds, loadingEp, onEpisodeStarted, selectedTranslationType, t, watchTogetherGuestLocked, watchTogetherState])
+  }, [anime, aniListMetadata.mediaId, aniListMetadata.coverUrl, episodes, initialEpisode, initialResumeSeconds, loadingEp, onEpisodeStarted, selectedTranslationType, setWatchTogetherContent, t, watchTogetherGuestLocked, watchTogetherState])
 
   const selectTranslationType = useCallback((value: TranslationType) => {
     if (value === selectedTranslationType || watchTogetherGuestLocked) return
@@ -277,8 +272,8 @@ export function AnimePage({
         </div>
       )}
 
-      <div className="watch-workspace grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_300px] 2xl:grid-cols-[240px_minmax(0,1fr)_320px] flex-1 min-h-0">
-        <aside className="m3-card hidden min-h-0 overflow-hidden 2xl:col-start-1 2xl:row-start-1 2xl:flex 2xl:flex-col">
+      <div className={`watch-workspace grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_300px] ${watchTogetherState?.code ? '2xl:grid-cols-[minmax(0,1fr)_340px_320px]' : '2xl:grid-cols-[240px_minmax(0,1fr)_320px]'} flex-1 min-h-0`}>
+        {!watchTogetherState?.code ? <aside className="m3-card hidden min-h-0 overflow-hidden 2xl:col-start-1 2xl:row-start-1 2xl:flex 2xl:flex-col">
           <div className="relative h-44 shrink-0 overflow-hidden bg-m3-surface-variant/25">
             {aniListMetadata.coverUrl ? <><img src={aniListMetadata.coverUrl} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover opacity-30 blur-xl"/><img src={aniListMetadata.coverUrl} alt="" className="relative mx-auto h-full w-28 object-cover shadow-xl"/></> : null}
           </div>
@@ -292,7 +287,7 @@ export function AnimePage({
             {animeDetails?.description ? <p className="mt-4 line-clamp-6 text-xs leading-5 text-m3-on-surface-variant">{animeDetails.description}</p> : null}
             {animeDetails?.genres.length ? <div className="mt-4 flex flex-wrap gap-1.5">{animeDetails.genres.slice(0, 5).map((genre) => <span key={genre} className="rounded-full bg-m3-primary/10 px-2 py-1 text-[10px] font-bold text-m3-primary">{genre}</span>)}</div> : null}
           </div>
-        </aside>
+        </aside> : null}
 
         <aside className="m3-card p-4 flex flex-col min-h-[300px] lg:col-start-2 lg:row-start-1 lg:min-h-0 lg:max-h-[calc(100vh-190px)] lg:sticky lg:top-3 2xl:col-start-3">
           <h3 className="text-base md:text-lg font-bold mb-4 border-b border-m3-outline/20 pb-3 flex items-center justify-between">
@@ -359,7 +354,7 @@ export function AnimePage({
           )}
         </aside>
 
-        <section className="flex flex-col gap-3 min-h-[320px] min-w-0 lg:col-start-1 lg:row-start-1 2xl:col-start-2">
+        <section className={`flex flex-col gap-3 min-h-[320px] min-w-0 lg:col-start-1 lg:row-start-1 ${watchTogetherState?.code ? '2xl:col-span-2 2xl:col-start-1' : '2xl:col-start-2'}`}>
           {playingLinks.length > 0 ? (
             <PlayerPage
               key={`${anime.id}:${playingEp}`}

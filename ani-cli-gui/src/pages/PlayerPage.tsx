@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Hls from 'hls.js'
-import { ArrowLeft, Download, Loader2, Maximize2, Minimize2, Pause, PictureInPicture2, Play, Server, Sparkles, Volume2, VolumeX } from 'lucide-react'
+import { ArrowLeft, Download, Loader2, Maximize2, MessageSquare, Minimize2, Pause, PictureInPicture2, Play, Server, Sparkles, Volume2, VolumeX } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { addHistory } from '../lib/history'
 import type { CatalogProvider } from '../catalog-types'
 import type { TranslationType } from '../download-types'
-import type { WatchTogetherState } from '../watch-together-types'
-import { shouldWarnAboutUncontrollableAnikotoSource } from '../lib/watch-together-content'
+import { shouldWarnAboutUncontrollableAnikotoSource, watchTogetherContentMatches } from '../lib/watch-together-content'
+import { useWatchTogether } from '../contexts/WatchTogetherContext'
+import { WatchTogetherCompanion } from '../components/WatchTogetherCompanion'
 
 interface StreamLink {
   url: string
@@ -136,7 +137,7 @@ export function PlayerPage({
   const [duration, setDuration] = useState(0)
   const [isPip, setIsPip] = useState(false)
   const [downloadStatus, setDownloadStatus] = useState<'idle' | 'starting' | 'queued' | 'error'>('idle')
-  const [watchTogetherState, setWatchTogetherState] = useState<WatchTogetherState | null>(null)
+  const { state: watchTogetherState, companionOpen, unreadCount, setCompanionOpen, updatePlayback, setReady } = useWatchTogether()
   const [roomAutoplayBlocked, setRoomAutoplayBlocked] = useState(false)
 
   const activeLink = links[activeIdx]
@@ -145,21 +146,11 @@ export function PlayerPage({
   const activeEmbedOrigin = useMemo(() => embedOrigin(activeLink), [activeLink])
   const roomMatchesPlayer = Boolean(
     watchTogetherState?.connected
-    && watchTogetherState.content
-    && watchTogetherState.content.provider === catalogProvider
-    && watchTogetherState.content.showId === animeId
-    && watchTogetherState.content.episode === episode
-    && watchTogetherState.content.translationType === translationType,
+    && watchTogetherContentMatches(watchTogetherState.content, catalogProvider, animeId, episode, translationType),
   )
   const roomGuestLocked = roomMatchesPlayer && watchTogetherState?.role === 'guest'
   const anikotoRoomSourceUnavailable = roomMatchesPlayer
     && shouldWarnAboutUncontrollableAnikotoSource(catalogProvider, links)
-
-  useEffect(() => {
-    if (!window.aniPlay?.watchTogether) return
-    void window.aniPlay.watchTogether.getState().then(setWatchTogetherState).catch(() => {})
-    return window.aniPlay.watchTogether.onChanged(setWatchTogetherState)
-  }, [])
 
   useEffect(() => {
     if (!roomMatchesPlayer || !activeLink?.embed) return
@@ -171,13 +162,13 @@ export function PlayerPage({
 
   const sendRoomPlayback = useCallback((video: HTMLVideoElement) => {
     if (!roomMatchesPlayer || watchTogetherState?.role !== 'host' || applyingRoomPlaybackRef.current) return
-    void window.aniPlay?.watchTogether.updatePlayback({
+    void updatePlayback({
       position: Math.max(0, video.currentTime || 0),
       paused: video.paused,
       duration: Number.isFinite(video.duration) && video.duration > 0 ? video.duration : undefined,
       revision: 0, // The room server assigns the authoritative revision.
     }).catch(() => {})
-  }, [roomMatchesPlayer, watchTogetherState?.role])
+  }, [roomMatchesPlayer, updatePlayback, watchTogetherState?.role])
 
   useEffect(() => {
     const video = videoRef.current
@@ -198,21 +189,21 @@ export function PlayerPage({
     if (playback.paused) video.pause()
     else void video.play().then(() => {
       setRoomAutoplayBlocked(false)
-      return window.aniPlay?.watchTogether.setReady(true)
+      return setReady(true)
     }).catch(() => {
       setRoomAutoplayBlocked(true)
-      return window.aniPlay?.watchTogether.setReady(false)
+      return setReady(false)
     })
     const release = window.setTimeout(() => { applyingRoomPlaybackRef.current = false }, 300)
     const resetRate = window.setTimeout(() => { video.playbackRate = 1 }, 5_000)
     return () => { window.clearTimeout(release); window.clearTimeout(resetRate) }
-  }, [activeLink?.embed, roomGuestLocked, watchTogetherState?.playback])
+  }, [activeLink?.embed, roomGuestLocked, setReady, watchTogetherState?.playback])
 
   useEffect(() => {
     if (!roomMatchesPlayer) return
-    void window.aniPlay?.watchTogether.setReady(Boolean(activeLink && !activeLink.embed && videoRef.current?.readyState && videoRef.current.readyState >= 2)).catch(() => {})
-    return () => { void window.aniPlay?.watchTogether.setReady(false).catch(() => {}) }
-  }, [activeLink, roomMatchesPlayer])
+    void setReady(Boolean(activeLink && !activeLink.embed && videoRef.current?.readyState && videoRef.current.readyState >= 2)).catch(() => {})
+    return () => { void setReady(false).catch(() => {}) }
+  }, [activeLink, roomMatchesPlayer, setReady])
 
   useEffect(() => {
     if (!roomMatchesPlayer || watchTogetherState?.role !== 'host') return
@@ -374,7 +365,7 @@ export function PlayerPage({
 
     const handleLoadedMetadata = () => {
       applyResumePosition()
-      if (roomMatchesPlayer) void window.aniPlay?.watchTogether.setReady(true).catch(() => {})
+      if (roomMatchesPlayer) void setReady(true).catch(() => {})
     }
 
     video.addEventListener('loadedmetadata', handleLoadedMetadata)
@@ -386,7 +377,7 @@ export function PlayerPage({
       hls.attachMedia(video)
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         applyResumePosition()
-        if (roomMatchesPlayer) void window.aniPlay?.watchTogether.setReady(true).catch(() => {})
+        if (roomMatchesPlayer) void setReady(true).catch(() => {})
         video.play().catch(() => {})
       })
     } else {
@@ -403,7 +394,7 @@ export function PlayerPage({
         hlsRef.current = null
       }
     }
-  }, [activeIdx, activeLink, resumeSeconds, roomMatchesPlayer])
+  }, [activeIdx, activeLink, resumeSeconds, roomMatchesPlayer, setReady])
 
   useEffect(() => {
     const onPipEnter = () => setIsPip(true)
@@ -486,7 +477,7 @@ export function PlayerPage({
     playingRef.current = true
     startWatchSegment()
     updatePresence(true, true)
-    if (roomMatchesPlayer) void window.aniPlay?.watchTogether.setReady(true).catch(() => {})
+    if (roomMatchesPlayer) void setReady(true).catch(() => {})
     sendRoomPlayback(video)
   }
 
@@ -605,10 +596,11 @@ export function PlayerPage({
   }
 
   return (
-    <div
-      className={isOverlay ? 'fixed inset-0 bg-black z-50 flex flex-col relative' : 'm3-card p-4 md:p-6 flex flex-col gap-3 relative'}
-      style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-    >
+    <div className={`relative min-w-0 ${watchTogetherState?.code && !isOverlay ? '2xl:grid 2xl:grid-cols-[minmax(0,1fr)_340px] 2xl:gap-4' : ''}`}>
+      <div
+        className={isOverlay ? 'fixed inset-0 bg-black z-50 flex flex-col relative' : 'm3-card p-4 md:p-6 flex flex-col gap-3 relative min-w-0'}
+        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+      >
       <div className={isOverlay ? 'p-4 flex items-center justify-between absolute top-0 left-0 w-full z-10 bg-gradient-to-b from-black/90 to-transparent' : 'flex items-center justify-between'}>
         <div className="flex items-center space-x-3">
           <button
@@ -622,6 +614,13 @@ export function PlayerPage({
           </h2>
         </div>
         <div className="flex items-center gap-2">
+          {watchTogetherState?.code && !isOverlay ? (
+            <button type="button" onClick={() => setCompanionOpen(!companionOpen)} className="relative inline-flex items-center gap-2 rounded-full border border-m3-outline/30 px-3 py-2 text-sm font-bold text-m3-on-surface hover:bg-m3-on-surface/10 2xl:hidden" aria-expanded={companionOpen} aria-label={t('watchTogether.openCompanion')}>
+              <MessageSquare size={16} />
+              <span className="hidden sm:inline">{t('watchTogether.chat')}</span>
+              {unreadCount > 0 ? <span className="rounded-full bg-m3-primary px-1.5 py-0.5 text-[10px] text-m3-on-primary">{unreadCount}</span> : null}
+            </button>
+          ) : null}
           {!isOverlay && (
             <span className="hidden md:inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full bg-m3-primary/15 text-m3-primary font-bold">
               <Sparkles size={12} />
@@ -668,7 +667,7 @@ export function PlayerPage({
             if (!video) return
             void video.play().then(() => {
               setRoomAutoplayBlocked(false)
-              return window.aniPlay?.watchTogether.setReady(true)
+              return setReady(true)
             }).catch(() => {})
           }}
         >
@@ -693,7 +692,7 @@ export function PlayerPage({
               autoPlay
               onError={tryNextServer}
               onPlaying={(e) => handlePlaying(e.currentTarget)}
-              onWaiting={() => { playingRef.current = false; flushWatchSegment(false); if (roomMatchesPlayer) void window.aniPlay?.watchTogether.setReady(false).catch(() => {}) }}
+              onWaiting={() => { playingRef.current = false; flushWatchSegment(false); if (roomMatchesPlayer) void setReady(false).catch(() => {}) }}
               onPause={(e) => handlePause(e.currentTarget)}
               onEnded={(e) => handleEnded(e.currentTarget)}
               onTimeUpdate={(e) => handleTimeUpdate(e.currentTarget)}
@@ -728,7 +727,7 @@ export function PlayerPage({
                 autoPlay
                 onError={tryNextServer}
                 onPlaying={(e) => handlePlaying(e.currentTarget)}
-                onWaiting={() => { playingRef.current = false; flushWatchSegment(false); if (roomMatchesPlayer) void window.aniPlay?.watchTogether.setReady(false).catch(() => {}) }}
+                onWaiting={() => { playingRef.current = false; flushWatchSegment(false); if (roomMatchesPlayer) void setReady(false).catch(() => {}) }}
                 onPause={(e) => handlePause(e.currentTarget)}
                 onEnded={(e) => handleEnded(e.currentTarget)}
                 onTimeUpdate={(e) => handleTimeUpdate(e.currentTarget)}
@@ -818,6 +817,8 @@ export function PlayerPage({
           </div>
         </div>
       )}
+      </div>
+      {watchTogetherState?.code && !isOverlay ? <WatchTogetherCompanion /> : null}
     </div>
   )
 }
