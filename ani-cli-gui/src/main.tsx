@@ -4,6 +4,7 @@ import './i18n'
 import './index.css'
 import App from './App.tsx'
 import { initializeTheme } from './lib/theme'
+import { WatchTogetherProvider } from './contexts/WatchTogetherContext'
 
 const rootEl = document.getElementById('root')
 
@@ -22,7 +23,9 @@ window.addEventListener('unhandledrejection', (e) => {
 if (rootEl) {
   createRoot(rootEl).render(
     <StrictMode>
-      <App />
+      <WatchTogetherProvider>
+        <App />
+      </WatchTogetherProvider>
     </StrictMode>,
   )
 }
