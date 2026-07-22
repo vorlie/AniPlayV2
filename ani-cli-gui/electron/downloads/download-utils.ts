@@ -79,6 +79,27 @@ function ffmpegInputArgs(url: string): string[] {
   return ['-headers', headerText, '-i', url]
 }
 
+export function subtitleLanguageCode(label: string): string {
+  const normalized = label.toLocaleLowerCase('en').split(/[([\-_]/, 1)[0]?.trim()
+  const codes: Record<string, string> = {
+    english: 'eng', en: 'eng', polish: 'pol', polski: 'pol', pl: 'pol',
+    spanish: 'spa', español: 'spa', espanol: 'spa', es: 'spa',
+    portuguese: 'por', português: 'por', portugues: 'por', pt: 'por',
+    french: 'fra', français: 'fra', francais: 'fra', fr: 'fra',
+    german: 'deu', deutsch: 'deu', de: 'deu', italian: 'ita', italiano: 'ita', it: 'ita',
+    japanese: 'jpn', '日本語': 'jpn', ja: 'jpn', korean: 'kor', '한국어': 'kor', ko: 'kor',
+    chinese: 'zho', '中文': 'zho', zh: 'zho', arabic: 'ara', 'العربية': 'ara', ar: 'ara',
+    russian: 'rus', 'русский': 'rus', ru: 'rus', ukrainian: 'ukr', 'українська': 'ukr', uk: 'ukr',
+    turkish: 'tur', türkçe: 'tur', turkce: 'tur', tr: 'tur',
+    indonesian: 'ind', 'bahasa indonesia': 'ind', id: 'ind',
+    vietnamese: 'vie', 'tiếng việt': 'vie', 'tieng viet': 'vie', vi: 'vie',
+    thai: 'tha', 'ไทย': 'tha', th: 'tha', hindi: 'hin', 'हिन्दी': 'hin', hi: 'hin',
+    dutch: 'nld', nederlands: 'nld', nl: 'nld', czech: 'ces', 'čeština': 'ces', cestina: 'ces', cs: 'ces',
+    romanian: 'ron', română: 'ron', romana: 'ron', ro: 'ron', hungarian: 'hun', magyar: 'hun', hu: 'hun',
+  }
+  return codes[normalized || ''] || 'und'
+}
+
 export function buildFfmpegArgs(url: string, outputPath: string, subtitles: DownloadSubtitleTrack[] = []): string[] {
   const args = [
     '-y',
@@ -97,6 +118,7 @@ export function buildFfmpegArgs(url: string, outputPath: string, subtitles: Down
     for (let index = 0; index < subtitles.length; index += 1) {
       args.push(
         `-metadata:s:s:${index}`, `title=${sanitizeFilePart(subtitles[index].label, 80)}`,
+        `-metadata:s:s:${index}`, `language=${subtitleLanguageCode(subtitles[index].label)}`,
         `-disposition:s:${index}`, index === 0 ? 'default' : '0',
       )
     }

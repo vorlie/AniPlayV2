@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { DownloadJob } from '../../src/download-types'
-import { buildFfmpegArgs, createDownloadFileName, findAvailablePath, mediaHeaders, nextQueuedJob, parseFfmpegProgress, recoverInterruptedJobs, sanitizeFilePart } from './download-utils'
+import { buildFfmpegArgs, createDownloadFileName, findAvailablePath, mediaHeaders, nextQueuedJob, parseFfmpegProgress, recoverInterruptedJobs, sanitizeFilePart, subtitleLanguageCode } from './download-utils'
 
 function job(id: string, status: DownloadJob['status'], createdAt: number): DownloadJob {
   return {
@@ -62,11 +62,19 @@ describe('download utilities', () => {
     expect(args).toContain('mov_text')
     expect(args).toContain('title=English')
     expect(args).toContain('title=Polski')
+    expect(args).toContain('language=eng')
+    expect(args).toContain('language=pol')
     expect(args).toContain('1:0')
     expect(args).toContain('2:0')
     expect(args).toContain('-disposition:s:0')
     expect(args).toContain('default')
     expect(args.filter((value) => value === '-headers')).toHaveLength(3)
+  })
+
+  it('maps provider labels to ISO 639 subtitle metadata', () => {
+    expect(subtitleLanguageCode('English (CC)')).toBe('eng')
+    expect(subtitleLanguageCode('Português-BR')).toBe('por')
+    expect(subtitleLanguageCode('Unknown Provider Label')).toBe('und')
   })
 
   it('runs queued jobs oldest-first', () => {
