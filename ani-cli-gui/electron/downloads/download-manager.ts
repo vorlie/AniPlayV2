@@ -5,7 +5,9 @@ import fs from 'node:fs'
 import { join } from 'node:path'
 import type { DownloadJob, DownloadRequest, DownloadResult, DownloadState } from '../../src/download-types'
 import { getEpisodeLinks } from '../scrape'
-import { buildFfmpegArgs, createDownloadFileName, findAvailablePath, nextQueuedJob, parseFfmpegProgress, recoverInterruptedJobs } from './download-utils'
+import { buildFfmpegArgs, createDownloadFileName, findAvailablePath, mediaHeaders, nextQueuedJob, parseFfmpegProgress, recoverInterruptedJobs } from './download-utils'
+import { isMegaPlayMediaHost } from '../media-headers'
+import { startHlsMimeProxy } from './hls-mime-proxy'
 
 const ACTIVE_STATUSES = new Set(['queued', 'resolving', 'downloading'])
 const FINISHED_STATUSES = new Set(['completed', 'failed', 'cancelled'])
@@ -178,7 +180,13 @@ export class DownloadManager {
       job.updatedAt = Date.now()
       this.changed()
 
-      await this.runFfmpeg(job, link.url, partialPath)
+      const shouldRelayHls = link.hls && isMegaPlayMediaHost(new URL(link.url).hostname)
+      const relay = shouldRelayHls ? await startHlsMimeProxy(link.url, mediaHeaders(link.url)) : null
+      try {
+        await this.runFfmpeg(job, relay?.url ?? link.url, partialPath)
+      } finally {
+        await relay?.close()
+      }
       if (this.wasAborted(job)) {
         this.removePath(partialPath)
         return
