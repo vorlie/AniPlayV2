@@ -25,7 +25,7 @@ import type { ProfileSharePayload } from '../src/profile-share-types'
 import { createProfileShareSvg } from '../src/lib/profile-share'
 import { ViewingLogService } from './services/viewing-log'
 import { WatchTogetherService } from './services/watch-together'
-import { isMegaPlayMediaHost, isProviderOwnedFrameRequest, MEGAPLAY_MEDIA_URL_PATTERNS } from './media-headers'
+import { correctedMegaPlayContentType, isMegaPlayMediaHost, isProviderOwnedFrameRequest, MEGAPLAY_MEDIA_URL_PATTERNS } from './media-headers'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -316,6 +316,12 @@ function configureMediaRequestHeaders() {
     responseHeaders['Access-Control-Allow-Methods'] = ['GET, HEAD, OPTIONS']
     responseHeaders['Access-Control-Allow-Headers'] = ['Range, Origin, Referer, User-Agent, Content-Type']
     responseHeaders['Access-Control-Expose-Headers'] = ['Content-Length, Content-Range, Accept-Ranges']
+    const contentTypeName = Object.keys(responseHeaders).find((name) => name.toLowerCase() === 'content-type')
+    const correctedContentType = correctedMegaPlayContentType(details.url, contentTypeName ? responseHeaders[contentTypeName]?.[0] : undefined)
+    if (correctedContentType) {
+      if (contentTypeName) delete responseHeaders[contentTypeName]
+      responseHeaders['Content-Type'] = [correctedContentType]
+    }
     callback({ responseHeaders })
   })
 }

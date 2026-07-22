@@ -687,6 +687,7 @@ export function PlayerPage({
           ) : (
             <video
               ref={videoRef}
+              crossOrigin={activeLink?.subtitles?.length ? 'anonymous' : undefined}
               className="w-full h-full object-contain"
               controls={useNativeControls && !roomGuestLocked}
               autoPlay
@@ -722,6 +723,7 @@ export function PlayerPage({
             ) : (
               <video
                 ref={videoRef}
+                crossOrigin={activeLink?.subtitles?.length ? 'anonymous' : undefined}
                 className="w-full h-full object-contain"
                 controls={useNativeControls && !roomGuestLocked}
                 autoPlay

@@ -20,6 +20,19 @@ export function isMegaPlayMediaHost(hostname: string): boolean {
   return MEGAPLAY_MEDIA_DOMAINS.some((domain) => isDomainOrSubdomain(normalized, domain))
 }
 
+export function correctedMegaPlayContentType(url: string, current?: string): string | undefined {
+  try {
+    const parsed = new URL(url)
+    if (!isMegaPlayMediaHost(parsed.hostname)) return current
+    const pathname = parsed.pathname.toLowerCase()
+    if (pathname.endsWith('.vtt')) return 'text/vtt; charset=utf-8'
+    if (pathname.endsWith('.m3u8')) return 'application/vnd.apple.mpegurl'
+    return current
+  } catch {
+    return current
+  }
+}
+
 function isAppRendererUrl(value: string, devServerUrl?: string): boolean {
   try {
     const url = new URL(value)

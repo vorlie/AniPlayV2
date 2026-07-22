@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isMegaPlayMediaHost, isProviderOwnedFrameRequest, MEGAPLAY_MEDIA_URL_PATTERNS } from './media-headers'
+import { correctedMegaPlayContentType, isMegaPlayMediaHost, isProviderOwnedFrameRequest, MEGAPLAY_MEDIA_URL_PATTERNS } from './media-headers'
 
 describe('MegaPlay media hosts', () => {
   it('recognizes player, subtitle, and native CDN hosts', () => {
@@ -17,6 +17,12 @@ describe('MegaPlay media hosts', () => {
   it('registers Electron URL patterns for KotoCDN', () => {
     expect(MEGAPLAY_MEDIA_URL_PATTERNS).toContain('*://kotocdn.site/*')
     expect(MEGAPLAY_MEDIA_URL_PATTERNS).toContain('*://*.kotocdn.site/*')
+  })
+
+  it('corrects mislabeled MegaPlay playlists and WebVTT tracks', () => {
+    expect(correctedMegaPlayContentType('https://1oe.lostproject.club/anime/subtitles/eng.vtt', 'application/octet-stream')).toBe('text/vtt; charset=utf-8')
+    expect(correctedMegaPlayContentType('https://megap.kotocdn.site/anime/master.m3u8', 'application/octet-stream')).toBe('application/vnd.apple.mpegurl')
+    expect(correctedMegaPlayContentType('https://untrusted.example/subtitles/eng.vtt', 'application/octet-stream')).toBe('application/octet-stream')
   })
 
   it('preserves provider-owned iframe requests while allowing initial app embeds', () => {
