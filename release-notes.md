@@ -1,41 +1,32 @@
-# AniPlay 1.16.2
+# AniPlay 1.16.3
 
-This patch completes Watch Together integration for the existing Anikoto provider.
+This patch improves MegaPlay downloads, Linux AniList authentication, and embedded-player compatibility.
 
-## Anikoto Watch Together
+## MegaPlay download fix
 
-- Anikoto now attempts to resolve a controllable native HLS stream by default.
-- Watch Together automatically switches from the MegaPlay embed to the native stream.
-- Play, pause, seeking, and drift correction now use the existing Watch Together synchronization system.
-- Each participant resolves streams locally; media URLs are never sent through the Cloudflare Worker.
-- The MegaPlay embed remains available as a normal playback fallback.
+- Fixed MegaPlay/KotoCDN downloads failing with FFmpeg errors such as `dimensions not set` or `Could not write header`.
+- AniPlay now recognizes MPEG-TS segments disguised with a PNG wrapper and removes that wrapper before passing the stream to FFmpeg.
+- The workaround uses a restricted temporary localhost relay and preserves the provider headers required by KotoCDN.
+- Downloads remain stream copies: episodes are not transcoded or buffered in full by AniPlay.
 
-## Playback and download fixes
+## Linux AniList authentication
 
-- Added the required MegaPlay headers for KotoCDN media.
-- Added KotoCDN CORS handling in Electron.
-- Applied the same provider headers to Anikoto downloads.
-- Improved room matching by verifying the catalog provider as well as the show and episode.
+- Added Electron's portal-aware asynchronous secure-storage provider for improved Secret Service and desktop portal support.
+- Retained compatibility with AniList tokens encrypted by the previous synchronous storage backend.
+- Improved Linux errors with the Electron credential-backend name and actionable Secret Service or KWallet guidance.
+- Documented explicit `gnome-libsecret`, `kwallet6`, and `kwallet5` launch options for systems where automatic backend detection fails.
 
-## Fallback handling
+## Embedded-player compatibility
 
-If AniPlay cannot resolve a controllable Anikoto stream:
-
-- Ordinary embed playback remains available.
-- Watch Together displays a clear warning that synchronized playback is unavailable.
-- Room creation remains disabled for embed-only playback instead of creating an unsynchronized room.
-
-Native Anikoto resolution can be explicitly disabled with:
-
-```text
-ANIPLAY_ANIKOTO_NATIVE=false
-```
+- Provider-owned iframe requests now retain the provider's original headers, cookies, and CORS responses.
+- AniPlay's provider header and CORS adjustments remain active for native video playback.
+- This addresses an AniPlay-side cause of JW Player error `233011`; provider, CDN, ad-blocking, or network restrictions may still produce the same code.
 
 ## Validation
 
 - Production build completed successfully.
 - ESLint passed.
-- All 74 tests passed.
-- Live Anikoto testing returned both the embed fallback and a native HLS stream with subtitles.
+- All 79 tests passed.
+- A live FFmpeg smoke test succeeded against the MegaPlay episode that reproduced the disguised-segment failure.
 
-**Full changelog:** [1.16.1...1.16.2](https://github.com/vorlie/AniPlayV2/compare/1.16.1...1.16.2)
+**Full changelog:** [1.16.2...1.16.3](https://github.com/vorlie/AniPlayV2/compare/1.16.2...1.16.3)
