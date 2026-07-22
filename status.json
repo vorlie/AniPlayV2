@@ -63,7 +63,7 @@
       "minVersion": "1.16.0",
       "maxVersion": "1.16.1",
       "startsAt": "2026-07-22T00:00:00Z",
-      "endsAt": null,
+      "endsAt": "2026-07-22T04:00:00Z",
       "dismissible": true,
       "link": "https://github.com/vorlie/AniPlayV2/issues"
     }
