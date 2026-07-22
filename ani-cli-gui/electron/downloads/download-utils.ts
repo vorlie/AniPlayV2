@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs'
 import { join, parse } from 'node:path'
 import type { DownloadJob } from '../../src/download-types'
+import { isMegaPlayMediaHost } from '../media-headers'
 
 const WINDOWS_RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i
 
@@ -55,7 +56,7 @@ export function parseFfmpegProgress(text: string, durationSeconds?: number): { p
 
 export function mediaHeaders(url: string): Record<string, string> {
   const host = new URL(url).hostname.toLowerCase()
-  const referer = host.endsWith('megaplay.buzz') || host.endsWith('mewstream.buzz') || host.endsWith('lostproject.club') || host.endsWith('voltara.click')
+  const referer = isMegaPlayMediaHost(host)
     ? 'https://megaplay.buzz/'
     : host.endsWith('mp4upload.com')
     ? 'https://www.mp4upload.com/'

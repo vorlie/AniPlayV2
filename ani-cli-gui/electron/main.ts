@@ -25,6 +25,7 @@ import type { ProfileSharePayload } from '../src/profile-share-types'
 import { createProfileShareSvg } from '../src/lib/profile-share'
 import { ViewingLogService } from './services/viewing-log'
 import { WatchTogetherService } from './services/watch-together'
+import { isMegaPlayMediaHost, MEGAPLAY_MEDIA_URL_PATTERNS } from './media-headers'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -257,14 +258,7 @@ function configureMediaRequestHeaders() {
     '*://*.miruro.to/*',
     '*://ultracloud.cc/*',
     '*://*.ultracloud.cc/*',
-    '*://megaplay.buzz/*',
-    '*://*.megaplay.buzz/*',
-    '*://mewstream.buzz/*',
-    '*://*.mewstream.buzz/*',
-    '*://lostproject.club/*',
-    '*://*.lostproject.club/*',
-    '*://voltara.click/*',
-    '*://*.voltara.click/*',
+    ...MEGAPLAY_MEDIA_URL_PATTERNS,
   ]
 
   session.defaultSession.webRequest.onBeforeSendHeaders({ urls }, (details, callback) => {
@@ -273,7 +267,7 @@ function configureMediaRequestHeaders() {
     const isMp4Upload = hostname === 'mp4upload.com' || hostname.endsWith('.mp4upload.com')
     const isDailymotion = hostname === 'dailymotion.com' || hostname.endsWith('.dailymotion.com') || hostname.endsWith('.dmcdn.net')
     const isMiruro = hostname === 'miruro.to' || hostname.endsWith('.miruro.to') || hostname === 'ultracloud.cc' || hostname.endsWith('.ultracloud.cc')
-    const isMegaPlay = hostname === 'megaplay.buzz' || hostname.endsWith('.megaplay.buzz') || hostname === 'mewstream.buzz' || hostname.endsWith('.mewstream.buzz') || hostname === 'lostproject.club' || hostname.endsWith('.lostproject.club') || hostname === 'voltara.click' || hostname.endsWith('.voltara.click')
+    const isMegaPlay = isMegaPlayMediaHost(hostname)
     const requestReferer = isMegaPlay ? 'https://megaplay.buzz/' : isMiruro ? 'https://www.miruro.to/' : isDailymotion ? 'https://www.dailymotion.com/' : isMp4Upload ? 'https://www.mp4upload.com/' : referer
     headers['Referer'] = requestReferer
     headers['Origin'] = new URL(requestReferer).origin
@@ -295,14 +289,7 @@ function configureMediaRequestHeaders() {
     '*://*.dmcdn.net/*',
     '*://ultracloud.cc/*',
     '*://*.ultracloud.cc/*',
-    '*://megaplay.buzz/*',
-    '*://*.megaplay.buzz/*',
-    '*://mewstream.buzz/*',
-    '*://*.mewstream.buzz/*',
-    '*://lostproject.club/*',
-    '*://*.lostproject.club/*',
-    '*://voltara.click/*',
-    '*://*.voltara.click/*',
+    ...MEGAPLAY_MEDIA_URL_PATTERNS,
   ]
   session.defaultSession.webRequest.onHeadersReceived({ urls: corsMediaUrls }, (details, callback) => {
     const responseHeaders = { ...details.responseHeaders }

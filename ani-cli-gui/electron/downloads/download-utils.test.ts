@@ -51,6 +51,7 @@ describe('download utilities', () => {
     expect(args).toContain('episode.part.mp4')
     expect(args.join(' ')).toContain('https://www.mp4upload.com/')
     expect(mediaHeaders('https://video.wixstatic.com/video/file.mp4').Referer).toBe('https://youtu-chan.com/')
+    expect(mediaHeaders('https://megap.kotocdn.site/anime/master.m3u8').Referer).toBe('https://megaplay.buzz/')
   })
 
   it('runs queued jobs oldest-first', () => {

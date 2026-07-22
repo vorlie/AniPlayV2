@@ -6,6 +6,7 @@ import { addHistory } from '../lib/history'
 import type { CatalogProvider } from '../catalog-types'
 import type { TranslationType } from '../download-types'
 import type { WatchTogetherState } from '../watch-together-types'
+import { shouldWarnAboutUncontrollableAnikotoSource } from '../lib/watch-together-content'
 
 interface StreamLink {
   url: string
@@ -145,11 +146,14 @@ export function PlayerPage({
   const roomMatchesPlayer = Boolean(
     watchTogetherState?.connected
     && watchTogetherState.content
+    && watchTogetherState.content.provider === catalogProvider
     && watchTogetherState.content.showId === animeId
     && watchTogetherState.content.episode === episode
     && watchTogetherState.content.translationType === translationType,
   )
   const roomGuestLocked = roomMatchesPlayer && watchTogetherState?.role === 'guest'
+  const anikotoRoomSourceUnavailable = roomMatchesPlayer
+    && shouldWarnAboutUncontrollableAnikotoSource(catalogProvider, links)
 
   useEffect(() => {
     if (!window.aniPlay?.watchTogether) return
@@ -643,6 +647,17 @@ export function PlayerPage({
           </button>
         </div>
       </div>
+
+      {anikotoRoomSourceUnavailable ? (
+        <div
+          role="alert"
+          className={isOverlay
+            ? 'absolute left-1/2 top-20 z-30 w-[min(92%,720px)] -translate-x-1/2 rounded-2xl border border-amber-300/30 bg-amber-950/95 px-4 py-3 text-sm text-amber-100 shadow-2xl'
+            : 'rounded-2xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-200'}
+        >
+          {t('watchTogether.anikotoDirectUnavailable')}
+        </div>
+      ) : null}
 
       {roomGuestLocked && roomAutoplayBlocked ? (
         <button

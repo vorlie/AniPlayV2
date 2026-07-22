@@ -48,7 +48,7 @@
       "message": "Watch Together room creation and joining are currently failing. A fix is being investigated, and the feature may be unavailable until the issue is resolved.",
       "providers": ["all"],
       "minVersion": "1.16.0",
-      "maxVersion": null,
+      "maxVersion": "1.16.0",
       "startsAt": "2026-07-21T00:00:00Z",
       "endsAt": null,
       "dismissible": true,

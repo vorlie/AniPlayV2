@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { buildWatchTogetherContent } from './watch-together-content'
+import { buildWatchTogetherContent, hasControllableWatchTogetherSource, shouldWarnAboutUncontrollableAnikotoSource } from './watch-together-content'
 
 describe('watch together content', () => {
+  it('distinguishes controllable native streams from embed-only Anikoto playback', () => {
+    expect(hasControllableWatchTogetherSource([{ embed: true }, { embed: false }])).toBe(true)
+    expect(hasControllableWatchTogetherSource([{ embed: true }])).toBe(false)
+    expect(shouldWarnAboutUncontrollableAnikotoSource('anikoto', [{ embed: true }])).toBe(true)
+    expect(shouldWarnAboutUncontrollableAnikotoSource('allanime', [{ embed: true }])).toBe(false)
+  })
+
   it('contains only stable content identifiers', () => {
     const content = buildWatchTogetherContent({
       id: 'anikoto:demo',

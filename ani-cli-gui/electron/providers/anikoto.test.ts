@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getAnikotoEpisodePageUrl, mergeAnikotoSearchResults, parseAnikotoEpisodesPayload, parseAnikotoSearchPayload, parseMegaPlayDataId, parseMegaPlaySources } from './anikoto'
+import { getAnikotoEpisodePageUrl, mergeAnikotoSearchResults, parseAnikotoEpisodesPayload, parseAnikotoSearchPayload, parseMegaPlayDataId, parseMegaPlaySources, shouldResolveAnikotoNativeSources } from './anikoto'
 
 describe('Anikoto provider parsing', () => {
   it('normalizes AniList search results for the Anikoto provider', () => {
@@ -77,18 +77,25 @@ describe('Anikoto provider parsing', () => {
 })
 
 describe('MegaPlay parsing', () => {
+  it('resolves native sources by default with an explicit opt-out', () => {
+    expect(shouldResolveAnikotoNativeSources(undefined)).toBe(true)
+    expect(shouldResolveAnikotoNativeSources('1')).toBe(true)
+    expect(shouldResolveAnikotoNativeSources('false')).toBe(false)
+    expect(shouldResolveAnikotoNativeSources('no')).toBe(false)
+  })
+
   it('extracts the internal source id from the embed HTML', () => {
     expect(parseMegaPlayDataId('<div id="megaplay-player" data-id="36396"></div>')).toBe('36396')
   })
 
   it('parses object sources and caption tracks', () => {
     const parsed = parseMegaPlaySources({
-      sources: { file: 'https://cdn.mewstream.buzz/anime/master.m3u8' },
+      sources: { file: 'https://megap.kotocdn.site/anime/master.m3u8' },
       tracks: [{ file: 'https://subs.example/eng.vtt', label: 'English', kind: 'captions' }],
     })
 
     expect(parsed.links[0]).toMatchObject({
-      url: 'https://cdn.mewstream.buzz/anime/master.m3u8',
+      url: 'https://megap.kotocdn.site/anime/master.m3u8',
       hls: true,
       provider: 'MegaPlay',
       subtitles: [{ label: 'English', url: 'https://subs.example/eng.vtt' }],

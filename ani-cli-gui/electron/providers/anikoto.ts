@@ -7,7 +7,11 @@ const MEGAPLAY_BASE = 'https://megaplay.buzz'
 const TIMEOUT_MS = 12_000
 const CACHE_TTL_MS = 5 * 60_000
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36'
-const RESOLVE_NATIVE_SOURCES = /^(1|true|yes)$/i.test(process.env.ANIPLAY_ANIKOTO_NATIVE ?? '')
+export function shouldResolveAnikotoNativeSources(value = process.env.ANIPLAY_ANIKOTO_NATIVE): boolean {
+  return !/^(0|false|no)$/i.test(value?.trim() ?? '')
+}
+
+const RESOLVE_NATIVE_SOURCES = shouldResolveAnikotoNativeSources()
 
 type JsonObject = Record<string, unknown>
 interface CacheEntry<T> { expiresAt: number; value: Promise<T> }

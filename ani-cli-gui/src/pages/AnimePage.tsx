@@ -5,7 +5,7 @@ import { PlayerPage } from './PlayerPage'
 import { addHistory } from '../lib/history'
 import { getTranslationType, invokeEpisodes, invokeLinks, openProviderEpisode, TRANSLATION_TYPE_KEY, type CatalogProvider, type TranslationType } from '../lib/api'
 import type { AnimeDetails } from '../anilist-types'
-import { buildWatchTogetherContent } from '../lib/watch-together-content'
+import { buildWatchTogetherContent, hasControllableWatchTogetherSource } from '../lib/watch-together-content'
 import type { WatchTogetherCreateContext, WatchTogetherState } from '../watch-together-types'
 
 interface StreamLink {
@@ -79,7 +79,7 @@ export function AnimePage({
     onWatchTogetherContextChange?.({
       content: buildWatchTogetherContent(anime, playingEp, playingTranslationType),
       playback: { position: 0, paused: true, revision: 0 },
-      controllable: playingLinks.some((link) => !link.embed),
+      controllable: hasControllableWatchTogetherSource(playingLinks),
     })
     return () => onWatchTogetherContextChange?.(null)
   }, [anime, onWatchTogetherContextChange, playingEp, playingLinks, playingTranslationType])

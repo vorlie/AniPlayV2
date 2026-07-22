@@ -9,6 +9,21 @@ interface WatchTogetherAnimeLike {
   catalogProvider: CatalogProvider
 }
 
+interface WatchTogetherStreamLike {
+  embed?: boolean
+}
+
+export function hasControllableWatchTogetherSource(links: WatchTogetherStreamLike[]): boolean {
+  return links.some((link) => !link.embed)
+}
+
+export function shouldWarnAboutUncontrollableAnikotoSource(
+  provider: CatalogProvider,
+  links: WatchTogetherStreamLike[],
+): boolean {
+  return provider === 'anikoto' && links.length > 0 && !hasControllableWatchTogetherSource(links)
+}
+
 export function buildWatchTogetherContent(
   anime: WatchTogetherAnimeLike,
   episode: string,
