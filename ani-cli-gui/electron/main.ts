@@ -25,7 +25,7 @@ import type { ProfileSharePayload } from '../src/profile-share-types'
 import { createProfileShareSvg } from '../src/lib/profile-share'
 import { ViewingLogService } from './services/viewing-log'
 import { WatchTogetherService } from './services/watch-together'
-import { isMegaPlayMediaHost, MEGAPLAY_MEDIA_URL_PATTERNS } from './media-headers'
+import { isMegaPlayMediaHost, isProviderOwnedFrameRequest, MEGAPLAY_MEDIA_URL_PATTERNS } from './media-headers'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -262,6 +262,10 @@ function configureMediaRequestHeaders() {
   ]
 
   session.defaultSession.webRequest.onBeforeSendHeaders({ urls }, (details, callback) => {
+    if (isProviderOwnedFrameRequest(details.resourceType, details.frame?.parent?.url, VITE_DEV_SERVER_URL)) {
+      callback({ requestHeaders: details.requestHeaders })
+      return
+    }
     const headers = details.requestHeaders || {}
     const hostname = new URL(details.url).hostname.toLowerCase()
     const isMp4Upload = hostname === 'mp4upload.com' || hostname.endsWith('.mp4upload.com')
@@ -292,6 +296,10 @@ function configureMediaRequestHeaders() {
     ...MEGAPLAY_MEDIA_URL_PATTERNS,
   ]
   session.defaultSession.webRequest.onHeadersReceived({ urls: corsMediaUrls }, (details, callback) => {
+    if (isProviderOwnedFrameRequest(details.resourceType, details.frame?.parent?.url, VITE_DEV_SERVER_URL)) {
+      callback({ responseHeaders: details.responseHeaders })
+      return
+    }
     const responseHeaders = { ...details.responseHeaders }
     for (const name of Object.keys(responseHeaders)) {
       const lowerName = name.toLowerCase()
@@ -850,7 +858,7 @@ app.on('activate', () => {
   }
 })
 
-if (hasSingleInstanceLock) void app.whenReady().then(() => {
+if (hasSingleInstanceLock) void app.whenReady().then(async () => {
   if (process.defaultApp && process.argv[1]) app.setAsDefaultProtocolClient('aniplay', process.execPath, [resolve(process.argv[1])])
   else app.setAsDefaultProtocolClient('aniplay')
   watchTogetherService = new WatchTogetherService(
@@ -870,7 +878,7 @@ if (hasSingleInstanceLock) void app.whenReady().then(() => {
   })
   updateService.initialize()
   aniListService = new AniListService()
-  aniListService.initialize()
+  await aniListService.initialize()
   void aniListService.validateSession()
   viewingLogService = new ViewingLogService(app.getPath('userData'))
   viewingLogService.initialize()

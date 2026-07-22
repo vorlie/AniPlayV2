@@ -20,3 +20,17 @@ export function isMegaPlayMediaHost(hostname: string): boolean {
   return MEGAPLAY_MEDIA_DOMAINS.some((domain) => isDomainOrSubdomain(normalized, domain))
 }
 
+function isAppRendererUrl(value: string, devServerUrl?: string): boolean {
+  try {
+    const url = new URL(value)
+    if (url.protocol === 'file:') return true
+    return Boolean(devServerUrl && url.origin === new URL(devServerUrl).origin)
+  } catch {
+    return false
+  }
+}
+
+export function isProviderOwnedFrameRequest(resourceType: string, parentFrameUrl?: string, devServerUrl?: string): boolean {
+  if (!parentFrameUrl) return false
+  return resourceType !== 'subFrame' || !isAppRendererUrl(parentFrameUrl, devServerUrl)
+}

@@ -18,6 +18,12 @@ const PRIVATE_TTL = 2 * 60_000
 
 type JsonObject = Record<string, unknown>
 type CacheRecord = { expiresAt: number; value: unknown }
+type StoredToken = {
+  token: string
+  expiresAt: number
+  user?: AniListSession['user']
+  encryption?: 'async-v1' | 'sync-v1'
+}
 
 const DASHBOARD_QUERY = `query Dashboard($season: MediaSeason, $year: Int) {
   trending: Page(page: 1, perPage: 8) { media(type: ANIME, sort: TRENDING_DESC, isAdult: false) { ...Card } }
@@ -175,21 +181,49 @@ export class AniListService {
     this.basePath = basePath
   }
 
-  initialize() { this.loadToken(); this.loadJsonCache(); this.loadMappings() }
+  async initialize() { await this.loadToken(); this.loadJsonCache(); this.loadMappings() }
   shutdown() { this.authServer?.close(); this.authServer = undefined }
   getSession(): AniListSession { return { authenticated: Boolean(this.token && this.user), configured: Boolean(this.clientId), user: this.user, expiresAt: this.expiresAt } }
 
   private path(name: string) { return join(this.basePath, name) }
-  private loadToken() {
+  private async loadToken() {
     try {
-      const saved = JSON.parse(fs.readFileSync(this.path(TOKEN_FILE), 'utf8')) as { token: string; expiresAt: number; user?: AniListSession['user'] }
-      if (saved.expiresAt <= Date.now() || !safeStorage.isEncryptionAvailable()) return
-      this.token = safeStorage.decryptString(Buffer.from(saved.token, 'base64')); this.expiresAt = saved.expiresAt; this.user = saved.user
+      const saved = JSON.parse(fs.readFileSync(this.path(TOKEN_FILE), 'utf8')) as StoredToken
+      if (saved.expiresAt <= Date.now()) return
+      const encrypted = Buffer.from(saved.token, 'base64')
+      if (saved.encryption === 'async-v1') {
+        if (!await this.asyncCredentialStorageAvailable()) return
+        const decrypted = await safeStorage.decryptStringAsync(encrypted)
+        this.token = decrypted.result
+        this.expiresAt = saved.expiresAt
+        this.user = saved.user
+        if (decrypted.shouldReEncrypt) await this.saveToken()
+        return
+      }
+      if (!safeStorage.isEncryptionAvailable()) return
+      this.token = safeStorage.decryptString(encrypted); this.expiresAt = saved.expiresAt; this.user = saved.user
     } catch { /* signed out */ }
   }
-  private saveToken() {
-    if (!this.token || !this.expiresAt || !safeStorage.isEncryptionAvailable()) throw new Error('Secure credential storage is unavailable')
-    fs.writeFileSync(this.path(TOKEN_FILE), JSON.stringify({ token: safeStorage.encryptString(this.token).toString('base64'), expiresAt: this.expiresAt, user: this.user }), 'utf8')
+  private async asyncCredentialStorageAvailable(): Promise<boolean> {
+    try { return await safeStorage.isAsyncEncryptionAvailable() } catch { return false }
+  }
+  private async credentialStorageAvailable(): Promise<boolean> {
+    if (await this.asyncCredentialStorageAvailable()) return true
+    return safeStorage.isEncryptionAvailable()
+  }
+  private credentialStorageUnavailableMessage(): string {
+    if (process.platform !== 'linux') return 'Secure credential storage is unavailable on this system'
+    return `Secure credential storage is unavailable on this system (Electron backend: ${safeStorage.getSelectedStorageBackend()}). Ensure Secret Service or KWallet is running and unlocked in this desktop session.`
+  }
+  private async saveToken() {
+    if (!this.token || !this.expiresAt) throw new Error('No AniList credential is available to save')
+    if (await this.asyncCredentialStorageAvailable()) {
+      const encrypted = await safeStorage.encryptStringAsync(this.token)
+      fs.writeFileSync(this.path(TOKEN_FILE), JSON.stringify({ token: encrypted.toString('base64'), expiresAt: this.expiresAt, user: this.user, encryption: 'async-v1' } satisfies StoredToken), 'utf8')
+      return
+    }
+    if (!safeStorage.isEncryptionAvailable()) throw new Error('Secure credential storage is unavailable')
+    fs.writeFileSync(this.path(TOKEN_FILE), JSON.stringify({ token: safeStorage.encryptString(this.token).toString('base64'), expiresAt: this.expiresAt, user: this.user, encryption: 'sync-v1' } satisfies StoredToken), 'utf8')
   }
   private loadJsonCache() { try { const saved = JSON.parse(fs.readFileSync(this.path(CACHE_FILE), 'utf8')) as Record<string, CacheRecord>; for (const [key, value] of Object.entries(saved)) this.cache.set(key, value) } catch { /* empty */ } }
   private saveCache() { const recent = [...this.cache.entries()].filter(([, item]) => item.expiresAt > Date.now() - 24 * 60 * 60_000).slice(-30); fs.writeFileSync(this.path(CACHE_FILE), JSON.stringify(Object.fromEntries(recent)), 'utf8') }
@@ -218,14 +252,14 @@ export class AniListService {
 
   async validateSession() {
     if (!this.token) return this.getSession()
-    try { const data = await this.request('query { Viewer { id name avatar { medium } } }', {}, true, false) as JsonObject; const viewer = record(data.Viewer); this.user = { id: number(viewer.id)!, name: text(viewer.name)!, avatar: text(record(viewer.avatar).medium) }; this.saveToken() }
+    try { const data = await this.request('query { Viewer { id name avatar { medium } } }', {}, true, false) as JsonObject; const viewer = record(data.Viewer); this.user = { id: number(viewer.id)!, name: text(viewer.name)!, avatar: text(record(viewer.avatar).medium) }; await this.saveToken() }
     catch { this.logout() }
     return this.getSession()
   }
 
   async startAuth(): Promise<AniListSession> {
     if (!this.clientId) throw new Error('AniList sign-in is not configured. Set ANILIST_CLIENT_ID when building or launching AniPlay.')
-    if (!safeStorage.isEncryptionAvailable()) throw new Error('Secure credential storage is unavailable on this system')
+    if (!await this.credentialStorageAvailable()) throw new Error(this.credentialStorageUnavailableMessage())
     this.authServer?.close()
     const state = randomBytes(24).toString('hex')
     const result = new Promise<AniListSession>((resolve, reject) => {

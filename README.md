@@ -154,7 +154,7 @@ $env:ANILIST_CLIENT_ID = "your-client-id"
 npm run dev
 ```
 
-`VITE_ANILIST_CLIENT_ID` is also recognized for compatibility. No client secret is used or bundled. The account token is encrypted with Electron `safeStorage` and stored in the Electron user-data directory.
+`VITE_ANILIST_CLIENT_ID` is also recognized for compatibility. No client secret is used or bundled. The account token is encrypted with Electron `safeStorage` and stored in the Electron user-data directory. AniPlay uses Electron's asynchronous credential provider when available, which supports the Secret portal and Secret Service on Linux, and retains compatibility with tokens encrypted by the older synchronous backend.
 
 ## Optional environment variables
 
@@ -252,6 +252,20 @@ Check Electron main-process output for renderer, provider, or FFmpeg errors.
 - Use the browser fallback when offered.
 - If strict ad blocking is active, retry with EasyList-only because aggressive lists can break fragile embeds.
 - For AllAnime failures, refresh the cipher map and inspect/export the runtime crypto diagnostics.
+
+JW Player error `233011` means a media request failed its cross-origin credential check; it is not an application-folder permission error. AniPlay leaves iframe-owned media credentials and CORS responses to the provider. If it still occurs, note the selected provider and server, retry with ad blocking disabled, and try another server or network. See the [JW Player error reference](https://docs.jwplayer.com/players/docs/jw8-player-errors-reference).
+
+### AniList secure storage is unavailable on Linux
+
+Seahorse is a keyring manager, but its presence alone does not mean the Secret Service daemon is running, unlocked, and reachable through the current desktop D-Bus session. Confirm that `DBUS_SESSION_BUS_ADDRESS` is set and that GNOME Keyring or KWallet is running in the same graphical session as AniPlay.
+
+For GNOME, Cinnamon, XFCE, and similar desktops, AniPlay can be launched once with Electron's explicit backend selection:
+
+```bash
+./AniPlay.AppImage --password-store=gnome-libsecret
+```
+
+KDE users can select the matching installed wallet version with `--password-store=kwallet6` or `--password-store=kwallet5`. If an explicit backend works, check the desktop's autostart and PAM keyring integration rather than permanently launching an unlocked keyring by hand. Avoid `--password-store=basic`: Electron documents that backend as plaintext-grade fallback protection.
 
 ## Project structure
 

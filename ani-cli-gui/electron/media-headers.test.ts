@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isMegaPlayMediaHost, MEGAPLAY_MEDIA_URL_PATTERNS } from './media-headers'
+import { isMegaPlayMediaHost, isProviderOwnedFrameRequest, MEGAPLAY_MEDIA_URL_PATTERNS } from './media-headers'
 
 describe('MegaPlay media hosts', () => {
   it('recognizes player, subtitle, and native CDN hosts', () => {
@@ -18,5 +18,12 @@ describe('MegaPlay media hosts', () => {
     expect(MEGAPLAY_MEDIA_URL_PATTERNS).toContain('*://kotocdn.site/*')
     expect(MEGAPLAY_MEDIA_URL_PATTERNS).toContain('*://*.kotocdn.site/*')
   })
-})
 
+  it('preserves provider-owned iframe requests while allowing initial app embeds', () => {
+    expect(isProviderOwnedFrameRequest('media', 'file:///opt/AniPlay/resources/app.asar/dist/index.html')).toBe(true)
+    expect(isProviderOwnedFrameRequest('subFrame', 'file:///opt/AniPlay/resources/app.asar/dist/index.html')).toBe(false)
+    expect(isProviderOwnedFrameRequest('subFrame', 'https://provider.example/player')).toBe(true)
+    expect(isProviderOwnedFrameRequest('media')).toBe(false)
+    expect(isProviderOwnedFrameRequest('subFrame', 'http://localhost:5173/', 'http://localhost:5173')).toBe(false)
+  })
+})
