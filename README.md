@@ -51,6 +51,7 @@ AniList activity supplies account-wide statistics. Time-window achievements such
 - Create ephemeral rooms from an actively playing direct video or HLS source, or join with a ten-character room code.
 - Synchronize host play, pause, seek, episode, and sub/dub changes while each participant resolves their own provider stream.
 - See AniList-linked participants and readiness, use bounded room chat, copy `aniplay://watch/<code>` invitations, and reconnect after network interruptions.
+- Keep the room beside the player on wide screens, open it as an attached desktop drawer, or expand the compact room bar on narrow windows; the create/join dialog closes once playback coordination begins.
 - Transfer control to the longest-connected guest if the host does not return within ten seconds.
 
 Watch Together requires AniList sign-in and a controllable non-embed source. It does not send media URLs, provider headers/cookies, watch history, or AniList OAuth tokens to the coordination service. Guest volume, mute, subtitles, fullscreen, and picture-in-picture remain local.
