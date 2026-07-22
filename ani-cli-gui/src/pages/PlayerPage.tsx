@@ -596,9 +596,9 @@ export function PlayerPage({
   }
 
   return (
-    <div className={`relative min-w-0 ${watchTogetherState?.code && !isOverlay ? '2xl:grid 2xl:grid-cols-[minmax(0,1fr)_340px] 2xl:gap-4' : ''}`}>
+    <div className={`relative min-w-0 ${watchTogetherState?.code && !isOverlay ? '2xl:contents' : ''}`}>
       <div
-        className={isOverlay ? 'fixed inset-0 bg-black z-50 flex flex-col relative' : 'm3-card p-4 md:p-6 flex flex-col gap-3 relative min-w-0'}
+        className={isOverlay ? 'fixed inset-0 bg-black z-50 flex flex-col relative' : `m3-card p-4 md:p-6 flex flex-col gap-3 relative min-w-0 ${watchTogetherState?.code ? '2xl:col-start-2 2xl:row-start-1' : ''}`}
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
       <div className={isOverlay ? 'p-4 flex items-center justify-between absolute top-0 left-0 w-full z-10 bg-gradient-to-b from-black/90 to-transparent' : 'flex items-center justify-between'}>

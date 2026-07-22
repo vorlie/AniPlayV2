@@ -166,7 +166,7 @@ export function WatchTogetherCompanion() {
         <div className="flex items-center gap-2 px-4 py-2 text-xs font-black"><MessageSquare size={14} />{t('watchTogether.chat')}</div>
         <div
           ref={chatViewportRef}
-          className="min-h-36 flex-1 space-y-2 overflow-y-auto px-3 pb-3"
+          className="min-h-36 flex-1 space-y-2 overflow-y-auto overscroll-contain px-3 pb-3"
           onScroll={(event) => {
             const element = event.currentTarget
             pinnedToBottomRef.current = element.scrollHeight - element.scrollTop - element.clientHeight < 56
@@ -192,7 +192,7 @@ export function WatchTogetherCompanion() {
   )
 
   if (mode === 'wide') {
-    return <aside aria-label={t('watchTogether.companionLabel')} className="m3-card flex min-h-0 max-h-[calc(100vh-190px)] flex-col overflow-hidden">{content}</aside>
+    return <aside aria-label={t('watchTogether.companionLabel')} className="m3-card sticky top-3 col-start-1 row-start-1 flex h-[calc(100vh-190px)] min-h-[420px] flex-col overflow-hidden">{content}</aside>
   }
 
   if (mode === 'desktop') {

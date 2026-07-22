@@ -272,7 +272,7 @@ export function AnimePage({
         </div>
       )}
 
-      <div className={`watch-workspace grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_300px] ${watchTogetherState?.code ? '2xl:grid-cols-[minmax(0,1fr)_340px_320px]' : '2xl:grid-cols-[240px_minmax(0,1fr)_320px]'} flex-1 min-h-0`}>
+      <div className={`watch-workspace grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_300px] ${watchTogetherState?.code ? '2xl:grid-cols-[340px_minmax(0,1fr)_320px]' : '2xl:grid-cols-[240px_minmax(0,1fr)_320px]'} flex-1 min-h-0`}>
         {!watchTogetherState?.code ? <aside className="m3-card hidden min-h-0 overflow-hidden 2xl:col-start-1 2xl:row-start-1 2xl:flex 2xl:flex-col">
           <div className="relative h-44 shrink-0 overflow-hidden bg-m3-surface-variant/25">
             {aniListMetadata.coverUrl ? <><img src={aniListMetadata.coverUrl} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover opacity-30 blur-xl"/><img src={aniListMetadata.coverUrl} alt="" className="relative mx-auto h-full w-28 object-cover shadow-xl"/></> : null}
@@ -354,7 +354,7 @@ export function AnimePage({
           )}
         </aside>
 
-        <section className={`flex flex-col gap-3 min-h-[320px] min-w-0 lg:col-start-1 lg:row-start-1 ${watchTogetherState?.code ? '2xl:col-span-2 2xl:col-start-1' : '2xl:col-start-2'}`}>
+        <section className={`flex flex-col gap-3 min-h-[320px] min-w-0 lg:col-start-1 lg:row-start-1 ${watchTogetherState?.code ? '2xl:contents' : '2xl:col-start-2'}`}>
           {playingLinks.length > 0 ? (
             <PlayerPage
               key={`${anime.id}:${playingEp}`}
