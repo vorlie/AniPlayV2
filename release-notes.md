@@ -1,32 +1,23 @@
-# AniPlay 1.16.3
+# AniPlay 1.16.4
 
-This patch improves MegaPlay downloads, Linux AniList authentication, and embedded-player compatibility.
+This patch fixes AniList sessions not surviving an AniPlay restart.
 
-## MegaPlay download fix
+## AniList session persistence
 
-- Fixed MegaPlay/KotoCDN downloads failing with FFmpeg errors such as `dimensions not set` or `Could not write header`.
-- AniPlay now recognizes MPEG-TS segments disguised with a PNG wrapper and removes that wrapper before passing the stream to FFmpeg.
-- The workaround uses a restricted temporary localhost relay and preserves the provider headers required by KotoCDN.
-- Downloads remain stream copies: episodes are not transcoded or buffered in full by AniPlay.
+- Updated Electron to 42.7.1, which includes the upstream fix for asynchronous secure storage incorrectly reporting unavailable immediately after application startup.
+- Restored async-first credential storage across Windows, Linux, and macOS.
+- Retained compatibility with tokens encrypted through the previous synchronous storage backend.
+- Temporary network, rate-limit, or credential-storage failures no longer delete an otherwise valid saved session.
+- AniPlay now removes a saved token only when AniList explicitly rejects it with HTTP 401 or the user signs out.
 
-## Linux AniList authentication
+Linux users benefit in particular because Secret Service, desktop portal, and KWallet discovery can take longer after application startup. The underlying Electron race could affect every supported platform.
 
-- Added Electron's portal-aware asynchronous secure-storage provider for improved Secret Service and desktop portal support.
-- Retained compatibility with AniList tokens encrypted by the previous synchronous storage backend.
-- Improved Linux errors with the Electron credential-backend name and actionable Secret Service or KWallet guidance.
-- Documented explicit `gnome-libsecret`, `kwallet6`, and `kwallet5` launch options for systems where automatic backend detection fails.
-
-## Embedded-player compatibility
-
-- Provider-owned iframe requests now retain the provider's original headers, cookies, and CORS responses.
-- AniPlay's provider header and CORS adjustments remain active for native video playback.
-- This addresses an AniPlay-side cause of JW Player error `233011`; provider, CDN, ad-blocking, or network restrictions may still produce the same code.
+Users whose session was already lost may need to connect AniList once after installing 1.16.4. Later restarts should preserve the session.
 
 ## Validation
 
-- Production build completed successfully.
+- Production build completed successfully with Electron 42.7.1.
 - ESLint passed.
 - All 79 tests passed.
-- A live FFmpeg smoke test succeeded against the MegaPlay episode that reproduced the disguised-segment failure.
 
-**Full changelog:** [1.16.2...1.16.3](https://github.com/vorlie/AniPlayV2/compare/1.16.2...1.16.3)
+**Full changelog:** [1.16.3...1.16.4](https://github.com/vorlie/AniPlayV2/compare/1.16.3...1.16.4)

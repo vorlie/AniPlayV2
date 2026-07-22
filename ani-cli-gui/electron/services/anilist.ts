@@ -252,8 +252,22 @@ export class AniListService {
 
   async validateSession() {
     if (!this.token) return this.getSession()
-    try { const data = await this.request('query { Viewer { id name avatar { medium } } }', {}, true, false) as JsonObject; const viewer = record(data.Viewer); this.user = { id: number(viewer.id)!, name: text(viewer.name)!, avatar: text(record(viewer.avatar).medium) }; await this.saveToken() }
-    catch { this.logout() }
+    try {
+      const data = await this.request('query { Viewer { id name avatar { medium } } }', {}, true, false) as JsonObject
+      const viewer = record(data.Viewer)
+      this.user = { id: number(viewer.id)!, name: text(viewer.name)!, avatar: text(record(viewer.avatar).medium) }
+    } catch (error) {
+      // request() already removes a genuinely rejected token on HTTP 401. Keep the
+      // encrypted session through temporary network, rate-limit, or provider errors.
+      if (this.token) console.warn('[anilist] Could not refresh the saved session:', error instanceof Error ? error.message : 'Unknown error')
+      return this.getSession()
+    }
+    try {
+      await this.saveToken()
+    } catch (error) {
+      // A temporary keyring failure must not turn a valid in-memory session into a logout.
+      console.warn('[anilist] Could not persist the refreshed session:', error instanceof Error ? error.message : 'Unknown error')
+    }
     return this.getSession()
   }
 
