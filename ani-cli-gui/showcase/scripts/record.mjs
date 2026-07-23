@@ -207,6 +207,7 @@ for (const scene of scenes) {
     await addShowcaseLayer(page)
     const video = smoke ? null : page.video()
     await scene.run(page)
+    if (!smoke) await pause(Math.max(0, 12_000 - (Date.now() - startedAt)))
     await page.screenshot({ path: join(screenshotDir, `${scene.id}.png`) })
     await pause(800)
     await app.close()
