@@ -10,6 +10,7 @@ export interface HistoryEntry {
   aniListMediaId?: number
   coverUrl?: string
   catalogProvider: CatalogProvider
+  legacyProvider?: 'miruro'
 }
 
 const HISTORY_KEY = 'watch.history.v1'
@@ -22,7 +23,7 @@ function toFiniteNumber(value: unknown, fallback = 0) {
 function normalizeEntry(entry: unknown): HistoryEntry | null {
   if (!entry || typeof entry !== 'object') return null
 
-  const candidate = entry as Partial<HistoryEntry> & Record<string, unknown>
+  const candidate = entry as Omit<Partial<HistoryEntry>, 'catalogProvider'> & { catalogProvider?: unknown } & Record<string, unknown>
   if (typeof candidate.animeId !== 'string' || typeof candidate.animeName !== 'string' || typeof candidate.episode !== 'string') {
     return null
   }
@@ -46,7 +47,10 @@ function normalizeEntry(entry: unknown): HistoryEntry | null {
     durationSeconds: normalizedDuration,
     aniListMediaId,
     coverUrl,
-    catalogProvider: candidate.catalogProvider === 'desu' || candidate.catalogProvider === 'docchi' || candidate.catalogProvider === 'miruro' || candidate.catalogProvider === 'anikoto' ? candidate.catalogProvider : 'allanime',
+    catalogProvider: candidate.catalogProvider === 'miruro'
+      ? 'anidb'
+      : candidate.catalogProvider === 'desu' || candidate.catalogProvider === 'docchi' || candidate.catalogProvider === 'anidb' || candidate.catalogProvider === 'anikoto' ? candidate.catalogProvider : 'allanime',
+    legacyProvider: candidate.catalogProvider === 'miruro' ? 'miruro' : undefined,
   }
 }
 
@@ -87,11 +91,29 @@ export function addHistory(entry: Omit<HistoryEntry, 'watchedAt'>) {
     watchedAt: Date.now(),
     aniListMediaId: entry.aniListMediaId,
     coverUrl: entry.coverUrl,
-    catalogProvider: entry.catalogProvider === 'desu' || entry.catalogProvider === 'docchi' || entry.catalogProvider === 'miruro' || entry.catalogProvider === 'anikoto' ? entry.catalogProvider : 'allanime',
+    catalogProvider: entry.catalogProvider === 'desu' || entry.catalogProvider === 'docchi' || entry.catalogProvider === 'anidb' || entry.catalogProvider === 'anikoto' ? entry.catalogProvider : 'allanime',
   }
   const filtered = existing.filter((x) => !(x.animeId === entry.animeId && x.episode === entry.episode))
   filtered.unshift(normalizedEntry)
   writeHistory(filtered)
+}
+
+export function replaceLegacyHistoryEntry(entry: HistoryEntry, replacement: { id: string; name: string; episodes: number; aniListMediaId?: number; coverUrl?: string }): HistoryEntry {
+  const migrated: HistoryEntry = {
+    ...entry,
+    animeId: replacement.id,
+    animeName: replacement.name,
+    aniListMediaId: replacement.aniListMediaId ?? entry.aniListMediaId,
+    coverUrl: replacement.coverUrl ?? entry.coverUrl,
+    catalogProvider: 'anidb',
+    legacyProvider: undefined,
+  }
+  const entries = readHistory().map((candidate) =>
+    candidate.legacyProvider === 'miruro' && candidate.animeId === entry.animeId && candidate.animeName === entry.animeName
+      ? { ...candidate, ...migrated, episode: candidate.episode, progressSeconds: candidate.progressSeconds, watchedAt: candidate.watchedAt }
+      : candidate)
+  writeHistory(entries)
+  return migrated
 }
 
 export function clearHistory() {

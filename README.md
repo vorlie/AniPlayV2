@@ -19,7 +19,7 @@ AniPlay does not host anime or video files. Search results and playback links co
   | --- | --- | --- |
   | Anikoto | English sub/dub | Default provider; optional experimental AniList-first search |
   | AllAnime | English sub/dub | Dynamic crypto bootstrap with bundled fallback data |
-  | Miruro | English | Native and provider fallback behavior depends on the title |
+  | AniDB.app | English sub/dub | Independent native catalog; may request in-app Cloudflare verification |
   | Desu | Polish subtitles | Polish catalog and supported provider mirrors |
   | Docchi | Polish subtitles | Experimental; adult entries require an explicit settings opt-in |
 
@@ -31,6 +31,8 @@ AniPlay does not host anime or video files. Search results and playback links co
 - Provider-specific service notices can warn about outages or compatibility changes.
 
 Source availability, subtitles, native playback, and download support vary by provider and episode.
+
+Contributor documentation for the catalog, language, embed, HLS, header, and verification flow is available in [docs/ANIDB-PROVIDER.md](docs/ANIDB-PROVIDER.md).
 
 ### AniList integration
 

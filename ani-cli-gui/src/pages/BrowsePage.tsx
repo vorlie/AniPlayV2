@@ -34,7 +34,7 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
   const aniListFirstSearch = getAniListFirstSearch()
   const providerGroups: Array<{ label: string; providers: CatalogProvider[] }> = [
     { label: t('browse.polishSources'), providers: ['desu', 'docchi'] },
-    { label: t('browse.englishSources'), providers: ['anikoto', 'allanime', 'miruro'] },
+    { label: t('browse.englishSources'), providers: ['anikoto', 'allanime', 'anidb'] },
   ]
 
   const search = async () => {
@@ -67,8 +67,8 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
     ? t('browse.providerDescriptions.desu')
     : catalogProvider === 'docchi'
       ? t('browse.providerDescriptions.docchi')
-      : catalogProvider === 'miruro'
-        ? t('browse.providerDescriptions.miruro')
+      : catalogProvider === 'anidb'
+        ? t('browse.providerDescriptions.anidb')
         : catalogProvider === 'anikoto'
           ? aniListFirstSearch ? t('browse.providerDescriptions.anikotoFirst') : t('browse.providerDescriptions.anikoto')
           : t('browse.providerDescriptions.allanime', { mode: translationType === 'dub' ? t('browse.modeDubbed') : t('browse.modeSubbed') })
@@ -77,13 +77,13 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
     if (provider === 'allanime') return `AllAnime · ${translationType.toUpperCase()}`
     if (provider === 'desu') return 'Desu · PL SUB'
     if (provider === 'docchi') return 'Docchi · PL'
-    if (provider === 'miruro') return 'Miruro · EN'
+    if (provider === 'anidb') return 'AniDB.app · EN'
     return 'Anikoto · EN'
   }
 
   const resultMeta = (anime: AnimeSearchResult) => {
     if (anime.catalogProvider === 'desu' || anime.catalogProvider === 'docchi') return t('browse.polishSubtitles')
-    if (anime.catalogProvider === 'miruro') return `${anime.episodes ? t('browse.episodes', { count: anime.episodes }) : t('browse.noEpisodes')} · ${t('browse.english')}`
+    if (anime.catalogProvider === 'anidb') return `${anime.episodes ? t('browse.episodes', { count: anime.episodes }) : t('browse.noEpisodes')} · ${t('browse.english')}`
     if (anime.catalogProvider === 'anikoto') return `${anime.episodes ? t('browse.episodes', { count: anime.episodes }) : t('browse.noEpisodes')} · ${t('browse.english')}`
     return anime.episodes ? t('browse.episodes', { count: anime.episodes }) : t('browse.noEpisodes')
   }

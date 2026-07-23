@@ -212,7 +212,7 @@ const resources = {
         providerDescriptions: {
           desu: 'Searching Desu Online for Polish-subtitled anime.',
           docchi: 'Searching Docchi for Polish-subtitled anime. Experimental provider support.',
-          miruro: 'Searching Miruro for English sub and dub anime.',
+          anidb: 'Searching AniDB.app for English sub and dub anime.',
           anikotoFirst: 'Searching AniList first, then Anikoto provider matches.',
           anikoto: 'Searching Anikoto for English sub and dub anime.',
           allanime: 'Searching the {{mode}} AllAnime catalog.',
@@ -283,8 +283,8 @@ const resources = {
             'Resolving Anikoto episode sources...',
             'Checking available stream servers...',
           ],
-          miruro: [
-            'Resolving Miruro provider sources...',
+          anidb: [
+            'Resolving AniDB.app provider sources...',
             'Checking available stream servers...',
           ],
           default: [
@@ -477,9 +477,9 @@ const resources = {
           aniListFirst: 'Experimental AniList-first search',
           aniListFirstDescription: 'Prioritize AniList metadata for Anikoto search results, then fall back to provider catalog matches.',
           enableAniListFirst: 'Enable experimental AniList-first search',
-          docchiAdult: 'Docchi adult catalog opt-in',
-          docchiAdultDescription: 'Show adult Docchi entries in search results. Off by default and only affects the Docchi provider.',
-          enableDocchiAdult: 'Show adult Docchi search results',
+          adultContent: 'Adult catalog opt-in',
+          adultContentDescription: 'Show adult entries from supported providers, including Docchi and AniDB.app. Off by default.',
+          enableAdultContent: 'Show adult search results',
         },
         downloads: {
           title: 'Downloads',
@@ -776,7 +776,7 @@ const resources = {
         providerDescriptions: {
           desu: 'Wyszukiwanie anime z polskimi napisami w Desu Online.',
           docchi: 'Wyszukiwanie anime z polskimi napisami w Docchi. Eksperymentalna obsługa dostawcy.',
-          miruro: 'Wyszukiwanie anime z angielskim sub i dub w Miruro.',
+          anidb: 'Wyszukiwanie anime z angielskim sub i dub w AniDB.app.',
           anikotoFirst: 'Najpierw AniList, potem dopasowania dostawcy Anikoto.',
           anikoto: 'Wyszukiwanie anime z angielskim sub i dub w Anikoto.',
           allanime: 'Wyszukiwanie katalogu AllAnime: {{mode}}.',
@@ -847,8 +847,8 @@ const resources = {
             'Szukam źródeł odcinka w Anikoto...',
             'Sprawdzam dostępne serwery streamu...',
           ],
-          miruro: [
-            'Szukam źródeł dostawcy Miruro...',
+          anidb: [
+            'Szukam źródeł dostawcy AniDB.app...',
             'Sprawdzam dostępne serwery streamu...',
           ],
           default: [
@@ -1041,9 +1041,9 @@ const resources = {
           aniListFirst: 'Eksperymentalne wyszukiwanie AniList-first',
           aniListFirstDescription: 'Najpierw używa metadanych AniList dla wyników Anikoto, potem wraca do katalogu dostawcy.',
           enableAniListFirst: 'Włącz eksperymentalne wyszukiwanie AniList-first',
-          docchiAdult: 'Opcjonalny katalog 18+ Docchi',
-          docchiAdultDescription: 'Pokazuje wpisy 18+ z Docchi w wynikach wyszukiwania. Domyślnie wyłączone i dotyczy tylko dostawcy Docchi.',
-          enableDocchiAdult: 'Pokaż wyniki 18+ z Docchi',
+          adultContent: 'Opcjonalny katalog 18+',
+          adultContentDescription: 'Pokazuje wpisy 18+ od obsługiwanych dostawców, w tym Docchi i AniDB.app. Domyślnie wyłączone.',
+          enableAdultContent: 'Pokaż wyniki wyszukiwania 18+',
         },
         downloads: {
           title: 'Pobieranie',
