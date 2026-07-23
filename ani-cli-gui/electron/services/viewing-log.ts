@@ -22,7 +22,7 @@ export function validateWatchSegment(value: unknown): WatchSegmentInput {
   if (!Number.isInteger(timezoneOffsetMinutes) || timezoneOffsetMinutes < -840 || timezoneOffsetMinutes > 840) throw new TypeError('Invalid timezone offset')
   const animeId = shortText(item.animeId, 1000); const animeName = shortText(item.animeName, 300); const episode = shortText(item.episode, 100)
   if (!animeId || !animeName || !episode) throw new TypeError('Invalid watch media')
-  const catalogProvider = item.catalogProvider === 'desu' || item.catalogProvider === 'docchi' || item.catalogProvider === 'miruro' || item.catalogProvider === 'anikoto' ? item.catalogProvider : item.catalogProvider === 'allanime' ? 'allanime' : null
+  const catalogProvider = item.catalogProvider === 'desu' || item.catalogProvider === 'docchi' || item.catalogProvider === 'anidb' || item.catalogProvider === 'anikoto' ? item.catalogProvider : item.catalogProvider === 'allanime' ? 'allanime' : null
   if (!catalogProvider) throw new TypeError('Invalid catalog provider')
   if (!finite(item.fromSeconds) || item.fromSeconds < 0 || !finite(item.toSeconds) || item.toSeconds < 0) throw new TypeError('Invalid playback position')
   const durationSeconds = item.durationSeconds

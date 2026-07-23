@@ -52,7 +52,7 @@ function providerLabel(provider: CatalogProvider) {
   if (provider === 'allanime') return 'AllAnime'
   if (provider === 'desu') return 'Desu'
   if (provider === 'docchi') return 'Docchi'
-  if (provider === 'miruro') return 'Miruro'
+  if (provider === 'anidb') return 'AniDB.app'
   return 'Anikoto'
 }
 

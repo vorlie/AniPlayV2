@@ -73,8 +73,8 @@ export interface DownloadSubtitleTrack {
   url: string
 }
 
-function ffmpegInputArgs(url: string): string[] {
-  const headers = mediaHeaders(url)
+function ffmpegInputArgs(url: string, requestHeaders?: Record<string, string>): string[] {
+  const headers = requestHeaders ?? mediaHeaders(url)
   const headerText = Object.entries(headers).map(([key, value]) => `${key}: ${value}`).join('\r\n') + '\r\n'
   return ['-headers', headerText, '-i', url]
 }
@@ -100,12 +100,12 @@ export function subtitleLanguageCode(label: string): string {
   return codes[normalized || ''] || 'und'
 }
 
-export function buildFfmpegArgs(url: string, outputPath: string, subtitles: DownloadSubtitleTrack[] = []): string[] {
+export function buildFfmpegArgs(url: string, outputPath: string, subtitles: DownloadSubtitleTrack[] = [], requestHeaders?: Record<string, string>): string[] {
   const args = [
     '-y',
-    ...ffmpegInputArgs(url),
+    ...ffmpegInputArgs(url, requestHeaders),
   ]
-  for (const track of subtitles) args.push(...ffmpegInputArgs(track.url))
+  for (const track of subtitles) args.push(...ffmpegInputArgs(track.url, requestHeaders))
   args.push(
     '-map', '0:v:0?', '-map', '0:a:0?',
   )

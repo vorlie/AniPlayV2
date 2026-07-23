@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Bug, Check, Download, FolderOpen, Gamepad2, GitPullRequest, Globe, MessageCircle, Palette, RefreshCw, RotateCcw, Search, Shield, ShieldCheck, SlidersHorizontal, Video } from 'lucide-react'
-import { ANILIST_SEARCH_KEY, DOCCHI_ADULT_OPT_IN_KEY, getAniListFirstSearch, getDocchiAdultOptIn, getTranslationType, TRANSLATION_TYPE_KEY, type TranslationType } from '../lib/api'
+import { ADULT_CONTENT_OPT_IN_KEY, getAdultContentOptIn, ANILIST_SEARCH_KEY, getAniListFirstSearch, getTranslationType, TRANSLATION_TYPE_KEY, type TranslationType } from '../lib/api'
 import { getNotificationSoundMode, getNotificationSoundPreset, playNotificationSound, setNotificationSoundMode, setNotificationSoundPreset, type NotificationSoundMode, type NotificationSoundPreset } from '../lib/notification-sounds'
 import { setAppLanguage, supportedLanguages, type AppLanguage } from '../i18n'
 import type { UpdateState } from '../updater-types'
@@ -29,7 +29,7 @@ export function SettingsPage() {
   const [useNativeControls, setUseNativeControls] = useState(true)
   const [translationType, setTranslationType] = useState<TranslationType>(getTranslationType)
   const [aniListFirstSearch, setAniListFirstSearch] = useState(getAniListFirstSearch)
-  const [docchiAdultOptIn, setDocchiAdultOptIn] = useState(getDocchiAdultOptIn)
+  const [adultContentOptIn, setAdultContentOptIn] = useState(getAdultContentOptIn)
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
   const [syncError, setSyncError] = useState<string | null>(null)
   const [ciphermapInfo, setCiphermapInfo] = useState<CiphermapInfo | null>(null)
@@ -155,10 +155,10 @@ export function SettingsPage() {
     })
   }
 
-  const toggleDocchiAdultOptIn = () => {
-    setDocchiAdultOptIn((prev) => {
+  const toggleAdultContentOptIn = () => {
+    setAdultContentOptIn((prev) => {
       const next = !prev
-      localStorage.setItem(DOCCHI_ADULT_OPT_IN_KEY, String(next))
+      localStorage.setItem(ADULT_CONTENT_OPT_IN_KEY, String(next))
       return next
     })
   }
@@ -445,17 +445,17 @@ export function SettingsPage() {
                 </div>
                 <div className="rounded-2xl border border-amber-300/25 bg-amber-300/5 p-4 flex items-center justify-between gap-3">
                   <div>
-                    <p className="font-bold text-sm">{t('settings.search.docchiAdult')}</p>
-                    <p className="text-xs text-m3-on-surface-variant">{t('settings.search.docchiAdultDescription')}</p>
+                    <p className="font-bold text-sm">{t('settings.search.adultContent')}</p>
+                    <p className="text-xs text-m3-on-surface-variant">{t('settings.search.adultContentDescription')}</p>
                   </div>
                   <button
                     type="button"
-                    onClick={toggleDocchiAdultOptIn}
-                    className={`w-14 h-8 shrink-0 rounded-full p-1 transition-colors ${docchiAdultOptIn ? 'bg-amber-300' : 'bg-m3-surface-variant/60'}`}
-                    aria-pressed={docchiAdultOptIn}
-                    aria-label={t('settings.search.enableDocchiAdult')}
+                    onClick={toggleAdultContentOptIn}
+                    className={`w-14 h-8 shrink-0 rounded-full p-1 transition-colors ${adultContentOptIn ? 'bg-amber-300' : 'bg-m3-surface-variant/60'}`}
+                    aria-pressed={adultContentOptIn}
+                    aria-label={t('settings.search.enableAdultContent')}
                   >
-                    <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${docchiAdultOptIn ? 'translate-x-6' : 'translate-x-0'}`} />
+                    <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${adultContentOptIn ? 'translate-x-6' : 'translate-x-0'}`} />
                   </button>
                 </div>
               </div>

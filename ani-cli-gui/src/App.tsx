@@ -6,7 +6,8 @@ import { AniListPage } from './pages/AniListPage'
 import { Navigation } from './components/Navigation'
 import { AppNotifications, type AppNotification, type AppNotificationKind } from './components/AppNotifications'
 import { useTranslation } from 'react-i18next'
-import type { HistoryEntry } from './lib/history'
+import { replaceLegacyHistoryEntry, type HistoryEntry } from './lib/history'
+import { invokeSearch } from './lib/api'
 import type { DownloadState } from './download-types'
 import { DownloadsPage } from './pages/DownloadsPage'
 import { RemoteNoticeBanner } from './components/RemoteNoticeBanner'
@@ -163,7 +164,26 @@ function App() {
   const activeDownloadCount = downloadState?.jobs.filter((job) => ['queued', 'resolving', 'downloading'].includes(job.status)).length ?? 0
   const isTestBuild = appVersion ? TEST_BUILD_VERSION_PATTERN.test(appVersion) : false
 
-  const handleResumeFromHistory = (item: HistoryEntry) => {
+  const handleResumeFromHistory = async (historyItem: HistoryEntry) => {
+    let item = historyItem
+    if (item.legacyProvider === 'miruro') {
+      const response = await invokeSearch(item.animeName, 'anidb')
+      if (!response.success || !response.data?.length) {
+        notify('AniDB.app migration', response.error || `No AniDB.app match was found for ${item.animeName}`, 'warning')
+        return
+      }
+      const normalized = item.animeName.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
+      const exact = response.data.filter((candidate) => candidate.name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim() === normalized)
+      let replacement = exact.length === 1 ? exact[0] : undefined
+      if (!replacement) {
+        const candidates = response.data.slice(0, 8)
+        const answer = window.prompt(`Choose the AniDB.app match for "${item.animeName}":\n${candidates.map((candidate, index) => `${index + 1}. ${candidate.name}`).join('\n')}`, '1')
+        const index = Number(answer) - 1
+        if (!Number.isInteger(index) || !candidates[index]) return
+        replacement = candidates[index]
+      }
+      item = replaceLegacyHistoryEntry(item, replacement)
+    }
     setActiveTab('player')
     setActiveAnime({
       id: item.animeId,

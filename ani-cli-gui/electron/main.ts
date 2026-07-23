@@ -17,7 +17,7 @@ import { getDesuEpisodePageUrl } from './providers/desu'
 import { getDocchiEpisodePageUrl } from './providers/docchi'
 import { UpdateService } from './services/updater'
 import { RemoteNoticeService } from './services/remote-notices'
-import { getMiruroEpisodePageUrl } from './providers/miruro'
+import { getAniDbEpisodePageUrl, getAniDbMediaHeaders } from './providers/anidb'
 import { getAnikotoEpisodePageUrl } from './providers/anikoto'
 import { AdBlockService } from './services/adblock'
 import type { AdBlockSettings } from '../src/adblock-types'
@@ -213,7 +213,7 @@ function requireTranslationType(value: unknown): TranslationType {
 }
 
 function requireCatalogProvider(value: unknown): CatalogProvider {
-  if (value !== 'allanime' && value !== 'desu' && value !== 'docchi' && value !== 'miruro' && value !== 'anikoto') throw new TypeError('catalogProvider must be allanime, desu, docchi, miruro, or anikoto')
+  if (value !== 'allanime' && value !== 'desu' && value !== 'docchi' && value !== 'anidb' && value !== 'anikoto') throw new TypeError('catalogProvider must be allanime, desu, docchi, anidb, or anikoto')
   return value
 }
 
@@ -259,10 +259,7 @@ function configureMediaRequestHeaders() {
     '*://dailymotion.com/*',
     '*://*.dailymotion.com/*',
     '*://*.dmcdn.net/*',
-    '*://miruro.to/*',
-    '*://*.miruro.to/*',
-    '*://ultracloud.cc/*',
-    '*://*.ultracloud.cc/*',
+    '*://*/*',
     ...MEGAPLAY_MEDIA_URL_PATTERNS,
   ]
 
@@ -275,9 +272,20 @@ function configureMediaRequestHeaders() {
     const hostname = new URL(details.url).hostname.toLowerCase()
     const isMp4Upload = hostname === 'mp4upload.com' || hostname.endsWith('.mp4upload.com')
     const isDailymotion = hostname === 'dailymotion.com' || hostname.endsWith('.dailymotion.com') || hostname.endsWith('.dmcdn.net')
-    const isMiruro = hostname === 'miruro.to' || hostname.endsWith('.miruro.to') || hostname === 'ultracloud.cc' || hostname.endsWith('.ultracloud.cc')
     const isMegaPlay = isMegaPlayMediaHost(hostname)
-    const requestReferer = isMegaPlay ? 'https://megaplay.buzz/' : isMiruro ? 'https://www.miruro.to/' : isDailymotion ? 'https://www.dailymotion.com/' : isMp4Upload ? 'https://www.mp4upload.com/' : referer
+    const aniDbHeaders = getAniDbMediaHeaders(details.url)
+    if (aniDbHeaders) {
+      for (const [key, value] of Object.entries(aniDbHeaders)) headers[key] = value
+      callback({ requestHeaders: headers })
+      return
+    }
+    const isAllAnimeMedia = hostname === 'video.wixstatic.com'
+      || hostname === 'tools.fast4speed.rsvp' || hostname.endsWith('.fast4speed.rsvp')
+    if (!isMp4Upload && !isDailymotion && !isMegaPlay && !isAllAnimeMedia) {
+      callback({ requestHeaders: headers })
+      return
+    }
+    const requestReferer = isMegaPlay ? 'https://megaplay.buzz/' : isDailymotion ? 'https://www.dailymotion.com/' : isMp4Upload ? 'https://www.mp4upload.com/' : referer
     headers['Referer'] = requestReferer
     headers['Origin'] = new URL(requestReferer).origin
     if (!headers['User-Agent']) {
@@ -286,22 +294,20 @@ function configureMediaRequestHeaders() {
     callback({ requestHeaders: headers })
   })
 
-  const corsMediaUrls = [
-    '*://video.wixstatic.com/*',
-    '*://tools.fast4speed.rsvp/*',
-    '*://*.fast4speed.rsvp/*',
-    '*://mp4upload.com/*',
-    '*://*.mp4upload.com/*',
-    '*://dailymotion.com/*',
-    '*://*.dailymotion.com/*',
-    '*://*.dailymotion.com/cdn/*',
-    '*://*.dmcdn.net/*',
-    '*://ultracloud.cc/*',
-    '*://*.ultracloud.cc/*',
-    ...MEGAPLAY_MEDIA_URL_PATTERNS,
-  ]
+  const corsMediaUrls = ['*://*/*']
   session.defaultSession.webRequest.onHeadersReceived({ urls: corsMediaUrls }, (details, callback) => {
     if (isProviderOwnedFrameRequest(details.resourceType, details.frame?.parent?.url, VITE_DEV_SERVER_URL)) {
+      callback({ responseHeaders: details.responseHeaders })
+      return
+    }
+    const hostname = new URL(details.url).hostname.toLowerCase()
+    const isKnownMedia = hostname === 'video.wixstatic.com'
+      || hostname === 'tools.fast4speed.rsvp' || hostname.endsWith('.fast4speed.rsvp')
+      || hostname === 'mp4upload.com' || hostname.endsWith('.mp4upload.com')
+      || hostname === 'dailymotion.com' || hostname.endsWith('.dailymotion.com') || hostname.endsWith('.dmcdn.net')
+      || isMegaPlayMediaHost(hostname)
+      || getAniDbMediaHeaders(details.url) !== null
+    if (!isKnownMedia) {
       callback({ responseHeaders: details.responseHeaders })
       return
     }
@@ -429,10 +435,10 @@ function createWindow() {
   })
 
   // Register the scraping handlers
-  ipcMain.handle('search', async (event, query: unknown, translationType: unknown, catalogProvider: unknown, aniListFirstSearch: unknown, includeAdultDocchi: unknown) => {
+  ipcMain.handle('search', async (event, query: unknown, translationType: unknown, catalogProvider: unknown, aniListFirstSearch: unknown, includeAdult: unknown) => {
     try {
       assertTrustedSender(event)
-      const results = await searchAnime(requireString(query, 'query', 200), requireTranslationType(translationType), requireCatalogProvider(catalogProvider), aniListFirstSearch === true, includeAdultDocchi === true)
+      const results = await searchAnime(requireString(query, 'query', 200), requireTranslationType(translationType), requireCatalogProvider(catalogProvider), aniListFirstSearch === true, includeAdult === true)
       return { success: true, data: results }
     } catch (error: unknown) {
       return { success: false, error: errorMessage(error) }
@@ -490,7 +496,7 @@ function createWindow() {
       id: requireString(value.id, 'animeId', 1000),
       name: requireString(value.name, 'animeName', 300),
       episodes: typeof value.episodes === 'number' && Number.isInteger(value.episodes) && value.episodes >= 0 ? value.episodes : 0,
-      catalogProvider: value.catalogProvider === 'desu' || value.catalogProvider === 'docchi' || value.catalogProvider === 'miruro' || value.catalogProvider === 'anikoto' ? value.catalogProvider : 'allanime',
+      catalogProvider: value.catalogProvider === 'desu' || value.catalogProvider === 'docchi' || value.catalogProvider === 'anidb' || value.catalogProvider === 'anikoto' ? value.catalogProvider : 'allanime',
     }
     return aniListService.resolveAniListMetadata(normalized, mode)
   })
@@ -540,8 +546,8 @@ function createWindow() {
         ? await getDesuEpisodePageUrl(animeId, episode)
         : provider === 'docchi'
           ? await getDocchiEpisodePageUrl(animeId, episode)
-          : provider === 'miruro'
-            ? await getMiruroEpisodePageUrl(animeId, episode)
+          : provider === 'anidb'
+            ? getAniDbEpisodePageUrl(animeId)
             : provider === 'anikoto'
               ? await getAnikotoEpisodePageUrl(animeId, episode, mode)
               : null

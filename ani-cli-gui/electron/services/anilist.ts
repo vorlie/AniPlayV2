@@ -61,7 +61,7 @@ function record(value: unknown): JsonObject { return value && typeof value === '
 function array(value: unknown): unknown[] { return Array.isArray(value) ? value : [] }
 function text(value: unknown): string | undefined { return typeof value === 'string' && value.trim() ? value.trim() : undefined }
 function number(value: unknown): number | undefined { return typeof value === 'number' && Number.isFinite(value) ? value : undefined }
-function catalogProvider(value: unknown): CatalogProvider { return value === 'desu' || value === 'docchi' || value === 'miruro' || value === 'anikoto' ? value : 'allanime' }
+function catalogProvider(value: unknown): CatalogProvider { return value === 'desu' || value === 'docchi' || value === 'anidb' || value === 'anikoto' ? value : 'allanime' }
 
 export function normalizeCatalogMapping(value: CatalogMapping): CatalogMapping {
   return { ...value, catalogProvider: catalogProvider(value.catalogProvider) }
@@ -245,7 +245,8 @@ export class AniListService {
   private loadMappings() {
     try {
       const items = JSON.parse(fs.readFileSync(this.path(MAPPING_FILE), 'utf8')) as CatalogMapping[]
-      items.forEach((item) => this.mappings.set(item.mediaId, normalizeCatalogMapping(item)))
+      items.filter((item) => (item as unknown as { catalogProvider?: string }).catalogProvider !== 'miruro')
+        .forEach((item) => this.mappings.set(item.mediaId, normalizeCatalogMapping(item)))
     } catch { /* empty */ }
   }
   private saveMappings() { fs.writeFileSync(this.path(MAPPING_FILE), JSON.stringify([...this.mappings.values()]), 'utf8') }
