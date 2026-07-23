@@ -9,8 +9,10 @@ import type { RemoteNoticeState } from '../src/remote-notice-types'
 import type { AdBlockSettings, AdBlockState } from '../src/adblock-types'
 import type { WatchSegmentInput } from '../src/viewing-types'
 import type { WatchTogetherContent, WatchTogetherCreateInput, WatchTogetherJoinInput, WatchTogetherPlaybackState, WatchTogetherState } from '../src/watch-together-types'
+import { createShowcaseApi } from './showcase/demo-api'
+import { SHOWCASE_PRELOAD_SWITCH } from './showcase/demo-mode'
 
-contextBridge.exposeInMainWorld('aniPlay', {
+const productionApi = {
   search: (query: string, translationType: TranslationType, catalogProvider: CatalogProvider, aniListFirstSearch?: boolean, includeAdultDocchi?: boolean) => ipcRenderer.invoke('search', query, translationType, catalogProvider, aniListFirstSearch, includeAdultDocchi),
   getEpisodes: (showId: string, translationType: TranslationType, catalogProvider: CatalogProvider) => ipcRenderer.invoke('episodes', showId, translationType, catalogProvider),
   getEpisodeLinks: (showId: string, episode: string, translationType: TranslationType, catalogProvider: CatalogProvider) => ipcRenderer.invoke('links', showId, episode, translationType, catalogProvider),
@@ -123,4 +125,7 @@ contextBridge.exposeInMainWorld('aniPlay', {
       return () => ipcRenderer.removeListener('downloads:changed', listener)
     },
   },
-})
+}
+
+const api = process.argv.includes(SHOWCASE_PRELOAD_SWITCH) ? createShowcaseApi() : productionApi
+contextBridge.exposeInMainWorld('aniPlay', api)
