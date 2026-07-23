@@ -6,6 +6,8 @@ The repository is currently at the 1.16.x line. Windows is the primary supported
 
 AniPlay does not host anime or video files. Search results and playback links come from third-party providers, so availability and compatibility can change independently of the app.
 
+![Automated AniPlay showcase](docs/assets/aniplay-showcase.gif)
+
 ## Features
 
 ### Browsing and playback
@@ -118,6 +120,8 @@ Run these from `ani-cli-gui/`.
 | `npm run dev` | Start Vite and the Electron application in development mode |
 | `npm run build:ui` | Type-check and build the renderer, Electron main process, and preload bundle |
 | `npm test` | Run the Vitest suite once |
+| `npm run showcase:test` | Build AniPlay and smoke-test every synthetic showcase scene without keeping video |
+| `npm run showcase` | Generate the local MP4, screenshots, and tracked README GIF on Windows |
 | `npm run lint` | Run ESLint across the project |
 | `npm run preview` | Preview the built renderer only; Electron APIs are not available |
 | `npm run build` | Build a Windows unpacked directory with Electron Builder |
