@@ -31,3 +31,7 @@ test*.ts
 tmp*.ts
 dist*/
 out/
+
+# Local deterministic showcase artifacts
+ani-cli-gui/showcase/runtime/
+ani-cli-gui/showcase/output/
