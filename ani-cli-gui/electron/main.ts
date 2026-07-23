@@ -26,6 +26,7 @@ import { createProfileShareSvg } from '../src/lib/profile-share'
 import { ViewingLogService } from './services/viewing-log'
 import { WatchTogetherService } from './services/watch-together'
 import { correctedMegaPlayContentType, isMegaPlayMediaHost, isProviderOwnedFrameRequest, MEGAPLAY_MEDIA_URL_PATTERNS } from './media-headers'
+import { shouldEnableShowcaseDemo, SHOWCASE_PRELOAD_SWITCH } from './showcase/demo-mode'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -35,6 +36,10 @@ export const MAIN_DIST = join(process.env.APP_ROOT, 'dist-electron')
 export const RENDERER_DIST = join(process.env.APP_ROOT, 'dist')
 
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? join(process.env.APP_ROOT, 'public') : RENDERER_DIST
+const showcaseDemo = shouldEnableShowcaseDemo(app.isPackaged, process.argv)
+if (showcaseDemo) {
+  app.setPath('userData', resolve(process.env.ANIPLAY_SHOWCASE_USER_DATA ?? join(app.getPath('temp'), 'aniplay-showcase')))
+}
 
 let win: BrowserWindow | null
 let mediaHeadersConfigured = false
@@ -341,6 +346,7 @@ function createWindow() {
       preload: join(__dirname, 'preload.mjs'),
       nodeIntegration: false,
       contextIsolation: true,
+      additionalArguments: showcaseDemo ? [SHOWCASE_PRELOAD_SWITCH] : [],
     },
   })
 
@@ -865,6 +871,10 @@ app.on('activate', () => {
 })
 
 if (hasSingleInstanceLock) void app.whenReady().then(async () => {
+  if (showcaseDemo) {
+    createWindow()
+    return
+  }
   if (process.defaultApp && process.argv[1]) app.setAsDefaultProtocolClient('aniplay', process.execPath, [resolve(process.argv[1])])
   else app.setAsDefaultProtocolClient('aniplay')
   watchTogetherService = new WatchTogetherService(
