@@ -5,6 +5,7 @@ describe('watch together content', () => {
   it('distinguishes controllable native streams from embed-only Anikoto playback', () => {
     expect(hasControllableWatchTogetherSource([{ embed: true }, { embed: false }])).toBe(true)
     expect(hasControllableWatchTogetherSource([{ embed: true }])).toBe(false)
+    expect(hasControllableWatchTogetherSource([{ torrent: true }])).toBe(false)
     expect(shouldWarnAboutUncontrollableAnikotoSource('anikoto', [{ embed: true }])).toBe(true)
     expect(shouldWarnAboutUncontrollableAnikotoSource('allanime', [{ embed: true }])).toBe(false)
   })

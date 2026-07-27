@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Hls from 'hls.js'
-import { ArrowLeft, Download, Loader2, Maximize2, MessageSquare, Minimize2, Pause, PictureInPicture2, Play, Server, Sparkles, Volume2, VolumeX } from 'lucide-react'
+import { ArrowLeft, Download, Gauge, Loader2, Maximize2, MessageSquare, Minimize2, Pause, PictureInPicture2, Play, Server, Sparkles, Upload, Users, Volume2, VolumeX } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { addHistory } from '../lib/history'
 import type { CatalogProvider } from '../catalog-types'
@@ -8,6 +8,7 @@ import type { TranslationType } from '../download-types'
 import { shouldWarnAboutUncontrollableAnikotoSource, watchTogetherContentMatches } from '../lib/watch-together-content'
 import { useWatchTogether } from '../contexts/WatchTogetherContext'
 import { WatchTogetherCompanion } from '../components/WatchTogetherCompanion'
+import type { TorrentSessionState } from '../torrent-types'
 
 interface StreamLink {
   url: string
@@ -17,6 +18,7 @@ interface StreamLink {
   downloadable: boolean
   subtitles?: { label: string; url: string }[]
   embed?: boolean
+  torrent?: boolean
 }
 
 interface PlayerPageProps {
@@ -57,6 +59,13 @@ function formatTime(s: number) {
   const m = Math.floor(s / 60)
   const sec = Math.floor(s % 60).toString().padStart(2, '0')
   return `${m}:${sec}`
+}
+
+function formatBytes(value: number) {
+  if (!Number.isFinite(value) || value <= 0) return '0 B'
+  const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB']
+  const index = Math.min(units.length - 1, Math.floor(Math.log(value) / Math.log(1024)))
+  return `${(value / 1024 ** index).toFixed(index > 1 ? 1 : 0)} ${units[index]}`
 }
 
 function seekToResumePosition(video: HTMLVideoElement, progressSeconds: number, durationSeconds?: number) {
@@ -139,6 +148,7 @@ export function PlayerPage({
   const [downloadStatus, setDownloadStatus] = useState<'idle' | 'starting' | 'queued' | 'error'>('idle')
   const { state: watchTogetherState, companionOpen, unreadCount, setCompanionOpen, updatePlayback, setReady } = useWatchTogether()
   const [roomAutoplayBlocked, setRoomAutoplayBlocked] = useState(false)
+  const [torrentState, setTorrentState] = useState<TorrentSessionState | null>(null)
 
   const activeLink = links[activeIdx]
   const resumeSeconds = useMemo(() => toResumeSeconds(initialResumeSeconds), [initialResumeSeconds])
@@ -146,11 +156,18 @@ export function PlayerPage({
   const activeEmbedOrigin = useMemo(() => embedOrigin(activeLink), [activeLink])
   const roomMatchesPlayer = Boolean(
     watchTogetherState?.connected
+    && !activeLink?.torrent
     && watchTogetherContentMatches(watchTogetherState.content, catalogProvider, animeId, episode, translationType),
   )
   const roomGuestLocked = roomMatchesPlayer && watchTogetherState?.role === 'guest'
   const anikotoRoomSourceUnavailable = roomMatchesPlayer
     && shouldWarnAboutUncontrollableAnikotoSource(catalogProvider, links)
+
+  useEffect(() => {
+    if (!activeLink?.torrent || !window.aniPlay) return
+    void window.aniPlay.torrent.getState().then(setTorrentState)
+    return window.aniPlay.torrent.onChanged(setTorrentState)
+  }, [activeLink?.torrent])
 
   useEffect(() => {
     if (!roomMatchesPlayer || !activeLink?.embed) return
@@ -501,6 +518,7 @@ export function PlayerPage({
     saveProgress(true)
     flushWatchSegment(true)
     void window.aniPlay?.discordPresence.clear().catch(() => {})
+    if (activeLink?.torrent) void window.aniPlay?.torrent.stop()
   }
 
   const togglePlay = () => {
@@ -655,6 +673,15 @@ export function PlayerPage({
             : 'rounded-2xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-200'}
         >
           {t('watchTogether.anikotoDirectUnavailable')}
+        </div>
+      ) : null}
+
+      {activeLink?.torrent && torrentState ? (
+        <div className="grid grid-cols-2 gap-2 rounded-2xl border border-m3-primary/20 bg-m3-primary/5 px-4 py-3 text-xs text-m3-on-surface-variant sm:grid-cols-4" aria-label={t('torrent.sessionStats')}>
+          <span className="flex items-center gap-2"><Users size={14}/>{torrentState.peers} {t('torrent.peers')}</span>
+          <span className="flex items-center gap-2"><Download size={14}/>{formatBytes(torrentState.downloadSpeed)}/s</span>
+          <span className="flex items-center gap-2"><Upload size={14}/>{formatBytes(torrentState.uploadSpeed)}/s</span>
+          <span className="flex items-center gap-2"><Gauge size={14}/>{Math.round(torrentState.progress * 100)}%</span>
         </div>
       ) : null}
 

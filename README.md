@@ -2,7 +2,7 @@
 
 AniPlay is a Material You-inspired desktop anime browser and player built with Electron, React, TypeScript, and Vite. It combines third-party playback catalogs with AniList discovery, list management, profile statistics, achievements, local watch history, and downloads.
 
-The repository is currently at the 1.16.x line. Windows is the primary supported platform. An Electron Builder Linux target is available for testing, while macOS packaging is not configured.
+The repository is currently at the 1.17.x line. Windows is the primary supported platform. An Electron Builder Linux target is available for testing, while macOS packaging is not configured.
 
 AniPlay does not host anime or video files. Search results and playback links come from third-party providers, so availability and compatibility can change independently of the app.
 
@@ -33,6 +33,18 @@ AniPlay does not host anime or video files. Search results and playback links co
 Source availability, subtitles, native playback, and download support vary by provider and episode.
 
 Contributor documentation for the catalog, language, embed, HLS, header, and verification flow is available in [docs/ANIDB-PROVIDER.md](docs/ANIDB-PROVIDER.md).
+
+### Torrent streaming
+
+- Select an active or unavailable episode and choose **Torrent** to search Nyaa's English-translated RSS catalog.
+- Review ranked releases before starting anything. Exact episode matches, trusted uploads, seed count, resolution, and codec influence ordering; batch releases provide a file picker.
+- Stream MP4, WebM, and M4V files inside AniPlay. Install [mpv](https://mpv.io/) for MKV and other containers unsupported by Chromium.
+- See live peer count, transfer speeds, and selected-file progress while watching.
+- Configure the cache folder, size limit, deletion policy, bandwidth limits, and mpv path under **Settings -> Downloads**.
+
+Torrent playback is opt-in and never starts as an automatic provider fallback. BitTorrent is peer-to-peer: other peers can see your public IP address, and AniPlay uploads pieces while a torrent session is active. You are responsible for following the laws and content licences applicable in your region. AniPlay does not bundle media, torrent files, trackers, or a Nyaa mirror, and cannot guarantee Nyaa availability or release metadata.
+
+Torrent streams stay on the local machine and cannot be used with Watch Together. The streaming HTTP endpoint binds only to `127.0.0.1` and uses an unguessable session path.
 
 ### AniList integration
 
@@ -99,6 +111,7 @@ Confirmed bugs and provider breakage should be reported through [GitHub Issues](
 - npm, using the lockfile included in the repository.
 - Windows 10/11 for the primary development and packaging workflow.
 - Git for cloning and normal contribution workflows.
+- Optional: mpv in `PATH`, or configured under Settings, for torrent containers Chromium cannot play.
 
 Linux packaging requires the host tools expected by Electron Builder. Linux output is available but receives less coverage than Windows. macOS is not currently configured.
 
@@ -188,13 +201,14 @@ Stored data includes:
 
 - Encrypted AniList authentication token, short-lived API cache, and playback mappings.
 - Download queue/history and the selected download directory.
+- Torrent consent and settings; cached torrent pieces are stored in the configured local cache directory.
 - Ad-block settings, remote-notice state, Discord setting, graphics setting, and synchronized cipher data.
 - An append-only `viewing-events.v1.jsonl` ledger and rebuildable `viewing-summary.v1.json` aggregate.
 - Renderer preferences and up to 100 resume-history entries in Chromium local storage.
 
 Profile images and AllAnime diagnostic JSON files are generated locally through native save dialogs. AniPlay does not upload them to a separate sharing service.
 
-Normal application features still contact their respective services: playback providers, AniList, GitHub update endpoints, the provider-status endpoint, the optional Watch Together coordination Worker, filter-list hosts, image hosts, and Discord Desktop when Rich Presence is enabled.
+Normal application features still contact their respective services: playback providers, AniList, GitHub update endpoints, the provider-status endpoint, the optional Watch Together coordination Worker, filter-list hosts, image hosts, and Discord Desktop when Rich Presence is enabled. Opt-in torrent playback also contacts Nyaa for RSS discovery and exchanges torrent data directly with peers.
 
 ## Discord Rich Presence
 

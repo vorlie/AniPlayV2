@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AlertCircle, ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Loader2, MonitorPlay, Search, Sparkles } from 'lucide-react'
+import { AlertCircle, ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Loader2, Magnet, MonitorPlay, Search, Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PlayerPage } from './PlayerPage'
 import { addHistory } from '../lib/history'
@@ -8,6 +8,7 @@ import type { AnimeDetails } from '../anilist-types'
 import { buildWatchTogetherContent, hasControllableWatchTogetherSource } from '../lib/watch-together-content'
 import type { WatchTogetherCreateContext } from '../watch-together-types'
 import { useWatchTogether } from '../contexts/WatchTogetherContext'
+import { TorrentSourceDialog } from '../components/TorrentSourceDialog'
 
 interface StreamLink {
   url: string
@@ -16,6 +17,7 @@ interface StreamLink {
   provider: string
   downloadable: boolean
   embed?: boolean
+  torrent?: boolean
 }
 
 
@@ -54,6 +56,8 @@ export function AnimePage({
   const [episodeQuery, setEpisodeQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [browserFallbackEpisode, setBrowserFallbackEpisode] = useState<string | null>(null)
+  const [torrentDialogOpen, setTorrentDialogOpen] = useState(false)
+  const [torrentEpisode, setTorrentEpisode] = useState<string | null>(null)
   const [aniListMetadata, setAniListMetadata] = useState(() => ({ mediaId: anime.aniListMediaId, coverUrl: anime.coverUrl }))
   const [animeDetails, setAnimeDetails] = useState<AnimeDetails | null>(null)
   const [episodePage, setEpisodePage] = useState(0)
@@ -74,7 +78,7 @@ export function AnimePage({
     onWatchTogetherContextChange?.({
       content: buildWatchTogetherContent(anime, playingEp, playingTranslationType),
       playback: { position: 0, paused: true, revision: 0 },
-      controllable: hasControllableWatchTogetherSource(playingLinks),
+      controllable: !playingLinks.some((link) => link.torrent) && hasControllableWatchTogetherSource(playingLinks),
     })
     return () => onWatchTogetherContextChange?.(null)
   }, [anime, onWatchTogetherContextChange, playingEp, playingLinks, playingTranslationType])
@@ -104,6 +108,7 @@ export function AnimePage({
     setSourceStatusIndex(0)
     setError(null)
     setBrowserFallbackEpisode(null)
+    if (playingLinks.some((link) => link.torrent)) void window.aniPlay?.torrent.stop()
 
     invokeLinks(anime.id, ep, translationType, anime.catalogProvider).then((res) => {
       setLoadingEp(null)
@@ -138,7 +143,41 @@ export function AnimePage({
     if (watchTogetherState?.connected && watchTogetherState.role === 'host') {
       void setWatchTogetherContent(buildWatchTogetherContent(anime, ep, translationType)).catch(() => {})
     }
-  }, [anime, aniListMetadata.mediaId, aniListMetadata.coverUrl, episodes, initialEpisode, initialResumeSeconds, loadingEp, onEpisodeStarted, selectedTranslationType, setWatchTogetherContent, t, watchTogetherGuestLocked, watchTogetherState])
+  }, [anime, aniListMetadata.mediaId, aniListMetadata.coverUrl, episodes, initialEpisode, initialResumeSeconds, loadingEp, onEpisodeStarted, playingLinks, selectedTranslationType, setWatchTogetherContent, t, watchTogetherGuestLocked, watchTogetherState])
+
+  const openTorrent = useCallback((episode: string) => {
+    if (watchTogetherGuestLocked) return
+    setTorrentEpisode(episode)
+    setTorrentDialogOpen(true)
+  }, [watchTogetherGuestLocked])
+
+  const playTorrent = useCallback((stream: StreamLink) => {
+    if (!torrentEpisode) return
+    setPlayingLinks([stream])
+    setPlayingEp(torrentEpisode)
+    setPlayingTranslationType(selectedTranslationType)
+    setError(null)
+    setBrowserFallbackEpisode(null)
+    onEpisodeStarted?.(anime.id, torrentEpisode)
+    addHistory({
+      animeId: anime.id,
+      animeName: anime.name,
+      episode: torrentEpisode,
+      progressSeconds: 0,
+      aniListMediaId: aniListMetadata.mediaId,
+      coverUrl: aniListMetadata.coverUrl,
+      catalogProvider: anime.catalogProvider,
+    })
+  }, [anime, aniListMetadata.coverUrl, aniListMetadata.mediaId, onEpisodeStarted, selectedTranslationType, torrentEpisode])
+
+  const closePlayer = useCallback(() => {
+    if (playingLinks.some((link) => link.torrent)) void window.aniPlay?.torrent.stop()
+    setPlayingLinks([])
+  }, [playingLinks])
+
+  useEffect(() => () => {
+    if (playingLinks.some((link) => link.torrent)) void window.aniPlay?.torrent.stop()
+  }, [playingLinks])
 
   const selectTranslationType = useCallback((value: TranslationType) => {
     if (value === selectedTranslationType || watchTogetherGuestLocked) return
@@ -251,12 +290,23 @@ export function AnimePage({
           <Sparkles size={16} />
           <span>{t('watchTogether.title')}</span>
         </button>
+        {(playingEp || browserFallbackEpisode) && (
+          <button type="button" onClick={() => openTorrent(browserFallbackEpisode || playingEp)} disabled={watchTogetherGuestLocked} className="inline-flex items-center gap-2 rounded-full border border-m3-outline/20 bg-m3-surface-container/90 px-3 py-2 text-sm font-semibold text-m3-on-surface disabled:opacity-40">
+            <Magnet size={16} />
+            <span className="hidden sm:inline">{t('torrent.action')}</span>
+          </button>
+        )}
       </div>
 
       {error && (
         <div role="alert" className="flex items-start gap-3 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
           <AlertCircle className="mt-0.5 shrink-0" size={18} />
           <span className="flex-1">{error}</span>
+          {browserFallbackEpisode && (
+            <button type="button" onClick={() => openTorrent(browserFallbackEpisode)} disabled={watchTogetherGuestLocked} className="inline-flex shrink-0 items-center gap-1.5 font-bold hover:underline disabled:opacity-40">
+              <Magnet size={15} /> {t('torrent.tryTorrent')}
+            </button>
+          )}
           {browserFallbackEpisode && (
             <button
               type="button"
@@ -361,7 +411,7 @@ export function AnimePage({
               mode="embedded"
               links={playingLinks}
               title={`${anime.name} - Ep ${playingEp}`}
-              onBack={() => setPlayingLinks([])}
+              onBack={closePlayer}
               animeId={anime.id}
               animeName={anime.name}
               episode={playingEp}
@@ -382,6 +432,15 @@ export function AnimePage({
           )}
         </section>
       </div>
+      {torrentEpisode ? (
+        <TorrentSourceDialog
+          open={torrentDialogOpen}
+          animeName={anime.name}
+          episode={torrentEpisode}
+          onClose={() => setTorrentDialogOpen(false)}
+          onInternalPlay={playTorrent}
+        />
+      ) : null}
     </div>
   )
 }
