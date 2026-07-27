@@ -6,6 +6,8 @@ The repository is currently at the 1.17.x line. Windows is the primary supported
 
 AniPlay does not host anime or video files. Search results and playback links come from third-party providers, so availability and compatibility can change independently of the app.
 
+[Visit the AniPlay website](https://vorlie.github.io/AniPlayV2/) · [Download the latest release](https://github.com/vorlie/AniPlayV2/releases/latest) · [Join Discord](https://discord.gg/9SXX6ddpNR)
+
 ![Automated AniPlay showcase](docs/assets/aniplay-showcase.gif)
 
 ## Features

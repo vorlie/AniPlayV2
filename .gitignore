@@ -35,3 +35,6 @@ out/
 # Local deterministic showcase artifacts
 ani-cli-gui/showcase/runtime/
 ani-cli-gui/showcase/output/
+
+# Generated GitHub Pages output
+website/dist/

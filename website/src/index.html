@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="AniPlay is a focused desktop anime browser and player with AniList, Watch Together, downloads, and provider-aware playback."
+    />
+    <meta name="theme-color" content="#0b0b0d" />
+    <meta property="og:title" content="AniPlay — watch without the clutter" />
+    <meta
+      property="og:description"
+      content="A focused desktop anime browser and player for Windows and Linux."
+    />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:url"
+      content="https://vorlie.github.io/AniPlayV2/"
+    />
+    <meta
+      property="og:image"
+      content="https://vorlie.github.io/AniPlayV2/assets/aniplay-showcase.gif"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="./assets/icon.png" type="image/png" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./site.js" defer></script>
+    <title>AniPlay — watch without the clutter</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header" data-header>
+      <div class="nav-shell">
+        <a class="brand" href="#top" aria-label="AniPlay home">
+          <img src="./assets/icon.png" alt="" width="38" height="38" />
+          <span>AniPlay</span>
+        </a>
+
+        <button
+          class="nav-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="site-navigation"
+          data-nav-toggle
+        >
+          <span class="sr-only">Toggle navigation</span>
+          <span></span>
+          <span></span>
+        </button>
+
+        <nav id="site-navigation" class="site-nav" aria-label="Main navigation" data-nav>
+          <a href="#features">Features</a>
+          <a href="#providers">Providers</a>
+          <a href="#together">Watch Together</a>
+          <a href="#privacy">Privacy</a>
+          <a href="#developers">Developers</a>
+        </nav>
+
+        <a
+          class="button button-small button-quiet nav-github"
+          href="https://github.com/vorlie/AniPlayV2"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M12 .8a11.4 11.4 0 0 0-3.6 22.2c.6.1.8-.2.8-.6v-2.2c-3.4.7-4.1-1.4-4.1-1.4-.6-1.4-1.4-1.8-1.4-1.8-1.1-.8.1-.8.1-.8 1.2.1 1.9 1.3 1.9 1.3 1.1 1.9 2.9 1.4 3.6 1.1.1-.8.4-1.4.8-1.7-2.7-.3-5.6-1.4-5.6-6a4.7 4.7 0 0 1 1.3-3.3 4.4 4.4 0 0 1 .1-3.3s1-.3 3.4 1.3a11.8 11.8 0 0 1 6.2 0C17.9 4 19 4.4 19 4.4a4.4 4.4 0 0 1 .1 3.3 4.7 4.7 0 0 1 1.3 3.3c0 4.6-2.8 5.7-5.6 6 .4.4.8 1.2.8 2.4v3c0 .4.2.7.8.6A11.4 11.4 0 0 0 12 .8Z"/>
+          </svg>
+          GitHub
+        </a>
+      </div>
+    </header>
+
+    <main id="main">
+      <section id="top" class="hero section-shell">
+        <div class="hero-copy reveal">
+          <p class="eyebrow"><span></span> Desktop anime, thoughtfully assembled</p>
+          <h1>Your watchlist.<br />Your player. <em>Your room.</em></h1>
+          <p class="hero-lede">
+            AniPlay brings discovery, provider-aware playback, AniList,
+            downloads, and synchronized rooms into one focused desktop app.
+          </p>
+
+          <div class="hero-actions">
+            <a
+              class="button button-primary"
+              href="https://github.com/vorlie/AniPlayV2/releases/latest"
+              data-release-link
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14"/>
+              </svg>
+              Download <span data-latest-version>latest release</span>
+            </a>
+            <a class="button button-secondary" href="#showcase">
+              See it in motion
+            </a>
+          </div>
+
+          <div class="platform-note">
+            <span class="status-dot"></span>
+            Windows 10/11 primary
+            <span aria-hidden="true">·</span>
+            Linux builds available
+            <span aria-hidden="true">·</span>
+            GPL-3.0
+          </div>
+        </div>
+
+        <div class="hero-art reveal" aria-label="AniPlay interface preview">
+          <div class="orbit orbit-one"></div>
+          <div class="orbit orbit-two"></div>
+          <div class="app-window">
+            <div class="window-bar">
+              <div class="window-brand">
+                <img src="./assets/icon.png" alt="" width="24" height="24" />
+                <strong>AniPlay</strong>
+              </div>
+              <div class="window-controls" aria-hidden="true">
+                <span></span><span></span><span></span>
+              </div>
+            </div>
+            <div class="mock-player">
+              <div class="mock-glow"></div>
+              <div class="mock-logo">
+                <img src="./assets/icon.png" alt="" width="100" height="100" />
+                <p>Everything you need.<br /><strong>Nothing you don't.</strong></p>
+              </div>
+              <div class="mock-controls">
+                <span class="play-icon">▶</span>
+                <span class="timeline"><i></i></span>
+                <span>23:42</span>
+              </div>
+            </div>
+            <div class="mock-meta">
+              <div>
+                <span class="micro-label">NOW PLAYING</span>
+                <strong>Episode 01 · SUB</strong>
+              </div>
+              <span class="source-pill">Native HLS</span>
+            </div>
+          </div>
+          <div class="floating-card floating-room">
+            <div class="float-icon">✦</div>
+            <div>
+              <span>Watch Together</span>
+              <strong>3 friends connected</strong>
+            </div>
+            <i></i>
+          </div>
+          <div class="floating-card floating-anilist">
+            <div class="float-icon">✓</div>
+            <div>
+              <span>AniList synced</span>
+              <strong>Progress saved</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="signal-strip" aria-label="AniPlay highlights">
+        <div class="signal-inner section-shell">
+          <div><strong>6</strong><span>playback catalogs</span></div>
+          <div><strong>32</strong><span>local achievements</span></div>
+          <div><strong>10</strong><span>character room codes</span></div>
+          <div><strong>0</strong><span>hosted media files</span></div>
+        </div>
+      </section>
+
+      <section id="features" class="section section-shell">
+        <div class="section-heading reveal">
+          <p class="eyebrow"><span></span> One app, complete flow</p>
+          <h2>From “what next?” to <em>now playing.</em></h2>
+          <p>
+            AniPlay keeps discovery, playback, progress, and people connected
+            without turning your desktop into a maze of tabs.
+          </p>
+        </div>
+
+        <div class="feature-grid">
+          <article class="feature-card feature-card-large reveal">
+            <div class="card-number">01</div>
+            <div class="feature-icon">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="7"/><path d="m20 20-4-4M8 11h6M11 8v6"/>
+              </svg>
+            </div>
+            <h3>Browse with context</h3>
+            <p>
+              Search provider catalogs, explore AniList trends and relations,
+              then match the exact season with confidence-ranked mappings.
+            </p>
+            <div class="mini-list">
+              <span>AniList dashboard</span><span>Season-aware results</span><span>Grid or compact view</span>
+            </div>
+          </article>
+
+          <article class="feature-card reveal">
+            <div class="card-number">02</div>
+            <div class="feature-icon">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="m9 7 8 5-8 5V7Z"/><rect x="3" y="4" width="18" height="16" rx="3"/>
+              </svg>
+            </div>
+            <h3>Play your way</h3>
+            <p>
+              Native HLS and video, provider embeds, quality selection,
+              subtitle tracks, PiP, and persistent resume history.
+            </p>
+          </article>
+
+          <article class="feature-card reveal">
+            <div class="card-number">03</div>
+            <div class="feature-icon">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M12 3v12m0 0 4-4m-4 4-4-4M5 20h14"/>
+              </svg>
+            </div>
+            <h3>Keep it offline</h3>
+            <p>
+              Queue compatible sources, follow live FFmpeg progress, retry
+              failures, and reveal completed episodes from the app.
+            </p>
+          </article>
+
+          <article class="feature-card feature-card-wide reveal">
+            <div class="card-number">04</div>
+            <div class="feature-icon">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 20a6 6 0 0 1 12 0M14 20a5 5 0 0 1 8 0"/>
+              </svg>
+            </div>
+            <div>
+              <h3>A profile that feels alive</h3>
+              <p>
+                Sync AniList progress, inspect genre DNA and watch-time
+                statistics, unlock achievements, and generate shareable
+                profile cards locally.
+              </p>
+            </div>
+            <div class="achievement-stack" aria-hidden="true">
+              <span>Night Owl</span>
+              <span>Binge Master</span>
+              <span>Genre Explorer</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="showcase" class="showcase-section">
+        <div class="section-shell">
+          <div class="showcase-heading reveal">
+            <div>
+              <p class="eyebrow"><span></span> Real interface, synthetic data</p>
+              <h2>Take the <em>guided tour.</em></h2>
+            </div>
+            <p>
+              This deterministic showcase is generated from AniPlay's demo
+              mode. No provider traffic, account data, or copyrighted footage.
+            </p>
+          </div>
+
+          <div class="showcase-frame reveal">
+            <div class="showcase-topbar">
+              <span><i></i><i></i><i></i></span>
+              <strong>AniPlay showcase</strong>
+              <small>fixture-backed demo</small>
+            </div>
+            <img
+              src="./assets/aniplay-showcase.gif"
+              alt="AniPlay interface showcase demonstrating browsing, playback, Watch Together, downloads, and settings"
+              loading="lazy"
+              width="1440"
+              height="900"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section id="providers" class="section section-shell">
+        <div class="section-heading split-heading reveal">
+          <div>
+            <p class="eyebrow"><span></span> Provider-aware by design</p>
+            <h2>One interface.<br /><em>Independent catalogs.</em></h2>
+          </div>
+          <p>
+            Providers are kept separate, with honest capability differences
+            and visible fallbacks. AniPlay never hosts the media it discovers.
+          </p>
+        </div>
+
+        <div class="provider-table reveal">
+          <div class="provider-row provider-header">
+            <span>Catalog</span><span>Language</span><span>Best for</span><span>Status</span>
+          </div>
+          <div class="provider-row">
+            <strong>Anikoto 1</strong><span>EN · SUB/DUB</span><span>Native MegaPlay workflow</span><i>Default</i>
+          </div>
+          <div class="provider-row">
+            <strong>Anikoto 2</strong><span>EN · SUB/H-SUB/DUB</span><span>Multiple embedded servers</span><i>New</i>
+          </div>
+          <div class="provider-row">
+            <strong>AllAnime</strong><span>EN · SUB/DUB</span><span>Broad catalog coverage</span><i>Dynamic</i>
+          </div>
+          <div class="provider-row">
+            <strong>AniDB.app</strong><span>EN · SUB/DUB</span><span>Independent fallback</span><i>Verified</i>
+          </div>
+          <div class="provider-row">
+            <strong>Desu</strong><span>PL · SUB</span><span>Polish catalog</span><i>Regional</i>
+          </div>
+          <div class="provider-row">
+            <strong>Docchi</strong><span>PL · SUB</span><span>Experimental catalog</span><i>Opt-in</i>
+          </div>
+        </div>
+
+        <p class="provider-caveat reveal">
+          Availability, native playback, subtitles, and downloads vary by
+          provider, episode, region, and network.
+        </p>
+      </section>
+
+      <section id="together" class="together-section">
+        <div class="section-shell together-grid">
+          <div class="together-copy reveal">
+            <p class="eyebrow eyebrow-light"><span></span> Watch Together</p>
+            <h2>Same moment.<br /><em>Different networks.</em></h2>
+            <p>
+              Create a room from a controllable source and share a short code.
+              AniPlay coordinates playback while every participant resolves
+              media locally.
+            </p>
+            <ul class="check-list">
+              <li>Host play, pause, seek, episode, and language sync</li>
+              <li>Readiness, reconnect recovery, participants, and chat</li>
+              <li>No media URLs, provider cookies, or AniList tokens in rooms</li>
+            </ul>
+            <a class="text-link light-link" href="https://github.com/vorlie/AniPlayV2#watch-together">
+              Read how coordination works <span>→</span>
+            </a>
+          </div>
+
+          <div class="room-card reveal">
+            <div class="room-header">
+              <div>
+                <span class="live-dot"></span>
+                <strong>Room JG4211V5WM</strong>
+              </div>
+              <span>CONNECTED</span>
+            </div>
+            <div class="room-content">
+              <div class="room-show">
+                <span>PLAYING TOGETHER</span>
+                <strong>Episode 01 · SUB</strong>
+                <div class="room-progress"><i></i></div>
+                <small>18:24 / 23:42</small>
+              </div>
+              <div class="participants">
+                <div><span class="avatar avatar-one">V</span><strong>vorlie</strong><i>HOST</i></div>
+                <div><span class="avatar avatar-two">N</span><strong>nico</strong><i>READY</i></div>
+                <div><span class="avatar avatar-three">P</span><strong>patriarch</strong><i>READY</i></div>
+              </div>
+              <div class="room-message">
+                <span class="avatar avatar-two">N</span>
+                <p><strong>nico</strong>This is actually seamless.</p>
+                <small>now</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="privacy" class="section section-shell">
+        <div class="privacy-grid">
+          <div class="privacy-copy reveal">
+            <p class="eyebrow"><span></span> Local where it matters</p>
+            <h2>Your viewing setup is <em>yours.</em></h2>
+            <p>
+              AniPlay is explicit about what stays local and which services a
+              feature contacts. It does not operate a hidden media backend.
+            </p>
+          </div>
+          <div class="privacy-cards">
+            <article class="privacy-card reveal">
+              <span>01</span>
+              <div>
+                <h3>Local history</h3>
+                <p>Resume state, viewing events, preferences, and achievements stay in app data.</p>
+              </div>
+            </article>
+            <article class="privacy-card reveal">
+              <span>02</span>
+              <div>
+                <h3>Encrypted sign-in</h3>
+                <p>AniList authentication uses Electron secure storage when the platform provides it.</p>
+              </div>
+            </article>
+            <article class="privacy-card reveal">
+              <span>03</span>
+              <div>
+                <h3>Isolated providers</h3>
+                <p>Provider sessions, headers, and fallbacks are scoped rather than applied globally.</p>
+              </div>
+            </article>
+            <article class="privacy-card reveal">
+              <span>04</span>
+              <div>
+                <h3>Opt-in torrents</h3>
+                <p>Peer-to-peer playback starts only after consent and exposes its network implications.</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="torrent-callout section-shell reveal">
+        <div class="torrent-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 3v13m0 0 5-5m-5 5-5-5M4 20h16"/>
+          </svg>
+        </div>
+        <div>
+          <p class="eyebrow"><span></span> Optional peer-to-peer playback</p>
+          <h2>When catalogs aren't the answer.</h2>
+          <p>
+            Search ranked Nyaa releases, inspect seeders and file matches, then
+            stream browser-compatible containers locally—or hand MKV to mpv.
+          </p>
+        </div>
+        <div class="torrent-stats">
+          <span><strong>127.0.0.1</strong>local stream only</span>
+          <span><strong>Live</strong>peers and transfer speed</span>
+          <span><strong>You choose</strong>never automatic fallback</span>
+        </div>
+      </section>
+
+      <section id="developers" class="section developer-section">
+        <div class="section-shell">
+          <div class="developer-grid">
+            <div class="developer-copy reveal">
+              <p class="eyebrow eyebrow-light"><span></span> Built in the open</p>
+              <h2>Inspect it.<br />Break it.<br /><em>Make it better.</em></h2>
+              <p>
+                Electron, React, TypeScript, Vite, and a provider architecture
+                documented for contributors and neighboring projects.
+              </p>
+              <div class="developer-actions">
+                <a class="button button-light" href="https://github.com/vorlie/AniPlayV2">
+                  Browse source
+                </a>
+                <a class="button button-outline-light" href="https://github.com/vorlie/AniPlayV2/issues">
+                  Report an issue
+                </a>
+              </div>
+            </div>
+
+            <div class="code-card reveal" aria-label="Development commands">
+              <div class="code-topbar">
+                <span>terminal</span>
+                <div><i></i><i></i><i></i></div>
+              </div>
+              <pre><code><span class="code-muted"># Clone and start AniPlay</span>
+<span class="code-prompt">$</span> git clone https://github.com/vorlie/AniPlayV2.git
+<span class="code-prompt">$</span> cd AniPlayV2/ani-cli-gui
+<span class="code-prompt">$</span> npm ci
+<span class="code-prompt">$</span> npm run dev
+
+<span class="code-muted"># Validate a change</span>
+<span class="code-prompt">$</span> npm test
+<span class="code-prompt">$</span> npm run lint
+<span class="code-prompt">$</span> npm run build:ui</code></pre>
+            </div>
+          </div>
+
+          <div class="doc-links reveal">
+            <a href="https://github.com/vorlie/AniPlayV2/blob/main/docs/resolving/anikoto-kotocdn-resolving.md">
+              <span>Provider reference</span><strong>Anikoto + KotoCDN</strong><i>↗</i>
+            </a>
+            <a href="https://github.com/vorlie/AniPlayV2/blob/main/docs/resolving/anikoto2-resolving.md">
+              <span>Provider reference</span><strong>Anikoto 2 resolution</strong><i>↗</i>
+            </a>
+            <a href="https://github.com/vorlie/AniPlayV2/blob/main/.github/CONTRIBUTING.md">
+              <span>Project guide</span><strong>Contributing</strong><i>↗</i>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="final-cta">
+        <div class="final-glow"></div>
+        <div class="section-shell reveal">
+          <img src="./assets/icon.png" alt="" width="92" height="92" />
+          <p class="eyebrow"><span></span> Ready when you are</p>
+          <h2>Less searching.<br /><em>More watching.</em></h2>
+          <p>
+            Download AniPlay, connect AniList if you want to, and make your
+            desktop feel like your own.
+          </p>
+          <div class="hero-actions final-actions">
+            <a
+              class="button button-primary"
+              href="https://github.com/vorlie/AniPlayV2/releases/latest"
+              data-release-link
+            >
+              Download <span data-latest-version>latest release</span>
+            </a>
+            <a class="button button-secondary" href="https://discord.gg/9SXX6ddpNR">
+              Join Discord
+            </a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="section-shell footer-grid">
+        <div>
+          <a class="brand footer-brand" href="#top">
+            <img src="./assets/icon.png" alt="" width="34" height="34" />
+            <span>AniPlay</span>
+          </a>
+          <p>A focused desktop anime browser and player.</p>
+        </div>
+        <div class="footer-links">
+          <a href="https://github.com/vorlie/AniPlayV2/releases">Releases</a>
+          <a href="https://github.com/vorlie/AniPlayV2/issues">Issues</a>
+          <a href="https://github.com/vorlie/AniPlayV2/blob/main/LICENSE">GPL-3.0</a>
+          <a href="https://discord.gg/9SXX6ddpNR">Discord</a>
+        </div>
+        <p class="footer-note">
+          AniPlay does not host anime or video files. Availability depends on
+          independent third-party providers.
+        </p>
+      </div>
+      <div class="section-shell footer-bottom">
+        <span>© <span data-year></span> AniPlay contributors</span>
+        <span>Made openly on GitHub</span>
+      </div>
+    </footer>
+  </body>
+</html>
