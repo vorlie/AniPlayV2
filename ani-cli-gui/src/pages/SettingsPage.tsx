@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Bug, Check, Download, FolderOpen, Gamepad2, GitPullRequest, Globe, MessageCircle, Palette, RefreshCw, RotateCcw, Search, Shield, ShieldCheck, SlidersHorizontal, Video } from 'lucide-react'
+import { Bug, Check, Download, FolderOpen, Gamepad2, GitPullRequest, Globe, Magnet, MessageCircle, Palette, RefreshCw, RotateCcw, Search, Shield, ShieldCheck, SlidersHorizontal, Video } from 'lucide-react'
 import { ADULT_CONTENT_OPT_IN_KEY, getAdultContentOptIn, ANILIST_SEARCH_KEY, getAniListFirstSearch, getTranslationType, TRANSLATION_TYPE_KEY, type TranslationType } from '../lib/api'
 import { getNotificationSoundMode, getNotificationSoundPreset, playNotificationSound, setNotificationSoundMode, setNotificationSoundPreset, type NotificationSoundMode, type NotificationSoundPreset } from '../lib/notification-sounds'
 import { setAppLanguage, supportedLanguages, type AppLanguage } from '../i18n'
@@ -9,6 +9,7 @@ import type { UpdateState } from '../updater-types'
 import type { AdBlockMode, AdBlockState } from '../adblock-types'
 import type { AllAnimeDebugInfo } from '../scraper-types'
 import { getTheme, getThemeAccent, isValidAccent, resetThemeAccent, saveTheme, saveThemeAccent, type ThemeId } from '../lib/theme'
+import type { TorrentSettings } from '../torrent-types'
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
 type SettingsSection = 'theme' | 'player' | 'search' | 'downloads' | 'updates' | 'project' | 'adblock' | 'advanced' | 'scraper'
@@ -39,6 +40,7 @@ export function SettingsPage() {
   const [cryptoExportStatus, setCryptoExportStatus] = useState<SyncStatus>('idle')
   const [cryptoExportError, setCryptoExportError] = useState<string | null>(null)
   const [downloadDirectory, setDownloadDirectory] = useState('Loading…')
+  const [torrentSettings, setTorrentSettings] = useState<TorrentSettings | null>(null)
   const [discordPresenceEnabled, setDiscordPresenceEnabled] = useState(false)
   const [discordPresenceConnected, setDiscordPresenceConnected] = useState(false)
   const [updateState, setUpdateState] = useState<UpdateState | null>(null)
@@ -65,6 +67,10 @@ export function SettingsPage() {
     if (!window.aniPlay) return
     void window.aniPlay.updater.getState().then(setUpdateState)
     return window.aniPlay.updater.onChanged(setUpdateState)
+  }, [])
+
+  useEffect(() => {
+    void window.aniPlay?.torrent.getSettings().then(setTorrentSettings).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -248,6 +254,11 @@ export function SettingsPage() {
   const toggleKnownAdHosts = async () => {
     const state = await window.aniPlay?.adBlock.setSettings({ blockKnownAdHosts: !(adBlockState?.blockKnownAdHosts ?? true) })
     if (state) setAdBlockState(state)
+  }
+
+  const saveTorrentSettings = async (update: Partial<TorrentSettings>) => {
+    const settings = await window.aniPlay?.torrent.setSettings(update)
+    if (settings) setTorrentSettings(settings)
   }
 
   const sections: Array<{ id: SettingsSection; label: string; icon: React.ReactNode }> = [
@@ -481,6 +492,76 @@ export function SettingsPage() {
                   <FolderOpen size={16} /> {t('settings.downloads.choose')}
                 </button>
               </div>
+              {torrentSettings ? (
+                <div className="mt-4 rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4">
+                  <div className="mb-4 flex items-start gap-3">
+                    <Magnet size={20} className="mt-0.5 shrink-0 text-m3-primary" />
+                    <div>
+                      <p className="font-bold">{t('settings.downloads.torrentTitle')}</p>
+                      <p className="mt-1 text-xs leading-5 text-m3-on-surface-variant">{t('settings.downloads.torrentDescription')}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold">{t('settings.downloads.torrentCache')}</p>
+                        <p className="mt-1 truncate text-xs text-m3-on-surface-variant" title={torrentSettings.cacheDirectory}>{torrentSettings.cacheDirectory}</p>
+                      </div>
+                      <button type="button" onClick={() => void window.aniPlay?.torrent.chooseCacheDirectory().then(setTorrentSettings)} className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border border-m3-outline/30 hover:bg-m3-on-surface/10">
+                        <FolderOpen size={16} /> {t('settings.downloads.choose')}
+                      </button>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      {([
+                        ['cacheLimitGiB', 'cacheLimit', 1],
+                        ['downloadLimitKiB', 'downloadLimit', 0],
+                        ['uploadLimitKiB', 'uploadLimit', 0],
+                      ] as const).map(([key, label, minimum]) => (
+                        <label key={key} className="text-xs font-bold text-m3-on-surface-variant">
+                          {t(`settings.downloads.${label}`)}
+                          <input
+                            type="number"
+                            min={minimum}
+                            step="1"
+                            value={torrentSettings[key]}
+                            onChange={(event) => setTorrentSettings({ ...torrentSettings, [key]: Number(event.target.value) })}
+                            onBlur={() => void saveTorrentSettings({ [key]: torrentSettings[key] })}
+                            className="mt-1.5 w-full rounded-xl border border-m3-outline/20 bg-m3-surface/50 px-3 py-2 text-sm text-m3-on-surface outline-none focus:border-m3-primary/60"
+                          />
+                        </label>
+                      ))}
+                      <label className="text-xs font-bold text-m3-on-surface-variant">
+                        {t('settings.downloads.mpvPath')}
+                        <input
+                          type="text"
+                          value={torrentSettings.mpvPath}
+                          placeholder="mpv"
+                          onChange={(event) => setTorrentSettings({ ...torrentSettings, mpvPath: event.target.value })}
+                          onBlur={() => void saveTorrentSettings({ mpvPath: torrentSettings.mpvPath })}
+                          className="mt-1.5 w-full rounded-xl border border-m3-outline/20 bg-m3-surface/50 px-3 py-2 text-sm text-m3-on-surface outline-none focus:border-m3-primary/60"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {([
+                        ['deleteAfterPlayback', 'deleteAfterPlayback'],
+                        ['privacyAccepted', 'privacyAccepted'],
+                      ] as const).map(([key, label]) => (
+                        <div key={key} className="flex items-center justify-between gap-3 rounded-xl border border-m3-outline/15 p-3">
+                          <span className="text-sm font-bold">{t(`settings.downloads.${label}`)}</span>
+                          <button type="button" onClick={() => void saveTorrentSettings({ [key]: !torrentSettings[key] })} className={`h-8 w-14 shrink-0 rounded-full p-1 transition-colors ${torrentSettings[key] ? 'bg-m3-primary' : 'bg-m3-surface-variant/60'}`} aria-pressed={torrentSettings[key]}>
+                            <span className={`block size-6 rounded-full bg-white transition-transform ${torrentSettings[key] ? 'translate-x-6' : 'translate-x-0'}`} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs leading-5 text-amber-200">{t('settings.downloads.torrentPrivacy')}</p>
+                  </div>
+                </div>
+              ) : null}
             </section>
           )}
 

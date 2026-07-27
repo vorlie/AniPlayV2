@@ -27,6 +27,9 @@ import { ViewingLogService } from './services/viewing-log'
 import { WatchTogetherService } from './services/watch-together'
 import { correctedMegaPlayContentType, isMegaPlayMediaHost, isProviderOwnedFrameRequest, MEGAPLAY_MEDIA_URL_PATTERNS } from './media-headers'
 import { shouldEnableShowcaseDemo, SHOWCASE_PRELOAD_SWITCH } from './showcase/demo-mode'
+import { searchNyaa } from './torrents/nyaa'
+import { TorrentService } from './torrents/torrent-service'
+import type { TorrentRelease, TorrentSettings, TorrentStartInput } from '../src/torrent-types'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -51,7 +54,10 @@ let remoteNoticeService: RemoteNoticeService
 let adBlockService: AdBlockService
 let viewingLogService: ViewingLogService
 let watchTogetherService: WatchTogetherService
+let torrentService: TorrentService
 let pendingWatchTogetherInvite: string | null = null
+let shutdownStarted = false
+let shutdownComplete = false
 const hasSingleInstanceLock = app.requestSingleInstanceLock()
 if (!hasSingleInstanceLock) app.quit()
 
@@ -220,6 +226,58 @@ function requireCatalogProvider(value: unknown): CatalogProvider {
 function requirePositiveInteger(value: unknown, name: string): number {
   if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) throw new TypeError(`${name} must be a positive integer`)
   return value
+}
+
+function requireTorrentRelease(value: unknown): TorrentRelease {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new TypeError('Invalid torrent release')
+  const item = value as Record<string, unknown>
+  const infoHash = requireString(item.infoHash, 'infoHash', 40).toLowerCase()
+  if (!/^[a-f0-9]{40}$/.test(infoHash)) throw new TypeError('Invalid torrent info hash')
+  const numeric = (candidate: unknown, fallback = 0) => typeof candidate === 'number' && Number.isFinite(candidate) ? candidate : fallback
+  const optionalText = (candidate: unknown, max: number) => typeof candidate === 'string' && candidate.length <= max ? candidate : null
+  return {
+    id: infoHash,
+    title: requireString(item.title, 'torrent title', 500),
+    infoHash,
+    magnet: requireString(item.magnet, 'magnet', 8192),
+    size: requireString(item.size, 'torrent size', 60),
+    sizeBytes: typeof item.sizeBytes === 'number' && Number.isFinite(item.sizeBytes) && item.sizeBytes >= 0 ? item.sizeBytes : null,
+    seeders: Math.max(0, Math.round(numeric(item.seeders))),
+    leechers: Math.max(0, Math.round(numeric(item.leechers))),
+    publishedAt: optionalText(item.publishedAt, 80),
+    trusted: item.trusted === true,
+    remake: item.remake === true,
+    resolution: optionalText(item.resolution, 20),
+    codec: optionalText(item.codec, 30),
+    episode: optionalText(item.episode, 30),
+    batch: item.batch === true,
+  }
+}
+
+function requireTorrentStart(value: unknown): TorrentStartInput {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new TypeError('Invalid torrent start request')
+  const item = value as Record<string, unknown>
+  return { release: requireTorrentRelease(item.release), episode: requireString(item.episode, 'episode', 32) }
+}
+
+function requireTorrentSettings(value: unknown): Partial<TorrentSettings> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new TypeError('Invalid torrent settings')
+  const item = value as Record<string, unknown>
+  const result: Partial<TorrentSettings> = {}
+  for (const key of ['cacheLimitGiB', 'downloadLimitKiB', 'uploadLimitKiB'] as const) {
+    if (item[key] !== undefined) {
+      if (typeof item[key] !== 'number' || !Number.isFinite(item[key])) throw new TypeError(`Invalid ${key}`)
+      result[key] = item[key]
+    }
+  }
+  if (item.cacheDirectory !== undefined) result.cacheDirectory = requireString(item.cacheDirectory, 'cacheDirectory', 1000)
+  if (item.mpvPath !== undefined) {
+    if (typeof item.mpvPath !== 'string' || item.mpvPath.length > 1000) throw new TypeError('Invalid mpvPath')
+    result.mpvPath = item.mpvPath.trim()
+  }
+  if (item.deleteAfterPlayback !== undefined) result.deleteAfterPlayback = item.deleteAfterPlayback === true
+  if (item.privacyAccepted !== undefined) result.privacyAccepted = item.privacyAccepted === true
+  return result
 }
 
 function requireDownloadRequest(value: unknown): DownloadRequest {
@@ -798,6 +856,77 @@ function createWindow() {
     }
   })
 
+  ipcMain.handle('torrent:search', async (event, query: unknown, episode: unknown) => {
+    try {
+      assertTrustedSender(event)
+      return { success: true, data: await searchNyaa(requireString(query, 'torrent query', 180), requireString(episode, 'episode', 32)) }
+    } catch (error: unknown) {
+      return { success: false, error: errorMessage(error) }
+    }
+  })
+
+  ipcMain.handle('torrent:get-state', (event) => {
+    assertTrustedSender(event)
+    return torrentService.getState()
+  })
+
+  ipcMain.handle('torrent:start', async (event, value: unknown) => {
+    try {
+      assertTrustedSender(event)
+      return { success: true, data: await torrentService.start(requireTorrentStart(value)) }
+    } catch (error: unknown) {
+      return { success: false, error: errorMessage(error) }
+    }
+  })
+
+  ipcMain.handle('torrent:select-file', (event, index: unknown) => {
+    try {
+      assertTrustedSender(event)
+      if (typeof index !== 'number' || !Number.isInteger(index) || index < 0) throw new Error('fileIndex must be a non-negative integer')
+      return { success: true, data: torrentService.selectFile(index) }
+    } catch (error: unknown) {
+      return { success: false, error: errorMessage(error) }
+    }
+  })
+
+  ipcMain.handle('torrent:play-external', (event, title: unknown) => {
+    try {
+      assertTrustedSender(event)
+      torrentService.playExternal(requireString(title, 'media title', 500))
+      return { success: true }
+    } catch (error: unknown) {
+      return { success: false, error: errorMessage(error) }
+    }
+  })
+
+  ipcMain.handle('torrent:stop', async (event) => {
+    assertTrustedSender(event)
+    return torrentService.stop()
+  })
+
+  ipcMain.handle('torrent:get-settings', (event) => {
+    assertTrustedSender(event)
+    return torrentService.getSettings()
+  })
+
+  ipcMain.handle('torrent:set-settings', (event, value: unknown) => {
+    assertTrustedSender(event)
+    return torrentService.setSettings(requireTorrentSettings(value))
+  })
+
+  ipcMain.handle('torrent:choose-cache-directory', async (event) => {
+    assertTrustedSender(event)
+    const owner = BrowserWindow.fromWebContents(event.sender)
+    const options = {
+      title: 'Choose torrent cache folder',
+      defaultPath: torrentService.getSettings().cacheDirectory,
+      properties: ['openDirectory', 'createDirectory'] as Array<'openDirectory' | 'createDirectory'>,
+    }
+    const result = owner ? await dialog.showOpenDialog(owner, options) : await dialog.showOpenDialog(options)
+    if (!result.canceled && result.filePaths[0]) torrentService.setSettings({ cacheDirectory: result.filePaths[0] })
+    return torrentService.getSettings()
+  })
+
   ipcMain.handle('updater:get-state', (event) => { assertTrustedSender(event); return updateService.getState() })
   ipcMain.handle('updater:check', (event) => { assertTrustedSender(event); return updateService.check() })
   ipcMain.handle('updater:download', (event) => { assertTrustedSender(event); return updateService.download() })
@@ -868,7 +997,25 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('before-quit', () => { adBlockService?.shutdown(); remoteNoticeService?.shutdown(); updateService?.shutdown(); downloadManager?.shutdown(); aniListService?.shutdown(); watchTogetherService?.shutdown(); void discordPresenceService?.shutdown() })
+app.on('before-quit', (event) => {
+  if (shutdownComplete) return
+  event.preventDefault()
+  if (shutdownStarted) return
+  shutdownStarted = true
+  adBlockService?.shutdown()
+  remoteNoticeService?.shutdown()
+  updateService?.shutdown()
+  downloadManager?.shutdown()
+  aniListService?.shutdown()
+  watchTogetherService?.shutdown()
+  void Promise.allSettled([
+    torrentService?.shutdown(),
+    discordPresenceService?.shutdown(),
+  ]).finally(() => {
+    shutdownComplete = true
+    app.quit()
+  })
+})
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
@@ -910,6 +1057,10 @@ if (hasSingleInstanceLock) void app.whenReady().then(async () => {
     if (win && !win.isDestroyed()) win.webContents.send('downloads:changed', state)
   })
   downloadManager.initialize()
+  torrentService = new TorrentService((state) => {
+    if (win && !win.isDestroyed()) win.webContents.send('torrent:changed', state)
+  })
+  await torrentService.initialize()
   adBlockService = new AdBlockService()
   adBlockService.initialize(session.defaultSession)
   configureMediaRequestHeaders()

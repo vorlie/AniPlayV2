@@ -66,6 +66,19 @@
       "endsAt": "2026-07-22T04:00:00Z",
       "dismissible": true,
       "link": "https://github.com/vorlie/AniPlayV2/issues"
+    },
+    {
+      "id": "allanime-crypto-build-72-2026-07-27",
+      "severity": "warning",
+      "title": "AllAnime / Mkissa playback broken",
+      "message": "AllAnime updated to crypto build 72 (k7 key), causing source decoding to fail with AA_CRYPTO_STALE or NEED_CAPTCHA in AniPlay 1.16.6 and older. Switch to Anikoto until a client fix is rolled out.",
+      "providers": ["allanime"],
+      "minVersion": "1.16.6",
+      "maxVersion": null,
+      "startsAt": "2026-07-27T11:59:00Z",
+      "endsAt": null,
+      "dismissible": true,
+      "link": "https://github.com/pystardust/ani-cli/issues/1820"
     }
   ]
 }

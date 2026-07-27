@@ -9,6 +9,7 @@ import type { ProfileSharePayload } from './profile-share-types'
 import type { WatchSegmentInput, ViewingSummary } from './viewing-types'
 import type { AllAnimeDebugInfo } from './scraper-types'
 import type { WatchTogetherContent, WatchTogetherCreateInput, WatchTogetherJoinInput, WatchTogetherPlaybackState, WatchTogetherState } from './watch-together-types'
+import type { TorrentRelease, TorrentSessionState, TorrentSettings, TorrentStartInput, TorrentStartResult } from './torrent-types'
 
 interface SearchResult {
   id: string
@@ -136,6 +137,18 @@ interface AniPlayApi {
     onChanged(callback: (state: RemoteNoticeState) => void): () => void
   }
   downloads: DownloadsApi
+  torrent: {
+    search(query: string, episode: string): Promise<IpcResponse<TorrentRelease[]>>
+    getState(): Promise<TorrentSessionState>
+    start(input: TorrentStartInput): Promise<IpcResponse<TorrentStartResult>>
+    selectFile(index: number): Promise<IpcResponse<TorrentSessionState>>
+    playExternal(title: string): Promise<IpcResponse<void>>
+    stop(): Promise<TorrentSessionState>
+    getSettings(): Promise<TorrentSettings>
+    setSettings(settings: Partial<TorrentSettings>): Promise<TorrentSettings>
+    chooseCacheDirectory(): Promise<TorrentSettings>
+    onChanged(callback: (state: TorrentSessionState) => void): () => void
+  }
 }
 
 declare global {

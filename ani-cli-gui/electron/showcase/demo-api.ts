@@ -7,6 +7,7 @@ import type { RemoteNoticeState } from '../../src/remote-notice-types'
 import type { UpdateState } from '../../src/updater-types'
 import { EMPTY_VIEWING_SUMMARY } from '../../src/viewing-types'
 import type { WatchTogetherContent, WatchTogetherMessage, WatchTogetherPlaybackState, WatchTogetherState } from '../../src/watch-together-types'
+import type { TorrentSessionState, TorrentSettings } from '../../src/torrent-types'
 
 const NOW = Date.parse('2026-07-23T12:00:00Z')
 const DEMO_ID = 'showcase:starfall-atelier'
@@ -67,6 +68,8 @@ function clone<T>(value: T): T {
 export function createShowcaseApi(mediaUrl = process.env.ANIPLAY_SHOWCASE_VIDEO_URL ?? '', subtitleUrl = process.env.ANIPLAY_SHOWCASE_SUBTITLE_URL ?? '') {
   let room = idleRoom()
   const downloads: DownloadState = { jobs: [], settings: { directory: 'C:\\AniPlay Showcase\\Downloads' }, ffmpegAvailable: true, ffmpegError: null }
+  const torrentState: TorrentSessionState = { phase: 'idle', sessionId: null, infoHash: null, name: null, selectedFile: null, files: [], playbackUrl: null, downloadedBytes: 0, uploadedBytes: 0, downloadSpeed: 0, uploadSpeed: 0, progress: 0, peers: 0, error: null }
+  const torrentSettings: TorrentSettings = { cacheDirectory: 'C:\\AniPlay Showcase\\Torrents', cacheLimitGiB: 20, deleteAfterPlayback: false, downloadLimitKiB: 0, uploadLimitKiB: 0, mpvPath: '', privacyAccepted: false }
   let adBlock: AdBlockState = { mode: 'balanced', blockKnownAdHosts: true, active: true, listCount: 3, blockedCount: 7, totalBlockedCount: 128 }
   let discord: DiscordPresenceSettings = { enabled: true, connected: true }
   const roomListeners = new Set<(state: WatchTogetherState) => void>()
@@ -138,6 +141,18 @@ export function createShowcaseApi(mediaUrl = process.env.ANIPLAY_SHOWCASE_VIDEO_
       retry: async (id: string) => { const job = downloads.jobs.find((item) => item.id === id); if (job) job.status = 'queued'; emitDownloads(); return { success: Boolean(job), job: job ? clone(job) : undefined } },
       clearFinished: async () => { downloads.jobs = downloads.jobs.filter((job) => !['completed', 'failed', 'cancelled'].includes(job.status)); emitDownloads(); return { success: true } },
       chooseDirectory: async () => clone(downloads), reveal: async () => ({ success: true }), onChanged: (callback: (state: DownloadState) => void) => { downloadListeners.add(callback); return () => downloadListeners.delete(callback) },
+    },
+    torrent: {
+      search: async () => ({ success: true, data: [] }),
+      getState: async () => clone(torrentState),
+      start: async () => ({ success: false, error: 'Torrent playback is disabled in showcase mode' }),
+      selectFile: async () => ({ success: false, error: 'Torrent playback is disabled in showcase mode' }),
+      playExternal: async () => ({ success: false, error: 'Torrent playback is disabled in showcase mode' }),
+      stop: async () => clone(torrentState),
+      getSettings: async () => clone(torrentSettings),
+      setSettings: async (settings: Partial<TorrentSettings>) => Object.assign(torrentSettings, settings),
+      chooseCacheDirectory: async () => clone(torrentSettings),
+      onChanged: () => () => undefined,
     },
   }
   return api

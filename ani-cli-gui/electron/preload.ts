@@ -11,6 +11,7 @@ import type { WatchSegmentInput } from '../src/viewing-types'
 import type { WatchTogetherContent, WatchTogetherCreateInput, WatchTogetherJoinInput, WatchTogetherPlaybackState, WatchTogetherState } from '../src/watch-together-types'
 import { createShowcaseApi } from './showcase/demo-api'
 import { SHOWCASE_PRELOAD_SWITCH } from './showcase/demo-mode'
+import type { TorrentRelease, TorrentSessionState, TorrentSettings, TorrentStartInput, TorrentStartResult } from '../src/torrent-types'
 
 const productionApi = {
   search: (query: string, translationType: TranslationType, catalogProvider: CatalogProvider, aniListFirstSearch?: boolean, includeAdult?: boolean) => ipcRenderer.invoke('search', query, translationType, catalogProvider, aniListFirstSearch, includeAdult),
@@ -123,6 +124,22 @@ const productionApi = {
       const listener = (_event: Electron.IpcRendererEvent, state: DownloadState) => callback(state)
       ipcRenderer.on('downloads:changed', listener)
       return () => ipcRenderer.removeListener('downloads:changed', listener)
+    },
+  },
+  torrent: {
+    search: (query: string, episode: string): Promise<{ success: boolean; data?: TorrentRelease[]; error?: string }> => ipcRenderer.invoke('torrent:search', query, episode),
+    getState: (): Promise<TorrentSessionState> => ipcRenderer.invoke('torrent:get-state'),
+    start: (input: TorrentStartInput): Promise<{ success: boolean; data?: TorrentStartResult; error?: string }> => ipcRenderer.invoke('torrent:start', input),
+    selectFile: (index: number): Promise<{ success: boolean; data?: TorrentSessionState; error?: string }> => ipcRenderer.invoke('torrent:select-file', index),
+    playExternal: (title: string): Promise<{ success: boolean; error?: string }> => ipcRenderer.invoke('torrent:play-external', title),
+    stop: (): Promise<TorrentSessionState> => ipcRenderer.invoke('torrent:stop'),
+    getSettings: (): Promise<TorrentSettings> => ipcRenderer.invoke('torrent:get-settings'),
+    setSettings: (settings: Partial<TorrentSettings>): Promise<TorrentSettings> => ipcRenderer.invoke('torrent:set-settings', settings),
+    chooseCacheDirectory: (): Promise<TorrentSettings> => ipcRenderer.invoke('torrent:choose-cache-directory'),
+    onChanged: (callback: (state: TorrentSessionState) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, state: TorrentSessionState) => callback(state)
+      ipcRenderer.on('torrent:changed', listener)
+      return () => ipcRenderer.removeListener('torrent:changed', listener)
     },
   },
 }

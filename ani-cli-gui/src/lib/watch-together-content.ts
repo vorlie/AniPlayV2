@@ -11,10 +11,11 @@ interface WatchTogetherAnimeLike {
 
 interface WatchTogetherStreamLike {
   embed?: boolean
+  torrent?: boolean
 }
 
 export function hasControllableWatchTogetherSource(links: WatchTogetherStreamLike[]): boolean {
-  return links.some((link) => !link.embed)
+  return links.some((link) => !link.embed && !link.torrent)
 }
 
 export function shouldWarnAboutUncontrollableAnikotoSource(
