@@ -28,6 +28,8 @@ interface AnimePageProps {
   initialEpisode?: string | null
   initialResumeSeconds?: number | null
   initialTranslationType?: TranslationType | null
+  initialTorrentEpisode?: string | null
+  initialTorrentQuery?: string | null
   onEpisodeStarted?: (animeId: string, episode: string) => void
   onOpenWatchTogether?: () => void
   onWatchTogetherContextChange?: (context: WatchTogetherCreateContext | null) => void
@@ -41,23 +43,31 @@ export function AnimePage({
   initialEpisode,
   initialResumeSeconds,
   initialTranslationType,
+  initialTorrentEpisode,
+  initialTorrentQuery,
   onEpisodeStarted,
   onOpenWatchTogether,
   onWatchTogetherContextChange,
 }: AnimePageProps) {
   const { t } = useTranslation()
-  const [episodes, setEpisodes] = useState<string[]>([])
-  const [loadedEpisodesKey, setLoadedEpisodesKey] = useState('')
+  const initialSelectedTranslationType = initialTranslationType ?? getTranslationType()
+  const initialEpisodes = initialTorrentEpisode && anime.episodes > 0
+    ? Array.from({ length: anime.episodes }, (_value, index) => String(index + 1))
+    : []
+  const initialEpisodesKey = initialTorrentEpisode ? `${anime.catalogProvider}:${anime.id}:${initialSelectedTranslationType}` : ''
+  const [episodes, setEpisodes] = useState<string[]>(initialEpisodes)
+  const [loadedEpisodesKey, setLoadedEpisodesKey] = useState(initialEpisodesKey)
   const [playingLinks, setPlayingLinks] = useState<StreamLink[]>([])
   const [playingEp, setPlayingEp] = useState<string>('')
   const [playingTranslationType, setPlayingTranslationType] = useState<TranslationType>('sub')
-  const [selectedTranslationType, setSelectedTranslationType] = useState<TranslationType>(initialTranslationType ?? getTranslationType)
+  const [selectedTranslationType, setSelectedTranslationType] = useState<TranslationType>(initialSelectedTranslationType)
   const [loadingEp, setLoadingEp] = useState<string | null>(null)
   const [episodeQuery, setEpisodeQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [browserFallbackEpisode, setBrowserFallbackEpisode] = useState<string | null>(null)
-  const [torrentDialogOpen, setTorrentDialogOpen] = useState(false)
-  const [torrentEpisode, setTorrentEpisode] = useState<string | null>(null)
+  const [torrentDialogOpen, setTorrentDialogOpen] = useState(Boolean(initialTorrentEpisode))
+  const [torrentEpisode, setTorrentEpisode] = useState<string | null>(initialTorrentEpisode ?? null)
+  const [torrentCatalogDeferred, setTorrentCatalogDeferred] = useState(Boolean(initialTorrentEpisode))
   const [aniListMetadata, setAniListMetadata] = useState(() => ({ mediaId: anime.aniListMediaId, coverUrl: anime.coverUrl }))
   const [animeDetails, setAnimeDetails] = useState<AnimeDetails | null>(null)
   const [episodePage, setEpisodePage] = useState(0)
@@ -65,6 +75,7 @@ export function AnimePage({
   const [sourceStatusIndex, setSourceStatusIndex] = useState(0)
   const { state: watchTogetherState, setContent: setWatchTogetherContent } = useWatchTogether()
   const restoredRef = useRef<string | null>(null)
+  const torrentStartedRef = useRef(false)
   const supportsTranslationSwitch = anime.catalogProvider !== 'desu' && anime.catalogProvider !== 'docchi'
   const episodesKey = `${anime.catalogProvider}:${anime.id}:${selectedTranslationType}`
   const loadingEpisodes = loadedEpisodesKey !== episodesKey
@@ -153,6 +164,7 @@ export function AnimePage({
 
   const playTorrent = useCallback((stream: StreamLink) => {
     if (!torrentEpisode) return
+    torrentStartedRef.current = true
     setPlayingLinks([stream])
     setPlayingEp(torrentEpisode)
     setPlayingTranslationType(selectedTranslationType)
@@ -194,6 +206,7 @@ export function AnimePage({
   }, [handlePlay, playingEp, selectedTranslationType, watchTogetherGuestLocked])
 
   useEffect(() => {
+    if (torrentCatalogDeferred) return
     let cancelled = false
     const requestKey = episodesKey
     invokeEpisodes(anime.id, anime.catalogProvider, selectedTranslationType).then((res) => {
@@ -213,7 +226,7 @@ export function AnimePage({
       setLoadedEpisodesKey(requestKey)
     })
     return () => { cancelled = true }
-  }, [anime.id, anime.catalogProvider, selectedTranslationType, episodesKey, t])
+  }, [anime.id, anime.catalogProvider, selectedTranslationType, episodesKey, t, torrentCatalogDeferred])
 
   useEffect(() => {
     if (!initialEpisode || loadingEpisodes) return
@@ -436,8 +449,12 @@ export function AnimePage({
         <TorrentSourceDialog
           open={torrentDialogOpen}
           animeName={anime.name}
+          searchQuery={initialTorrentQuery ?? undefined}
           episode={torrentEpisode}
-          onClose={() => setTorrentDialogOpen(false)}
+          onClose={() => {
+            setTorrentDialogOpen(false)
+            if (!torrentStartedRef.current) setTorrentCatalogDeferred(false)
+          }}
           onInternalPlay={playTorrent}
         />
       ) : null}

@@ -60,6 +60,7 @@ function App() {
   const [resumeEpisode, setResumeEpisode] = useState<string | null>(null)
   const [resumeProgressSeconds, setResumeProgressSeconds] = useState<number | null>(null)
   const [resumeTranslationType, setResumeTranslationType] = useState<TranslationType | null>(null)
+  const [torrentEpisodeRequest, setTorrentEpisodeRequest] = useState<{ episode: string; query: string; nonce: number } | null>(null)
   const [downloadState, setDownloadState] = useState<DownloadState | null>(null)
   const [aniListOpenRequest, setAniListOpenRequest] = useState<{ id: number; nonce: number } | null>(null)
   const [notifications, setNotifications] = useState<AppNotification[]>(initialNotifications)
@@ -199,11 +200,21 @@ function App() {
   }
 
   const handleSelectAnime = (anime: AnimeSelection, options?: { episode?: string | null; resumeSeconds?: number | null }) => {
+    setTorrentEpisodeRequest(null)
     setResumeEpisode(options?.episode ?? null)
     setResumeProgressSeconds(options?.resumeSeconds ?? null)
     setResumeTranslationType(null)
     setActiveTab('player')
     setActiveAnime(anime)
+  }
+
+  const handleSelectTorrent = (anime: AnimeSelection, episode: string, query: string) => {
+    setResumeEpisode(null)
+    setResumeProgressSeconds(null)
+    setResumeTranslationType(null)
+    setTorrentEpisodeRequest({ episode, query, nonce: Date.now() })
+    setActiveAnime(anime)
+    setActiveTab('player')
   }
 
   const handleOpenAniListMedia = (id: number) => {
@@ -293,6 +304,7 @@ function App() {
             results={results}
             setResults={setResults}
             onSelectAnime={handleSelectAnime}
+            onSelectTorrent={handleSelectTorrent}
             onOpenAniListMedia={handleOpenAniListMedia}
           />
         )}
@@ -300,11 +312,13 @@ function App() {
         {activeAnime && (
           <div className={activeTab === 'player' ? 'flex flex-1 flex-col' : 'hidden'} aria-hidden={activeTab !== 'player'}>
             <AnimePage
-              key={`${activeAnime.id}:${resumeTranslationType ?? 'default'}:${watchTogetherPlayerNonce}`}
+              key={`${activeAnime.id}:${resumeTranslationType ?? 'default'}:${watchTogetherPlayerNonce}:${torrentEpisodeRequest?.nonce ?? 'provider'}`}
               anime={activeAnime}
               initialEpisode={resumeEpisode}
               initialResumeSeconds={resumeProgressSeconds}
               initialTranslationType={resumeTranslationType}
+              initialTorrentEpisode={torrentEpisodeRequest?.episode ?? null}
+              initialTorrentQuery={torrentEpisodeRequest?.query ?? null}
               onEpisodeStarted={handleEpisodeStarted}
               onOpenWatchTogether={openWatchTogether}
               onWatchTogetherContextChange={setWatchTogetherContext}
@@ -313,6 +327,7 @@ function App() {
                 setResumeEpisode(null)
                 setResumeProgressSeconds(null)
                 setResumeTranslationType(null)
+                setTorrentEpisodeRequest(null)
                 setActiveTab('search')
               }}
             />

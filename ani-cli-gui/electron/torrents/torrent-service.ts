@@ -149,10 +149,6 @@ export class TorrentService {
     this.validateRelease(input.release)
     if (!this.settings.privacyAccepted) throw new Error('Accept the torrent privacy notice before starting playback')
     await this.stop()
-    await this.createClient()
-    const client = this.client
-    if (!client) throw new Error('Could not initialize the torrent client')
-    this.cleanupCache()
     const sessionId = randomUUID()
     this.state = {
       ...structuredClone(EMPTY_STATE),
@@ -163,14 +159,27 @@ export class TorrentService {
     }
     this.emit()
 
+    await this.createClient()
+    const client = this.client
+    if (!client) throw new Error('Could not initialize the torrent client')
+    this.cleanupCache()
     const cachePath = join(this.settings.cacheDirectory, input.release.infoHash.toLowerCase())
     fs.mkdirSync(cachePath, { recursive: true })
-    const torrent = client.add(input.release.magnet, {
-      path: cachePath,
-      destroyStoreOnDestroy: this.settings.deleteAfterPlayback,
-    })
+    let torrent: Torrent
+    try {
+      torrent = client.add(input.release.magnet, {
+        path: cachePath,
+        destroyStoreOnDestroy: this.settings.deleteAfterPlayback,
+      })
+    } catch (error) {
+      await this.destroyClient()
+      throw new Error(`Torrent metadata is invalid: ${errorMessage(error)}`, { cause: error })
+    }
     this.activeTorrent = torrent
-    torrent.on('warning', (error) => console.warn('[torrent]', errorMessage(error)))
+    torrent.on('warning', (error) => {
+      const message = errorMessage(error)
+      if (message !== 'No nodes to query') console.warn('[torrent]', message)
+    })
     torrent.on('error', (error) => this.fail(errorMessage(error)))
     try {
       await this.waitForMetadata(torrent)
@@ -179,6 +188,11 @@ export class TorrentService {
       throw error
     }
     if (this.activeTorrent !== torrent) throw new Error('Torrent session was cancelled')
+    const resolvedInfoHash = typeof torrent.infoHash === 'string' ? torrent.infoHash.toLowerCase() : ''
+    if (resolvedInfoHash !== input.release.infoHash.toLowerCase()) {
+      await this.stop()
+      throw new Error('Nyaa returned metadata for a different torrent')
+    }
 
     const files = torrent.files.map(fileInfo).filter((file) => VIDEO_EXTENSIONS.has(extension(file.name)))
     if (!files.length) {
@@ -245,11 +259,7 @@ export class TorrentService {
   async stop(): Promise<TorrentSessionState> {
     this.activePlayer?.kill()
     this.activePlayer = null
-    const torrent = this.activeTorrent
     this.activeTorrent = null
-    if (torrent) {
-      await new Promise<void>((resolve) => torrent.destroy({ destroyStore: this.settings.deleteAfterPlayback }, () => resolve()))
-    }
     await this.destroyClient()
     this.state = { ...structuredClone(EMPTY_STATE), phase: 'stopped' }
     this.emit()
@@ -298,7 +308,10 @@ export class TorrentService {
 
   private validateRelease(release: TorrentRelease): void {
     if (!safeInfoHash(release.infoHash) || release.id !== release.infoHash) throw new Error('Invalid torrent info hash')
-    if (!release.magnet.startsWith(`magnet:?xt=urn:btih:${release.infoHash}`) || release.magnet.length > 8_192) throw new Error('Invalid torrent magnet')
+    const magnet = new URL(release.magnet)
+    if (magnet.protocol !== 'magnet:' || magnet.searchParams.get('xt')?.toLowerCase() !== `urn:btih:${release.infoHash.toLowerCase()}` || release.magnet.length > 8_192) {
+      throw new Error('Invalid torrent magnet')
+    }
   }
 
   private applyLimits(): void {
@@ -347,8 +360,24 @@ export class TorrentService {
     const client = this.client
     this.server = null
     this.client = null
-    if (server) await new Promise<void>((resolve) => server.destroy(resolve))
-    if (client) await new Promise<void>((resolve) => client.destroy(() => resolve()))
+    await new Promise<void>((resolve) => {
+      let complete = false
+      const finish = () => {
+        if (complete) return
+        complete = true
+        clearTimeout(timeout)
+        resolve()
+      }
+      const timeout = setTimeout(finish, 5_000)
+      try {
+        if (client) client.destroy(finish)
+        else if (server) server.destroy(finish)
+        else finish()
+      } catch (error) {
+        console.warn('[torrent] Cleanup failed:', errorMessage(error))
+        finish()
+      }
+    })
   }
 
   private loadSettings(): TorrentSettings {
@@ -385,7 +414,7 @@ export class TorrentService {
     const root = this.settings.cacheDirectory
     const limit = this.settings.cacheLimitGiB * 1024 ** 3
     try {
-      const activeInfoHash = this.activeTorrent?.infoHash.toLowerCase()
+      const activeInfoHash = this.activeTorrent?.infoHash?.toLowerCase()
       const entries = fs.readdirSync(root, { withFileTypes: true })
         .filter((entry) => entry.isDirectory() && safeInfoHash(entry.name) && entry.name.toLowerCase() !== activeInfoHash)
         .map((entry) => {

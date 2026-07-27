@@ -36,7 +36,7 @@ Contributor documentation for the catalog, language, embed, HLS, header, and ver
 
 ### Torrent streaming
 
-- Select an active or unavailable episode and choose **Torrent** to search Nyaa's English-translated RSS catalog.
+- Choose the magnet action directly on a title in Browse, optionally specify a season, enter an episode, and review Nyaa releases without starting the catalog provider. Torrent remains available from active or unavailable episodes too.
 - Review ranked releases before starting anything. Exact episode matches, trusted uploads, seed count, resolution, and codec influence ordering; batch releases provide a file picker.
 - Stream MP4, WebM, and M4V files inside AniPlay. Install [mpv](https://mpv.io/) for MKV and other containers unsupported by Chromium.
 - See live peer count, transfer speeds, and selected-file progress while watching.

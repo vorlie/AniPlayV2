@@ -8,6 +8,7 @@ const HASH_C = 'c'.repeat(40)
 function item(title: string, hash: string, seeders: number, trusted = 'No') {
   return `<item>
     <title>${title}</title>
+    <link>https://nyaa.si/view/1234567</link>
     <pubDate>Mon, 27 Jul 2026 12:00:00 +0000</pubDate>
     <nyaa:infoHash>${hash}</nyaa:infoHash>
     <nyaa:size>1.25 GiB</nyaa:size>
@@ -31,6 +32,8 @@ describe('Nyaa RSS parsing', () => {
       episode: '6',
       batch: false,
     })
+    expect(releases[0].magnet).toContain(`xt=urn:btih:${HASH_A}`)
+    expect(new URL(releases[0].magnet).searchParams.getAll('tr')).toHaveLength(5)
     expect(releases[0].sizeBytes).toBe(Math.round(1.25 * 1024 ** 3))
   })
 

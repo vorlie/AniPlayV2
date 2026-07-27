@@ -15,6 +15,7 @@ interface TorrentStream {
 interface Props {
   open: boolean
   animeName: string
+  searchQuery?: string
   episode: string
   onClose: () => void
   onInternalPlay: (stream: TorrentStream) => void
@@ -27,7 +28,7 @@ function bytes(value: number): string {
   return `${(value / 1024 ** index).toFixed(index > 1 ? 1 : 0)} ${units[index]}`
 }
 
-export function TorrentSourceDialog({ open, animeName, episode, onClose, onInternalPlay }: Props) {
+export function TorrentSourceDialog({ open, animeName, searchQuery, episode, onClose, onInternalPlay }: Props) {
   const { t } = useTranslation()
   const [settings, setSettings] = useState<TorrentSettings | null>(null)
   const [releases, setReleases] = useState<TorrentRelease[]>([])
@@ -45,7 +46,7 @@ export function TorrentSourceDialog({ open, animeName, episode, onClose, onInter
       if (!nextSettings.privacyAccepted) return
       setLoading(true)
       setError(null)
-      return window.aniPlay?.torrent.search(animeName, episode).then((result) => {
+      return window.aniPlay?.torrent.search(searchQuery ?? animeName, episode).then((result) => {
         if (cancelled) return
         if (!result.success) throw new Error(result.error || t('torrent.searchFailed'))
         setReleases(result.data ?? [])
@@ -62,7 +63,7 @@ export function TorrentSourceDialog({ open, animeName, episode, onClose, onInter
       cancelled = true
       unsubscribe()
     }
-  }, [animeName, episode, open, t])
+  }, [animeName, episode, open, searchQuery, t])
 
   const search = async () => {
     if (!window.aniPlay || loading) return
@@ -70,7 +71,7 @@ export function TorrentSourceDialog({ open, animeName, episode, onClose, onInter
     setError(null)
     setReleases([])
     try {
-      const result = await window.aniPlay.torrent.search(animeName, episode)
+      const result = await window.aniPlay.torrent.search(searchQuery ?? animeName, episode)
       if (!result.success) throw new Error(result.error || t('torrent.searchFailed'))
       setReleases(result.data ?? [])
       if (!result.data?.length) setError(t('torrent.noResults'))
@@ -153,7 +154,7 @@ export function TorrentSourceDialog({ open, animeName, episode, onClose, onInter
           <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-m3-primary/10 text-m3-primary"><Magnet size={21}/></span>
           <div className="min-w-0 flex-1">
             <h2 id="torrent-dialog-title" className="truncate text-xl font-black">{t('torrent.title')}</h2>
-            <p className="truncate text-sm text-m3-on-surface-variant">{animeName} · {t('downloads.episode', { episode })}</p>
+            <p className="truncate text-sm text-m3-on-surface-variant">{searchQuery ?? animeName} · {t('downloads.episode', { episode })}</p>
           </div>
           <button type="button" className="icon-button" onClick={() => void cancel()} aria-label={t('torrent.close')}><X size={20}/></button>
         </header>

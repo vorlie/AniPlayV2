@@ -7,6 +7,13 @@ const RSS = `${BASE}/?page=rss&c=1_2&f=0`
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36'
 const TIMEOUT_MS = 12_000
 const MAX_RESULTS = 100
+const FALLBACK_TRACKERS = [
+  'http://nyaa.tracker.wf:7777/announce',
+  'udp://tracker.opentrackr.org:1337/announce',
+  'udp://open.stealth.si:80/announce',
+  'udp://exodus.desync.com:6969/announce',
+  'udp://tracker.torrent.eu.org:451/announce',
+] as const
 
 function text(value: string): string {
   return value.replace(/\s+/g, ' ').trim()
@@ -69,11 +76,16 @@ export function parseNyaaRss(xml: string): TorrentRelease[] {
     const remake = namespacedText($item, 'nyaa:remake').toLowerCase() === 'yes'
     const published = text($item.find('pubDate').first().text())
     const batch = /\b(batch|complete|全集)\b/i.test(title) || /\b\d{1,4}\s*[-~]\s*\d{1,4}\b/.test(title)
+    const magnet = [
+      `xt=urn:btih:${infoHash}`,
+      `dn=${encodeURIComponent(title)}`,
+      ...FALLBACK_TRACKERS.map((tracker) => `tr=${encodeURIComponent(tracker)}`),
+    ].join('&')
     results.push({
       id: infoHash,
       title,
       infoHash,
-      magnet: `magnet:?xt=urn:btih:${infoHash}`,
+      magnet: `magnet:?${magnet}`,
       size,
       sizeBytes: parseSize(size),
       seeders,

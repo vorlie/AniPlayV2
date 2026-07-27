@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { ArrowRight, Grid2X2, List, Loader2, Search, Tv2 } from 'lucide-react'
+import { ArrowRight, Grid2X2, List, Loader2, Magnet, Search, Tv2, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { CATALOG_PROVIDER_KEY, getAniListFirstSearch, getCatalogProvider, getTranslationType, invokeSearch, type AnimeSearchResult, type CatalogProvider } from '../lib/api'
+import { buildTorrentSearchQuery } from '../lib/torrent-search'
 
 interface BrowsePageProps {
   searchQuery: string
@@ -9,6 +10,7 @@ interface BrowsePageProps {
   results: AnimeSearchResult[]
   setResults: (value: AnimeSearchResult[]) => void
   onSelectAnime: (anime: AnimeSearchResult) => void
+  onSelectTorrent: (anime: AnimeSearchResult, episode: string, query: string) => void
   onOpenAniListMedia: (id: number) => void
 }
 
@@ -23,13 +25,16 @@ function getSearchViewMode(): SearchViewMode {
   }
 }
 
-export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, onSelectAnime, onOpenAniListMedia }: BrowsePageProps) {
+export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, onSelectAnime, onSelectTorrent, onOpenAniListMedia }: BrowsePageProps) {
   const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasSearched, setHasSearched] = useState(results.length > 0)
   const [catalogProvider, setCatalogProvider] = useState<CatalogProvider>(getCatalogProvider)
   const [viewMode, setViewMode] = useState<SearchViewMode>(getSearchViewMode)
+  const [torrentTarget, setTorrentTarget] = useState<AnimeSearchResult | null>(null)
+  const [torrentEpisode, setTorrentEpisode] = useState('1')
+  const [torrentSeason, setTorrentSeason] = useState('')
   const translationType = getTranslationType()
   const aniListFirstSearch = getAniListFirstSearch()
   const providerGroups: Array<{ label: string; providers: CatalogProvider[] }> = [
@@ -99,6 +104,21 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
       return
     }
     onSelectAnime(anime)
+  }
+
+  const openTorrent = (anime: AnimeSearchResult) => {
+    setTorrentTarget(anime)
+    setTorrentEpisode('1')
+    setTorrentSeason('')
+  }
+
+  const submitTorrent = () => {
+    const episode = torrentEpisode.trim()
+    const season = torrentSeason.trim()
+    if (!torrentTarget || !/^\d+(?:\.\d+)?$/.test(episode) || (season && (!/^\d+$/.test(season) || Number(season) <= 0))) return
+    const target = torrentTarget
+    setTorrentTarget(null)
+    onSelectTorrent(target, String(Number(episode)), buildTorrentSearchQuery(target.name, torrentSeason))
   }
 
   const fallbackIndex = (index: number, className = 'size-12') => (
@@ -180,7 +200,8 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
           viewMode === 'posters' ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
             {results.map((anime, index) => (
-              <button type="button" key={`${anime.catalogProvider}:${anime.id}`} className="group overflow-hidden rounded-2xl border border-m3-outline/15 bg-m3-surface/40 text-left hover:-translate-y-0.5 hover:border-m3-primary/40 hover:bg-m3-primary/5 transition-all" onClick={() => selectResult(anime)}>
+              <div key={`${anime.catalogProvider}:${anime.id}`} className="group relative overflow-hidden rounded-2xl border border-m3-outline/15 bg-m3-surface/40 text-left hover:-translate-y-0.5 hover:border-m3-primary/40 hover:bg-m3-primary/5 transition-all">
+                <button type="button" className="block w-full text-left" onClick={() => selectResult(anime)}>
                 <span className="block aspect-[2/3] w-full overflow-hidden bg-m3-surface-variant/30">
                   {anime.coverUrl ? <img src={anime.coverUrl} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" /> : <span className="flex h-full w-full items-center justify-center text-2xl font-black text-m3-primary">{String(index + 1).padStart(2, '0')}</span>}
                 </span>
@@ -188,13 +209,18 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
                   <span className="line-clamp-2 min-h-[2.5rem] text-sm font-black group-hover:text-m3-primary transition-colors">{anime.name}</span>
                   <span className="mt-1 block truncate text-xs text-m3-on-surface-variant">{resultMeta(anime)}</span>
                 </span>
-              </button>
+                </button>
+                <button type="button" onClick={() => openTorrent(anime)} className="absolute right-2 top-2 inline-flex size-9 items-center justify-center rounded-full border border-white/20 bg-black/75 text-white shadow-lg backdrop-blur hover:bg-m3-primary" title={t('torrent.fromSearch')} aria-label={t('torrent.forTitle', { title: anime.name })}>
+                  <Magnet size={16} />
+                </button>
+              </div>
             ))}
           </div>
           ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
             {results.map((anime, index) => (
-              <button type="button" key={`${anime.catalogProvider}:${anime.id}`} className="group rounded-2xl border border-m3-outline/15 bg-m3-surface/40 p-3.5 text-left flex items-center gap-3 hover:-translate-y-0.5 hover:border-m3-primary/40 hover:bg-m3-primary/5 transition-all" onClick={() => selectResult(anime)}>
+              <div key={`${anime.catalogProvider}:${anime.id}`} className="group rounded-2xl border border-m3-outline/15 bg-m3-surface/40 p-2 text-left flex items-center gap-1 hover:-translate-y-0.5 hover:border-m3-primary/40 hover:bg-m3-primary/5 transition-all">
+                <button type="button" className="flex min-w-0 flex-1 items-center gap-3 p-1.5 text-left" onClick={() => selectResult(anime)}>
                 {anime.coverUrl ? (
                   <span className="size-12 shrink-0 overflow-hidden rounded-xl bg-m3-surface-variant/30">
                     <img src={anime.coverUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
@@ -205,7 +231,11 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
                   <span className="block mt-0.5 text-xs text-m3-on-surface-variant">{resultMeta(anime)}</span>
                 </span>
                 <ArrowRight size={18} className="shrink-0 text-m3-outline transition-transform group-hover:translate-x-1 group-hover:text-m3-primary" />
-              </button>
+                </button>
+                <button type="button" onClick={() => openTorrent(anime)} className="icon-button shrink-0 text-m3-on-surface-variant hover:text-m3-primary" title={t('torrent.fromSearch')} aria-label={t('torrent.forTitle', { title: anime.name })}>
+                  <Magnet size={17} />
+                </button>
+              </div>
             ))}
           </div>
           )
@@ -217,6 +247,35 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
           </div>
         )}
       </section>
+      {torrentTarget ? (
+        <div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-labelledby="torrent-episode-title" onKeyDown={(event) => { if (event.key === 'Escape') setTorrentTarget(null) }}>
+          <form className="m3-card w-full max-w-md border border-m3-outline/20 p-5 shadow-2xl" onSubmit={(event) => { event.preventDefault(); submitTorrent() }}>
+            <div className="flex items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-m3-primary/10 text-m3-primary"><Magnet size={20}/></span>
+              <div className="min-w-0 flex-1">
+                <h3 id="torrent-episode-title" className="text-xl font-black">{t('torrent.searchTitle')}</h3>
+                <p className="mt-1 truncate text-sm text-m3-on-surface-variant">{torrentTarget.name}</p>
+              </div>
+              <button type="button" className="icon-button" onClick={() => setTorrentTarget(null)} aria-label={t('torrent.close')}><X size={19}/></button>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <label htmlFor="torrent-season" className="block text-sm font-bold">
+                {t('torrent.seasonLabel')}
+                <input id="torrent-season" autoFocus inputMode="numeric" placeholder={t('torrent.seasonPlaceholder')} value={torrentSeason} onChange={(event) => setTorrentSeason(event.target.value)} className="mt-2 w-full rounded-xl border border-m3-outline/25 bg-m3-surface/50 px-4 py-3 outline-none focus:border-m3-primary/60" />
+              </label>
+              <label htmlFor="torrent-episode" className="block text-sm font-bold">
+                {t('torrent.episodeLabel')}
+                <input id="torrent-episode" inputMode="decimal" value={torrentEpisode} onChange={(event) => setTorrentEpisode(event.target.value)} className="mt-2 w-full rounded-xl border border-m3-outline/25 bg-m3-surface/50 px-4 py-3 outline-none focus:border-m3-primary/60" />
+              </label>
+            </div>
+            <p className="mt-2 text-xs text-m3-on-surface-variant">{t('torrent.searchHint')}</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setTorrentTarget(null)} className="rounded-full px-4 py-2 text-sm font-bold text-m3-on-surface-variant hover:bg-m3-on-surface/10">{t('torrent.cancel')}</button>
+              <button type="submit" disabled={!/^\d+(?:\.\d+)?$/.test(torrentEpisode.trim()) || Boolean(torrentSeason.trim() && (!/^\d+$/.test(torrentSeason.trim()) || Number(torrentSeason) <= 0))} className="primary-action px-5 py-2 disabled:opacity-40"><Magnet size={16}/>{t('torrent.findReleases')}</button>
+            </div>
+          </form>
+        </div>
+      ) : null}
     </div>
   )
 }
