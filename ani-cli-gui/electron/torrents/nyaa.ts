@@ -118,10 +118,33 @@ export function rankNyaaReleases(releases: TorrentRelease[], episode: string): T
     .sort((a, b) => scoreRelease(b, episode) - scoreRelease(a, episode) || b.seeders - a.seeders)
 }
 
-export async function searchNyaa(query: string, episode: string): Promise<TorrentRelease[]> {
+export function buildNyaaSearchQueries(query: string, episode: string): string[] {
   const normalized = query.trim().slice(0, 180)
   if (!normalized) return []
-  const url = `${RSS}&q=${encodeURIComponent(normalized)}`
+
+  const existingSuffix = normalized.match(/\bS0?(\d{1,2})E0?(\d{1,4}(?:\.\d+)?)\b/i)
+  if (existingSuffix && Number(existingSuffix[2]) === Number(episode)) return [normalized]
+  const seasonMatch = normalized.match(
+    /\b(?:season\s*0?(\d{1,2})|s0?(\d{1,2})(?!e\d)|(\d{1,2})(?:st|nd|rd|th)\s+season)\b/i,
+  )
+  const season = Number(seasonMatch?.[1] ?? seasonMatch?.[2] ?? seasonMatch?.[3] ?? 1)
+  const episodeNumber = Number(episode)
+  if (!Number.isFinite(episodeNumber) || episodeNumber <= 0) return [normalized]
+
+  const compactTitle = seasonMatch
+    ? `${normalized.slice(0, seasonMatch.index)} ${normalized.slice((seasonMatch.index ?? 0) + seasonMatch[0].length)}`.replace(/\s+/g, ' ').trim()
+    : normalized
+  const compactEpisode = Number.isInteger(episodeNumber)
+    ? String(episodeNumber).padStart(2, '0')
+    : String(episodeNumber)
+  const suffixQuery = `${compactTitle} S${String(season).padStart(2, '0')}E${compactEpisode}`
+  return suffixQuery.toLowerCase() === normalized.toLowerCase()
+    ? [normalized]
+    : [normalized, suffixQuery]
+}
+
+async function fetchNyaa(query: string): Promise<TorrentRelease[]> {
+  const url = `${RSS}&q=${encodeURIComponent(query)}`
   const response = await fetch(url, {
     headers: { Accept: 'application/rss+xml, application/xml, text/xml;q=0.9', 'User-Agent': USER_AGENT },
     signal: AbortSignal.timeout(TIMEOUT_MS),
@@ -131,5 +154,22 @@ export async function searchNyaa(query: string, episode: string): Promise<Torren
   if (!response.ok) throw new Error(`Nyaa search failed (${response.status})`)
   const xml = await response.text()
   if (!/<rss[\s>]/i.test(xml)) throw new Error('Nyaa returned an invalid RSS response')
-  return rankNyaaReleases(parseNyaaRss(xml), episode)
+  return parseNyaaRss(xml)
+}
+
+export async function searchNyaa(query: string, episode: string): Promise<TorrentRelease[]> {
+  const queries = buildNyaaSearchQueries(query, episode)
+  if (!queries.length) return []
+
+  const responses = await Promise.allSettled(queries.map(fetchNyaa))
+  const releases = new Map<string, TorrentRelease>()
+  for (const response of responses) {
+    if (response.status !== 'fulfilled') continue
+    for (const release of response.value) releases.set(release.infoHash, release)
+  }
+  if (!releases.size) {
+    const failure = responses.find((response): response is PromiseRejectedResult => response.status === 'rejected')
+    if (failure) throw failure.reason
+  }
+  return rankNyaaReleases([...releases.values()], String(Number(episode)))
 }

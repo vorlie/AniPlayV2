@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { extractTorrentEpisode, parseNyaaRss, parseSize, rankNyaaReleases } from './nyaa'
+import { buildNyaaSearchQueries, extractTorrentEpisode, parseNyaaRss, parseSize, rankNyaaReleases } from './nyaa'
 
 const HASH_A = 'a'.repeat(40)
 const HASH_B = 'b'.repeat(40)
@@ -63,5 +63,23 @@ describe('Nyaa RSS parsing', () => {
     expect(parseSize('512 MiB')).toBe(512 * 1024 ** 2)
     expect(parseSize('2 GB')).toBe(2 * 1024 ** 3)
     expect(parseSize('unknown')).toBeNull()
+  })
+
+  it('adds SXXEXX searches alongside broad title searches', () => {
+    expect(buildNyaaSearchQueries('Dan Da Dan Season 2', '6')).toEqual([
+      'Dan Da Dan Season 2',
+      'Dan Da Dan S02E06',
+    ])
+    expect(buildNyaaSearchQueries('Example S02', '12')).toEqual([
+      'Example S02',
+      'Example S02E12',
+    ])
+    expect(buildNyaaSearchQueries('Frieren', '3')).toEqual([
+      'Frieren',
+      'Frieren S01E03',
+    ])
+    expect(buildNyaaSearchQueries('Example S02E06', '6')).toEqual([
+      'Example S02E06',
+    ])
   })
 })
