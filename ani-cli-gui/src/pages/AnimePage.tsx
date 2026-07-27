@@ -144,12 +144,12 @@ export function AnimePage({
         })
       } else {
         setError(res.error || t('anime.noStreams'))
-        if (anime.catalogProvider === 'desu' || anime.catalogProvider === 'docchi' || anime.catalogProvider === 'anidb' || anime.catalogProvider === 'anikoto') setBrowserFallbackEpisode(ep)
+        if (anime.catalogProvider === 'desu' || anime.catalogProvider === 'docchi' || anime.catalogProvider === 'anidb' || anime.catalogProvider === 'anikoto' || anime.catalogProvider === 'anikoto2') setBrowserFallbackEpisode(ep)
       }
     }).catch((cause: unknown) => {
       setLoadingEp(null)
       setError(cause instanceof Error ? cause.message : t('anime.lookupFailed'))
-      if (anime.catalogProvider === 'desu' || anime.catalogProvider === 'docchi' || anime.catalogProvider === 'anidb' || anime.catalogProvider === 'anikoto') setBrowserFallbackEpisode(ep)
+      if (anime.catalogProvider === 'desu' || anime.catalogProvider === 'docchi' || anime.catalogProvider === 'anidb' || anime.catalogProvider === 'anikoto' || anime.catalogProvider === 'anikoto2') setBrowserFallbackEpisode(ep)
     })
     if (watchTogetherState?.connected && watchTogetherState.role === 'host') {
       void setWatchTogetherContent(buildWatchTogetherContent(anime, ep, translationType)).catch(() => {})

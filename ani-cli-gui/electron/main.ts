@@ -19,6 +19,7 @@ import { UpdateService } from './services/updater'
 import { RemoteNoticeService } from './services/remote-notices'
 import { getAniDbEpisodePageUrl, getAniDbMediaHeaders } from './providers/anidb'
 import { getAnikotoEpisodePageUrl } from './providers/anikoto'
+import { getAnikoto2EpisodePageUrl } from './providers/anikoto2'
 import { AdBlockService } from './services/adblock'
 import type { AdBlockSettings } from '../src/adblock-types'
 import type { ProfileSharePayload } from '../src/profile-share-types'
@@ -219,7 +220,7 @@ function requireTranslationType(value: unknown): TranslationType {
 }
 
 function requireCatalogProvider(value: unknown): CatalogProvider {
-  if (value !== 'allanime' && value !== 'desu' && value !== 'docchi' && value !== 'anidb' && value !== 'anikoto') throw new TypeError('catalogProvider must be allanime, desu, docchi, anidb, or anikoto')
+  if (value !== 'allanime' && value !== 'desu' && value !== 'docchi' && value !== 'anidb' && value !== 'anikoto' && value !== 'anikoto2') throw new TypeError('catalogProvider must be allanime, desu, docchi, anidb, anikoto, or anikoto2')
   return value
 }
 
@@ -554,7 +555,7 @@ function createWindow() {
       id: requireString(value.id, 'animeId', 1000),
       name: requireString(value.name, 'animeName', 300),
       episodes: typeof value.episodes === 'number' && Number.isInteger(value.episodes) && value.episodes >= 0 ? value.episodes : 0,
-      catalogProvider: value.catalogProvider === 'desu' || value.catalogProvider === 'docchi' || value.catalogProvider === 'anidb' || value.catalogProvider === 'anikoto' ? value.catalogProvider : 'allanime',
+      catalogProvider: value.catalogProvider === 'desu' || value.catalogProvider === 'docchi' || value.catalogProvider === 'anidb' || value.catalogProvider === 'anikoto' || value.catalogProvider === 'anikoto2' ? value.catalogProvider : 'allanime',
     }
     return aniListService.resolveAniListMetadata(normalized, mode)
   })
@@ -608,6 +609,8 @@ function createWindow() {
             ? getAniDbEpisodePageUrl(animeId)
             : provider === 'anikoto'
               ? await getAnikotoEpisodePageUrl(animeId, episode, mode)
+              : provider === 'anikoto2'
+                ? getAnikoto2EpisodePageUrl(animeId, episode)
               : null
       if (!url) throw new Error('Browser fallback is not available for this provider')
       await shell.openExternal(url)

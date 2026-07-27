@@ -22,7 +22,7 @@ export function shouldWarnAboutUncontrollableAnikotoSource(
   provider: CatalogProvider,
   links: WatchTogetherStreamLike[],
 ): boolean {
-  return provider === 'anikoto' && links.length > 0 && !hasControllableWatchTogetherSource(links)
+  return (provider === 'anikoto' || provider === 'anikoto2') && links.length > 0 && !hasControllableWatchTogetherSource(links)
 }
 
 export function buildWatchTogetherContent(

@@ -1,6 +1,0 @@
-feat(watch-together): add beta room-based co-watching support for 1.16.0
-
-- add a Cloudflare Worker and Durable Object room backend
-- wire Electron IPC and UI for create/join/leave/chat flows
-- add deep-link invite handling and custom-domain deployment config
-- document safe deployment guidance for rollout

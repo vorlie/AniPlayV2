@@ -53,7 +53,8 @@ function providerLabel(provider: CatalogProvider) {
   if (provider === 'desu') return 'Desu'
   if (provider === 'docchi') return 'Docchi'
   if (provider === 'anidb') return 'AniDB.app'
-  return 'Anikoto'
+  if (provider === 'anikoto2') return 'Anikoto 2'
+  return 'Anikoto 1'
 }
 
 function queryCandidates(media: AnimeSummary) {

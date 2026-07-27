@@ -13,11 +13,12 @@ AniPlay does not host anime or video files. Search results and playback links co
 ### Browsing and playback
 
 - Search in compact-list or poster-grid layouts.
-- Switch between five playback catalogs:
+- Switch between six playback catalogs:
 
   | Provider | Catalog | Notes |
   | --- | --- | --- |
-  | Anikoto | English sub/dub | Default provider; optional experimental AniList-first search |
+  | Anikoto 1 | English sub/dub | Default API/MegaPlay provider; optional experimental AniList-first search |
+  | Anikoto 2 | English SUB/H-SUB/DUB | Independent anikoto.cz catalog with multiple embedded-player servers |
   | AllAnime | English sub/dub | Dynamic crypto bootstrap with bundled fallback data |
   | AniDB.app | English sub/dub | Independent native catalog; may request in-app Cloudflare verification |
   | Desu | Polish subtitles | Polish catalog and supported provider mirrors |
@@ -32,7 +33,7 @@ AniPlay does not host anime or video files. Search results and playback links co
 
 Source availability, subtitles, native playback, and download support vary by provider and episode.
 
-Contributor documentation for the catalog, language, embed, HLS, header, and verification flow is available in [docs/ANIDB-PROVIDER.md](docs/ANIDB-PROVIDER.md).
+Contributor documentation for provider workflows is available in [docs/ANIDB-PROVIDER.md](docs/ANIDB-PROVIDER.md) and [docs/ANIKOTO2-PROVIDER.md](docs/ANIKOTO2-PROVIDER.md).
 
 ### Torrent streaming
 

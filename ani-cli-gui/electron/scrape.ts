@@ -6,6 +6,7 @@ import { getDesuEpisodeLinks, getDesuEpisodes, searchDesu } from './providers/de
 import { getDocchiEpisodeLinks, getDocchiEpisodes, searchDocchi } from './providers/docchi'
 import { getAniDbEpisodeLinks, getAniDbEpisodes, searchAniDb } from './providers/anidb'
 import { getAnikotoEpisodeLinks, getAnikotoEpisodes, searchAnikoto } from './providers/anikoto'
+import { getAnikoto2EpisodeLinks, getAnikoto2Episodes, searchAnikoto2 } from './providers/anikoto2'
 import { expandWixRepackagerUrl } from './providers/allanime-utils'
 import type { CatalogProvider } from '../src/catalog-types'
 import type { AllAnimeDebugInfo } from '../src/scraper-types'
@@ -130,6 +131,7 @@ export async function searchAnime(query: string, mode: TranslationType, catalogP
   if (catalogProvider === 'docchi') return searchDocchi(query, includeAdult)
   if (catalogProvider === 'anidb') return searchAniDb(query, includeAdult)
   if (catalogProvider === 'anikoto') return searchAnikoto(query, aniListFirstSearch)
+  if (catalogProvider === 'anikoto2') return searchAnikoto2(query)
   const searchGql = `query( $search: SearchInput $limit: Int $page: Int $translationType: VaildTranslationTypeEnumType $countryOrigin: VaildCountryOriginEnumType ) { shows( search: $search limit: $limit page: $page translationType: $translationType countryOrigin: $countryOrigin ) { edges { _id name availableEpisodes __typename } }}`
 
   const variables = {
@@ -173,6 +175,7 @@ export async function getEpisodes(showId: string, mode: TranslationType, catalog
   if (catalogProvider === 'docchi') return getDocchiEpisodes(showId)
   if (catalogProvider === 'anidb') return getAniDbEpisodes(showId)
   if (catalogProvider === 'anikoto') return getAnikotoEpisodes(showId)
+  if (catalogProvider === 'anikoto2') return getAnikoto2Episodes(showId, mode)
   const episodesListGql = `query ($showId: String!) { show( _id: $showId ) { _id availableEpisodesDetail }}`
   const json = await fetchJson(ALLANIME_API, {
     method: 'POST',
@@ -511,6 +514,7 @@ export async function getEpisodeLinks(showId: string, epNo: string, mode: Transl
     if (catalogProvider === 'docchi') return getDocchiEpisodeLinks(showId, epNo)
     if (catalogProvider === 'anidb') return getAniDbEpisodeLinks(showId, epNo, mode)
     if (catalogProvider === 'anikoto') return getAnikotoEpisodeLinks(showId, epNo, mode)
+    if (catalogProvider === 'anikoto2') return getAnikoto2EpisodeLinks(showId, epNo, mode)
     const queryHash = ALLANIME_QUERY_HASH
     const queryVars = { showId, translationType: mode, episodeString: epNo }
     const dynamicMaterial = await getAllAnimeCryptoMaterial()

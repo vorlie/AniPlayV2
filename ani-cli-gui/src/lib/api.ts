@@ -35,7 +35,7 @@ export function getCatalogProvider(): CatalogProvider {
     localStorage.setItem(CATALOG_PROVIDER_KEY, 'anidb')
     return 'anidb'
   }
-  return provider === 'allanime' || provider === 'desu' || provider === 'docchi' || provider === 'anidb' || provider === 'anikoto' ? provider : DEFAULT_CATALOG_PROVIDER
+  return provider === 'allanime' || provider === 'desu' || provider === 'docchi' || provider === 'anidb' || provider === 'anikoto' || provider === 'anikoto2' ? provider : DEFAULT_CATALOG_PROVIDER
 }
 
 export function getAniListFirstSearch(): boolean {

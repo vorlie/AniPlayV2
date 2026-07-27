@@ -250,7 +250,8 @@ const resources = {
           docchi: 'Searching Docchi for Polish-subtitled anime. Experimental provider support.',
           anidb: 'Searching AniDB.app for English sub and dub anime.',
           anikotoFirst: 'Searching AniList first, then Anikoto provider matches.',
-          anikoto: 'Searching Anikoto for English sub and dub anime.',
+          anikoto: 'Searching Anikoto 1 through the Anikoto API and MegaPlay.',
+          anikoto2: 'Searching Anikoto 2 on anikoto.cz for SUB, H-SUB, and DUB embed servers.',
           allanime: 'Searching the {{mode}} AllAnime catalog.',
         },
         modeDubbed: 'dubbed',
@@ -316,8 +317,13 @@ const resources = {
             'Resolving supported player sources...',
           ],
           anikoto: [
-            'Resolving Anikoto episode sources...',
-            'Checking available stream servers...',
+            'Resolving Anikoto 1 episode sources...',
+            'Checking MegaPlay stream servers...',
+          ],
+          anikoto2: [
+            'Loading the Anikoto 2 episode session...',
+            'Collecting SUB, H-SUB, and DUB embed servers...',
+            'Resolving the available anikoto.cz players...',
           ],
           anidb: [
             'Resolving AniDB.app provider sources...',
@@ -860,7 +866,8 @@ const resources = {
           docchi: 'Wyszukiwanie anime z polskimi napisami w Docchi. Eksperymentalna obsługa dostawcy.',
           anidb: 'Wyszukiwanie anime z angielskim sub i dub w AniDB.app.',
           anikotoFirst: 'Najpierw AniList, potem dopasowania dostawcy Anikoto.',
-          anikoto: 'Wyszukiwanie anime z angielskim sub i dub w Anikoto.',
+          anikoto: 'Wyszukiwanie w Anikoto 1 przez API Anikoto i MegaPlay.',
+          anikoto2: 'Wyszukiwanie w Anikoto 2 na anikoto.cz z serwerami SUB, H-SUB i DUB.',
           allanime: 'Wyszukiwanie katalogu AllAnime: {{mode}}.',
         },
         modeDubbed: 'dubbing',
@@ -926,8 +933,13 @@ const resources = {
             'Szukam obsługiwanych źródeł odtwarzania...',
           ],
           anikoto: [
-            'Szukam źródeł odcinka w Anikoto...',
-            'Sprawdzam dostępne serwery streamu...',
+            'Szukam źródeł odcinka w Anikoto 1...',
+            'Sprawdzam serwery MegaPlay...',
+          ],
+          anikoto2: [
+            'Ładuję sesję odcinka Anikoto 2...',
+            'Zbieram serwery embed SUB, H-SUB i DUB...',
+            'Rozwiązuję dostępne odtwarzacze anikoto.cz...',
           ],
           anidb: [
             'Szukam źródeł dostawcy AniDB.app...',
