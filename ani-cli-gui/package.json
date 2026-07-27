@@ -40,7 +40,12 @@
     "productName": "AniPlay",
     "icon": "build/icon.png",
     "protocols": [
-      { "name": "AniPlay Watch Together", "schemes": ["aniplay"] }
+      {
+        "name": "AniPlay Watch Together",
+        "schemes": [
+          "aniplay"
+        ]
+      }
     ],
     "files": [
       "dist/**",
@@ -106,6 +111,7 @@
     "@emnapi/runtime": "^1.11.2",
     "@ghostery/adblocker-electron": "^2.18.1",
     "@material/material-color-utilities": "^0.4.0",
+    "bufferutil": "^4.1.0",
     "cheerio": "^1.2.0",
     "clsx": "^2.1.1",
     "discord-rpc": "^4.0.1",
