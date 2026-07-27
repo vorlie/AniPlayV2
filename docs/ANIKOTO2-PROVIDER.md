@@ -5,6 +5,9 @@ AniPlay treats `anikoto.cz` as **Anikoto 2**, a provider independent from the ex
 For the complete request sequence, response shapes, token handling, diagnostics, security guidance, and an integration
 checklist for other projects, see [`anikoto2-resolving.md`](./resolving/anikoto2-resolving.md).
 
+For a command-by-command scraping and diagnostics reference, see
+[`anikoto2-scraping-commands.md`](./resolving/anikoto2-scraping-commands.md).
+
 | AniPlay name | Catalog and player workflow |
 | --- | --- |
 | Anikoto 1 | `anikotoapi.site` → MegaPlay → native media or MegaPlay embed |

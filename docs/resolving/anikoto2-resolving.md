@@ -19,6 +19,9 @@ It also documents the distinction between Anikoto 1 and Anikoto 2, the optional 
 
 Although this document describes AniPlay's implementation, it may be used as a reference by ani-cli contributors and other projects integrating `anikoto.cz` or another catalog-to-server-matrix provider. The endpoint shapes described here are observed private implementation details, not a stable public API. Isolate them behind a provider module and expect them to change.
 
+For copyable PowerShell and curl commands covering every request stage, see
+[`anikoto2-scraping-commands.md`](./anikoto2-scraping-commands.md).
+
 The implementation discussed here lives primarily in:
 
 - `ani-cli-gui/electron/providers/anikoto2.ts`
