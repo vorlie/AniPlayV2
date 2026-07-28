@@ -498,6 +498,10 @@ const resources = {
               name: 'Classic Ember',
               description: 'Compact near-black panels, crisp edges, and restrained effects.',
             },
+            editorial: {
+              name: 'AniPlay Editorial',
+              description: 'Ink-black surfaces, print-inspired type, warm texture, and vivid editorial accents.',
+            },
           },
         },
         player: {
@@ -1113,6 +1117,10 @@ const resources = {
             'classic-ember': {
               name: 'Classic Ember',
               description: 'Kompaktowe, niemal czarne panele, ostre krawędzie i subtelne efekty.',
+            },
+            editorial: {
+              name: 'AniPlay Editorial',
+              description: 'Atramentowa czerń, typografia inspirowana drukiem, ciepła faktura i wyraziste akcenty.',
             },
           },
         },

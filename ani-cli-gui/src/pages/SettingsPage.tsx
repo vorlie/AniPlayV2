@@ -307,7 +307,7 @@ export function SettingsPage() {
               </h3>
               <p className="mb-4 text-sm text-m3-on-surface-variant">{t('settings.theme.description')}</p>
               <div className="mb-5 grid gap-3 sm:grid-cols-2">
-                {(['modern', 'classic-ember'] as ThemeId[]).map((option) => {
+                {(['modern', 'classic-ember', 'editorial'] as ThemeId[]).map((option) => {
                   const selected = themeId === option
                   return (
                     <button

@@ -73,7 +73,7 @@ describe('theme preferences', () => {
       'theme.primary.modern': 'purple',
     })
 
-    expect(getTheme(storage)).toBe('modern')
+    expect(getTheme(storage)).toBe('editorial')
     expect(getThemeAccent('modern', storage)).toBe(THEME_DEFINITIONS.modern.defaultAccent)
   })
 
@@ -98,13 +98,32 @@ describe('theme preferences', () => {
 
     expect(saveThemeAccent('modern', '#123456', storage, root)).toBe(true)
     expect(saveThemeAccent('classic-ember', '#abcdef', storage, root)).toBe(true)
+    expect(saveThemeAccent('editorial', '#fedcba', storage, root)).toBe(true)
     expect(saveThemeAccent('classic-ember', 'invalid', storage, root)).toBe(false)
     expect(getThemeAccent('modern', storage)).toBe('#123456')
     expect(getThemeAccent('classic-ember', storage)).toBe('#ABCDEF')
+    expect(getThemeAccent('editorial', storage)).toBe('#FEDCBA')
 
     expect(resetThemeAccent('classic-ember', storage, root)).toBe(THEME_DEFINITIONS['classic-ember'].defaultAccent)
     expect(getThemeAccent('classic-ember', storage)).toBe(THEME_DEFINITIONS['classic-ember'].defaultAccent)
     expect(getThemeAccent('modern', storage)).toBe('#123456')
+    expect(getThemeAccent('editorial', storage)).toBe('#FEDCBA')
+  })
+
+  it('applies the Editorial palette and its website-inspired secondary accent', () => {
+    const storage = new MemoryStorage({
+      [THEME_STORAGE_KEY]: 'editorial',
+      'theme.primary.editorial': '#ff5338',
+    })
+    const { root, properties } = fakeRoot()
+
+    expect(initializeTheme(storage, root)).toEqual({ themeId: 'editorial', accent: '#FF5338' })
+    expect(root.dataset.theme).toBe('editorial')
+    expect(properties.get('--color-m3-surface')).toBe('#0A0A0C')
+    expect(properties.get('--color-m3-surface-container')).toBe('#17171A')
+    expect(properties.get('--color-m3-primary')).toBe('#FF5338')
+    expect(properties.get('--color-m3-secondary')).toBe('#72E6BE')
+    expect(properties.get('--color-m3-on-surface')).toBe('#F5F2ED')
   })
 
   it('synchronously applies the selected preset during initialization', () => {
