@@ -40,10 +40,22 @@ jobs:
 
       - name: Install MkDocs & Build Docs
         run: |
-          pip install mkdocs-material
-          mkdocs build --site-dir website/dist/docs
+          # `mkdocs-material` bundles the theme and `pymdown-extensions`,
+          # both of which are required because `mkdocs.yml` enables
+          # admonitions, attr_list, def_list, footnotes, md_in_html,
+          # pymdownx.details, pymdownx.highlight, pymdownx.inlinehilite,
+          # pymdownx.snippets, pymdownx.superfences, pymdownx.tabbed,
+          # pymdownx.tasklist, pymdownx.tilde and pymdownx.caret.
+          python -m pip install --upgrade pip
+          python -m pip install "mkdocs-material>=9.5" "pymdown-extensions>=10"
+
+      - name: Build documentation site
+        run: mkdocs build --site-dir website/dist/docs
 
       - name: Build main static site
+        # This script rebuilds the marketing site on top of the same
+        # `website/dist/` directory while preserving the `docs/` subfolder
+        # produced by the MkDocs step above.
         run: node website/build.mjs
 
       - name: Upload GitHub Pages artifact
