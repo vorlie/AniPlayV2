@@ -31,6 +31,7 @@ test*.ts
 tmp*.ts
 dist*/
 out/
+.venv/
 
 # Local deterministic showcase artifacts
 ani-cli-gui/showcase/runtime/

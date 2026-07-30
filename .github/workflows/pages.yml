@@ -7,7 +7,8 @@ on:
     paths:
       - '.github/workflows/pages.yml'
       - 'website/**'
-      - 'docs/assets/aniplay-showcase.gif'
+      - 'docs/**'
+      - 'mkdocs.yml'
       - 'ani-cli-gui/build/icon.png'
   workflow_dispatch:
 
@@ -27,16 +28,26 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Build static site
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install MkDocs & Build Docs
+        run: |
+          pip install mkdocs-material
+          mkdocs build --site-dir website/dist/docs
+
+      - name: Build main static site
         run: node website/build.mjs
 
       - name: Upload GitHub Pages artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v3
         with:
           path: website/dist
 

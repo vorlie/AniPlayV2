@@ -1,0 +1,131 @@
+# ---------------------------------------------------------------------------
+# AniPlay – project documentation
+# Published as a sub-site of the existing AniPlay website build
+# (see .github/workflows/pages.yml -> "mkdocs build --site-dir website/dist/docs")
+# ---------------------------------------------------------------------------
+
+site_name: AniPlay Docs
+site_description: >-
+  Documentation for AniPlay, a Material You-inspired desktop anime browser and
+  player built with Electron, React, Vite and Tailwind CSS.
+site_url: https://vorlie.github.io/AniPlayV2/docs/
+site_dir: website/dist/docs
+docs_dir: docs
+
+# Use the MkDocs Material theme (installed from pip in CI).
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: deep orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: deep orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
+  font:
+    text: Inter
+    code: JetBrains Mono
+
+plugins:
+  - search
+  # The social-cards plugin ships pre-rendered Open Graph cards. It depends on
+  # cairosvg + the native libcairo library, which is not bundled on every
+  # platform. Uncomment the block below on a host that has libcairo-2.dll
+  # installed (Linux: `apt install libcairo2`; macOS: `brew install cairo`;
+  # Windows: install Cairo via the GTK runtime or MSYS2).
+  #
+  # - social:
+  #     cards_layout_options:
+  #       background_color: "#17131e"
+  #       color: "#ff5340"
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+  - pymdownx.caret
+
+extra:
+  generator: false
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/vorlie/AniPlayV2
+      name: AniPlay on GitHub
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/9SXX6ddpNR
+      name: AniPlay Discord
+    - icon: fontawesome/solid/globe
+      link: https://vorlie.github.io/AniPlayV2/
+      name: AniPlay website
+  version:
+    provider: mike
+    default: stable
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Usage: usage.md
+  - Architecture: architecture.md
+  - Providers:
+      - AniDB: ANIDB-PROVIDER.md
+      - Anikoto 2: ANIKOTO2-PROVIDER.md
+      - Resolving Anikoto / KotoCDN: resolving/anikoto-kotocdn-resolving.md
+      - Resolving Anikoto 2: resolving/anikoto2-resolving.md
+      - Anikoto 2 scraping commands: resolving/anikoto2-scraping-commands.md
+  - Troubleshooting: troubleshooting.md
+
+copyright: >-
+  AniPlay is released under the GNU General Public License v3. Generated pages
+  are CC BY-SA 4.0 unless stated otherwise.
