@@ -52,6 +52,13 @@
   --custom-display-name-styles-dark-2-color: #2e0041;
 }
 
+.nav-active-line {
+    background: var(--accent-glow);
+    box-shadow:
+        0 0 6px color-mix(in srgb, var(--accent-glow) 60%, transparent),
+        0 0 14px color-mix(in srgb, var(--accent-glow) 30%, transparent);
+}
+
 html {
   color-scheme: dark;
   scrollbar-gutter: stable;
