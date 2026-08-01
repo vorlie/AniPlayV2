@@ -230,14 +230,9 @@ export function AniListPage({
       {/* Workspace Navigation */}
       <section
         className="
+          m3-card
           relative
           overflow-hidden
-          rounded-3xl
-          border
-          border-m3-outline/20
-          bg-m3-surface-container/70
-          backdrop-blur-xl
-          shadow-2xl
           p-4
         "
       >

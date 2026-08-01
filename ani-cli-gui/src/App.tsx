@@ -262,7 +262,7 @@ function App() {
         className="app-header relative w-full max-w-[1500px] mx-auto mb-5"
         style={{ WebkitAppRegion: "drag" } as CSSProperties}
       >
-        <div className="relative overflow-hidden rounded-3xl border border-m3-outline/20 bg-m3-surface-container/80 backdrop-blur-xl shadow-2xl">
+        <div className="relative overflow-hidden rounded-[28px] border border-m3-outline/20 bg-m3-surface-container/80 backdrop-blur-xl shadow-[0_18px_50px_rgba(0,0,0,0.2)] ring-1 ring-white/5">
 
           {/* Accent line */}
           <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-cyan-400/0 via-m3-primary to-fuchsia-500/0" />

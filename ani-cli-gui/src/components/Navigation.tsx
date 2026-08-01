@@ -79,6 +79,7 @@ export function Navigation({
             className={`
               group
               relative
+              isolate
               flex
               items-center
               gap-2
@@ -92,7 +93,7 @@ export function Navigation({
 
               ${
                 active
-                  ? 'text-m3-primary'
+                  ? 'bg-m3-primary/10 text-m3-primary shadow-[inset_0_0_0_1px_rgba(208,188,255,0.18)]'
                   : 'text-m3-on-surface-variant hover:text-m3-on-surface hover:bg-white/5'
               }
 

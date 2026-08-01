@@ -132,7 +132,8 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
 
   return (
     <div className="flex-1 flex flex-col gap-4 md:gap-5">
-      <section className="m3-card overflow-hidden p-5 md:p-7">
+      <section className="relative overflow-hidden rounded-3xl border border-m3-outline/20 bg-m3-surface-container/70 p-5 shadow-2xl backdrop-blur-xl md:p-7">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-cyan-400/0 via-m3-primary to-fuchsia-500/0" />
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
           <div>
             <p className="section-label"><Search size={14} /> {t('browse.sectionLabel')}</p>
@@ -184,7 +185,8 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
         {error && <p id="search-error" role="alert" className="mt-3 rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-sm text-red-300">{error}</p>}
       </section>
 
-      <section className="m3-card p-4 md:p-6 flex-1 min-h-[340px]">
+      <section className="relative flex-1 min-h-[340px] overflow-hidden rounded-3xl border border-m3-outline/20 bg-m3-surface-container/70 p-4 shadow-2xl backdrop-blur-xl md:p-6">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-cyan-400/0 via-m3-primary to-fuchsia-500/0" />
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h3 className="text-xl font-black">{t('browse.results')}</h3>

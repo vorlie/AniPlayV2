@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AlertCircle, ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Loader2, Magnet, MonitorPlay, Search, Sparkles } from 'lucide-react'
+import { AlertCircle, ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Loader2, Magnet, MonitorPlay, Search } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PlayerPage } from './PlayerPage'
 import { addHistory } from '../lib/history'
@@ -46,7 +46,6 @@ export function AnimePage({
   initialTorrentEpisode,
   initialTorrentQuery,
   onEpisodeStarted,
-  onOpenWatchTogether,
   onWatchTogetherContextChange,
 }: AnimePageProps) {
   const { t } = useTranslation()
@@ -287,7 +286,9 @@ export function AnimePage({
 
   return (
     <div className="flex-1 flex flex-col space-y-6">
-      <div className="flex items-center gap-3 md:gap-4 mb-1">
+      <div className="relative overflow-hidden rounded-3xl border border-m3-outline/20 bg-m3-surface-container/70 p-4 shadow-2xl backdrop-blur-xl md:p-5">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-cyan-400/0 via-m3-primary to-fuchsia-500/0" />
+        <div className="flex items-center gap-3 md:gap-4 mb-1">
         <button
           onClick={onBack}
           aria-label={t('anime.backToBrowse')}
@@ -299,16 +300,13 @@ export function AnimePage({
           <p className="text-xs uppercase tracking-[0.18em] font-bold text-m3-primary">{t('anime.nowBrowsing')}</p>
           <h2 className="truncate font-tempo text-2xl md:text-3xl font-bold">{anime.name}</h2>
         </div>
-        <button type="button" onClick={onOpenWatchTogether} className="inline-flex items-center gap-2 rounded-full border border-m3-outline/20 bg-m3-surface-container/90 px-3 py-2 text-sm font-semibold text-m3-on-surface">
-          <Sparkles size={16} />
-          <span>{t('watchTogether.title')}</span>
-        </button>
         {(playingEp || browserFallbackEpisode) && (
           <button type="button" onClick={() => openTorrent(browserFallbackEpisode || playingEp)} disabled={watchTogetherGuestLocked} className="inline-flex items-center gap-2 rounded-full border border-m3-outline/20 bg-m3-surface-container/90 px-3 py-2 text-sm font-semibold text-m3-on-surface disabled:opacity-40">
             <Magnet size={16} />
             <span className="hidden sm:inline">{t('torrent.action')}</span>
           </button>
         )}
+        </div>
       </div>
 
       {error && (
