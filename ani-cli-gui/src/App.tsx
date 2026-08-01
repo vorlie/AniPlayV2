@@ -259,7 +259,7 @@ function App() {
 
       {/* Header */}
       <header
-        className="app-header relative z-20 w-full max-w-[1500px] mx-auto mb-5"
+        className="app-header relative w-full max-w-[1500px] mx-auto mb-5"
         style={{ WebkitAppRegion: "drag" } as CSSProperties}
       >
         <div className="relative overflow-hidden rounded-3xl border border-m3-outline/20 bg-m3-surface-container/80 backdrop-blur-xl shadow-2xl">
@@ -270,7 +270,7 @@ function App() {
           <div className="flex items-center justify-between px-6 py-4 gap-6">
 
             {/* LEFT */}
-            <div className="flex items-center gap-4 min-w-[240px]">
+            <div className="flex items-center gap-4 min-w-auto">
 
               <button
                 type="button"
