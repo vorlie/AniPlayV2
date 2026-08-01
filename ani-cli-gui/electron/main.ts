@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname } from 'node:path'
 import fs from 'node:fs'
 import { promises as fsp } from 'node:fs'
-import { searchAnime, getEpisodes, getEpisodeLinks, getAllAnimeDebugInfo, getCipherMap, reloadCipherMap, type TranslationType } from './scrape'
+import { searchAnime, getEpisodes, getEpisodeLinks, type TranslationType } from './scrape'
 import { DownloadManager } from './downloads/download-manager'
 import type { DownloadRequest } from '../src/download-types'
 import { AniListService } from './services/anilist'
@@ -63,6 +63,7 @@ const hasSingleInstanceLock = app.requestSingleInstanceLock()
 if (!hasSingleInstanceLock) app.quit()
 
 const PROJECT_PAGES = {
+  documentation: 'https://vorlie.github.io/AniPlayV2/docs/',
   repository: 'https://github.com/vorlie/AniPlayV2',
   issues: 'https://github.com/vorlie/AniPlayV2/issues',
   pulls: 'https://github.com/vorlie/AniPlayV2/pulls',
@@ -220,7 +221,7 @@ function requireTranslationType(value: unknown): TranslationType {
 }
 
 function requireCatalogProvider(value: unknown): CatalogProvider {
-  if (value !== 'allanime' && value !== 'desu' && value !== 'docchi' && value !== 'anidb' && value !== 'anikoto' && value !== 'anikoto2') throw new TypeError('catalogProvider must be allanime, desu, docchi, anidb, anikoto, or anikoto2')
+  if (value !== 'desu' && value !== 'docchi' && value !== 'anidb' && value !== 'anikoto' && value !== 'anikoto2') throw new TypeError('catalogProvider must be desu, docchi, anidb, anikoto, or anikoto2')
   return value
 }
 
@@ -555,7 +556,7 @@ function createWindow() {
       id: requireString(value.id, 'animeId', 1000),
       name: requireString(value.name, 'animeName', 300),
       episodes: typeof value.episodes === 'number' && Number.isInteger(value.episodes) && value.episodes >= 0 ? value.episodes : 0,
-      catalogProvider: value.catalogProvider === 'desu' || value.catalogProvider === 'docchi' || value.catalogProvider === 'anidb' || value.catalogProvider === 'anikoto' || value.catalogProvider === 'anikoto2' ? value.catalogProvider : 'allanime',
+      catalogProvider: value.catalogProvider === 'desu' || value.catalogProvider === 'docchi' || value.catalogProvider === 'anidb' || value.catalogProvider === 'anikoto' || value.catalogProvider === 'anikoto2' ? value.catalogProvider : 'anikoto',
     }
     return aniListService.resolveAniListMetadata(normalized, mode)
   })
@@ -667,145 +668,6 @@ function createWindow() {
       mode: value.mode,
       blockKnownAdHosts: value.blockKnownAdHosts,
     })
-  })
-
-  ipcMain.handle('sync-ciphermap', async (event) => {
-    try {
-      assertTrustedSender(event)
-      // Resolve the latest release tag from GitHub API
-      const releasesRes = await fetch(
-        'https://api.github.com/repos/pystardust/ani-cli/releases/latest',
-        { headers: { 'Accept': 'application/vnd.github+json', 'User-Agent': 'AniPlayV2' }, signal: AbortSignal.timeout(10_000) }
-      )
-      if (!releasesRes.ok) throw new Error(`GitHub releases API returned ${releasesRes.status}`)
-      const releaseJson = await releasesRes.json() as { tag_name: string }
-      const tag = releaseJson.tag_name
-
-      const ANI_CLI_RAW = `https://raw.githubusercontent.com/pystardust/ani-cli/${tag}/ani-cli`
-      const res = await fetch(ANI_CLI_RAW, { signal: AbortSignal.timeout(15_000) })
-      if (!res.ok) throw new Error(`GitHub returned ${res.status} for tag ${tag}`)
-      const content = await res.text()
-
-      // ---- parse ciphermap — new format: inline s/^XX$/Y/g; entries in provider_init ----
-      // The sed chain lives on one long line inside provider_init(), e.g.:
-      //   s/^79$/A/g;s/^7a$/B/g;...
-      const pairRegex = /s\/\^([0-9a-f]{2})\$\/((?:\\.|[^/])*)\//g
-      const cipherMap: Record<string, string> = {}
-
-      for (const match of content.matchAll(pairRegex)) {
-        const hex = match[1]
-        let ch = match[2]
-        ch = ch
-          .replace(/\\\//g, '/')
-          .replace(/\\\[/g, '[')
-          .replace(/\\\]/g, ']')
-          .replace(/\\\(/g, '(')
-          .replace(/\\\)/g, ')')
-          .replace(/\\\$/g, '$')
-          .replace(/\\\\/g, '\\')
-        cipherMap[hex] = ch
-      }
-
-      if (Object.keys(cipherMap).length < 60) {
-        throw new Error(`Parsed too few map entries (${Object.keys(cipherMap).length}); aborting`)
-      }
-
-      const readVar = (name: string) => {
-        const m = content.match(new RegExp(`${name}="([^"]*)"`)) 
-        return m ? m[1] : null
-      }
-      const queryHashMatch = content.match(/query_hash="([a-f0-9]{32,64})"/i)
-      const keySeedMatch   = content.match(/printf '%s' '([^']+)' \| openssl dgst -sha256/i)
-
-      const payload = {
-        source:      `github:pystardust/ani-cli@${tag}`,
-        tag,
-        generatedAt: new Date().toISOString(),
-        entries:     Object.keys(cipherMap).length,
-        metadata: {
-          userAgent:   readVar('agent'),
-          referer:     readVar('allanime_refr'),
-          baseDomain:  readVar('allanime_base'),
-          apiUrl:      readVar('allanime_api'),
-          modeDefault: readVar('mode'),
-          queryHash:   queryHashMatch ? queryHashMatch[1] : null,
-          keySeed:     keySeedMatch   ? keySeedMatch[1]   : null,
-        },
-        cipherMap,
-      }
-
-      const outPath = join(app.getPath('userData'), 'ciphermap.json')
-      fs.writeFileSync(outPath, JSON.stringify(payload, null, 2) + '\n', 'utf8')
-
-      // hot-reload into the running scraper
-      reloadCipherMap(cipherMap)
-
-      return { success: true, entries: payload.entries, generatedAt: payload.generatedAt, tag, source: payload.source }
-    } catch (error: unknown) {
-      return { success: false, error: errorMessage(error) }
-    }
-  })
-
-  ipcMain.handle('get-ciphermap-info', async (event) => {
-    try {
-      assertTrustedSender(event)
-      const outPath = join(app.getPath('userData'), 'ciphermap.json')
-      if (!fs.existsSync(outPath)) return { success: true, data: null }
-      const raw = fs.readFileSync(outPath, 'utf8')
-      const parsed = JSON.parse(raw)
-      return { success: true, data: { generatedAt: parsed.generatedAt, entries: parsed.entries, source: parsed.source, tag: parsed.tag ?? null } }
-    } catch {
-      return { success: true, data: null }
-    }
-  })
-
-  ipcMain.handle('get-allanime-debug-info', async (event, refresh: unknown) => {
-    assertTrustedSender(event)
-    return getAllAnimeDebugInfo(refresh === true)
-  })
-
-  ipcMain.handle('export-allanime-debug-info', async (event) => {
-    assertTrustedSender(event)
-    const cryptoInfo = await getAllAnimeDebugInfo()
-    const ciphermapPath = join(app.getPath('userData'), 'ciphermap.json')
-    let ciphermapSource: Record<string, unknown> = { source: 'builtin:aniplay', generatedAt: null, tag: null }
-    try {
-      const parsed = JSON.parse(await fsp.readFile(ciphermapPath, 'utf8')) as unknown
-      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        const record = parsed as Record<string, unknown>
-        ciphermapSource = {
-          source: record.source ?? 'persisted',
-          generatedAt: record.generatedAt ?? null,
-          tag: record.tag ?? null,
-          metadata: record.metadata ?? null,
-        }
-      }
-    } catch {
-      // The active map is the bundled fallback when no persisted map is available.
-    }
-    const cipherMap = getCipherMap()
-    const payload = {
-      format: 'aniplay-allanime-debug',
-      schemaVersion: 1,
-      exportedAt: new Date().toISOString(),
-      crypto: cryptoInfo,
-      cipherMap: {
-        ...ciphermapSource,
-        entries: Object.keys(cipherMap).length,
-        values: cipherMap,
-      },
-    }
-    const date = new Date().toISOString().slice(0, 10)
-    const owner = BrowserWindow.fromWebContents(event.sender)
-    const options = {
-      title: 'Export AllAnime scraper data',
-      defaultPath: join(app.getPath('documents'), `aniplay-allanime-debug-${date}.json`),
-      filters: [{ name: 'JSON data', extensions: ['json'] }],
-    }
-    const result = owner ? await dialog.showSaveDialog(owner, options) : await dialog.showSaveDialog(options)
-    if (result.canceled || !result.filePath) return { saved: false }
-    await fsp.writeFile(result.filePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8')
-    return { saved: true }
   })
 
   ipcMain.handle('downloads:get-state', (event) => {

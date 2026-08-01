@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ArrowRight, Grid2X2, List, Loader2, Magnet, Search, Tv2, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { CATALOG_PROVIDER_KEY, getAniListFirstSearch, getCatalogProvider, getTranslationType, invokeSearch, type AnimeSearchResult, type CatalogProvider } from '../lib/api'
+import { CATALOG_PROVIDER_KEY, getAniListFirstSearch, getCatalogProvider, invokeSearch, type AnimeSearchResult, type CatalogProvider } from '../lib/api'
 import { buildTorrentSearchQuery } from '../lib/torrent-search'
 
 interface BrowsePageProps {
@@ -35,11 +35,10 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
   const [torrentTarget, setTorrentTarget] = useState<AnimeSearchResult | null>(null)
   const [torrentEpisode, setTorrentEpisode] = useState('1')
   const [torrentSeason, setTorrentSeason] = useState('')
-  const translationType = getTranslationType()
   const aniListFirstSearch = getAniListFirstSearch()
   const providerGroups: Array<{ label: string; providers: CatalogProvider[] }> = [
     { label: t('browse.polishSources'), providers: ['desu', 'docchi'] },
-    { label: t('browse.englishSources'), providers: ['anikoto', 'anikoto2', 'allanime', 'anidb'] },
+    { label: t('browse.englishSources'), providers: ['anikoto', 'anikoto2', 'anidb'] },
   ]
 
   const search = async () => {
@@ -76,12 +75,9 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
         ? t('browse.providerDescriptions.anidb')
         : catalogProvider === 'anikoto'
           ? aniListFirstSearch ? t('browse.providerDescriptions.anikotoFirst') : t('browse.providerDescriptions.anikoto')
-          : catalogProvider === 'anikoto2'
-            ? t('browse.providerDescriptions.anikoto2')
-          : t('browse.providerDescriptions.allanime', { mode: translationType === 'dub' ? t('browse.modeDubbed') : t('browse.modeSubbed') })
+          : t('browse.providerDescriptions.anikoto2')
 
   const providerLabel = (provider: CatalogProvider) => {
-    if (provider === 'allanime') return `AllAnime · ${translationType.toUpperCase()}`
     if (provider === 'desu') return 'Desu · PL SUB'
     if (provider === 'docchi') return 'Docchi · PL'
     if (provider === 'anidb') return 'AniDB.app · EN'

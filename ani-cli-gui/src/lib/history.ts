@@ -83,7 +83,7 @@ function normalizeEntry(entry: unknown): HistoryEntry | null {
       ? candidate.catalogProvider
       : candidate.catalogProvider === "miruro"
         ? "anidb"
-        : "allanime";
+        : "anikoto";
 
   return {
     animeId: candidate.animeId,

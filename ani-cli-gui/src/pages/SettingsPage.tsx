@@ -1,25 +1,16 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Bug, Check, Download, FolderOpen, Gamepad2, GitPullRequest, Globe, Magnet, MessageCircle, Palette, RefreshCw, RotateCcw, Search, Settings, Shield, ShieldCheck, SlidersHorizontal, Video } from 'lucide-react'
+import { Book, Bug, Check, Download, FolderOpen, Gamepad2, GitPullRequest, Globe, Magnet, MessageCircle, Palette, RefreshCw, RotateCcw, Search, Settings, Shield, SlidersHorizontal, Video } from 'lucide-react'
 import { ADULT_CONTENT_OPT_IN_KEY, getAdultContentOptIn, ANILIST_SEARCH_KEY, getAniListFirstSearch, getTranslationType, TRANSLATION_TYPE_KEY, type TranslationType } from '../lib/api'
 import { getNotificationSoundMode, getNotificationSoundPreset, playNotificationSound, setNotificationSoundMode, setNotificationSoundPreset, type NotificationSoundMode, type NotificationSoundPreset } from '../lib/notification-sounds'
 import { setAppLanguage, supportedLanguages, type AppLanguage } from '../i18n'
 import type { UpdateState } from '../updater-types'
 import type { AdBlockMode, AdBlockState } from '../adblock-types'
-import type { AllAnimeDebugInfo } from '../scraper-types'
 import { getTheme, getThemeAccent, isValidAccent, resetThemeAccent, saveTheme, saveThemeAccent, type ThemeId } from '../lib/theme'
 import type { TorrentSettings } from '../torrent-types'
 
-type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
 type SettingsSection = 'theme' | 'player' | 'search' | 'downloads' | 'updates' | 'project' | 'adblock' | 'advanced' | 'scraper'
-
-interface CiphermapInfo {
-  generatedAt: string
-  entries: number
-  source: string
-  tag?: string | null
-}
 
 export function SettingsPage() {
   const { t, i18n } = useTranslation()
@@ -31,14 +22,6 @@ export function SettingsPage() {
   const [translationType, setTranslationType] = useState<TranslationType>(getTranslationType)
   const [aniListFirstSearch, setAniListFirstSearch] = useState(getAniListFirstSearch)
   const [adultContentOptIn, setAdultContentOptIn] = useState(getAdultContentOptIn)
-  const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
-  const [syncError, setSyncError] = useState<string | null>(null)
-  const [ciphermapInfo, setCiphermapInfo] = useState<CiphermapInfo | null>(null)
-  const [cryptoDebugInfo, setCryptoDebugInfo] = useState<AllAnimeDebugInfo | null>(null)
-  const [cryptoDebugLoading, setCryptoDebugLoading] = useState(false)
-  const [cryptoDebugError, setCryptoDebugError] = useState<string | null>(null)
-  const [cryptoExportStatus, setCryptoExportStatus] = useState<SyncStatus>('idle')
-  const [cryptoExportError, setCryptoExportError] = useState<string | null>(null)
   const [downloadDirectory, setDownloadDirectory] = useState('Loading…')
   const [torrentSettings, setTorrentSettings] = useState<TorrentSettings | null>(null)
   const [discordPresenceEnabled, setDiscordPresenceEnabled] = useState(false)
@@ -51,17 +34,6 @@ export function SettingsPage() {
   const [safeGraphicsLaunchOverride, setSafeGraphicsLaunchOverride] = useState(false)
   const [language, setLanguage] = useState<AppLanguage>(i18n.language === 'pl' ? 'pl' : 'en')
   const [adBlockState, setAdBlockState] = useState<AdBlockState | null>(null)
-
-  useEffect(() => {
-    if (activeSection !== 'scraper' || cryptoDebugInfo || cryptoDebugLoading) return
-    setCryptoDebugLoading(true)
-    window.aniPlay?.getAllAnimeDebugInfo().then((info) => {
-      setCryptoDebugInfo(info)
-      setCryptoDebugError(null)
-    }).catch((error: unknown) => {
-      setCryptoDebugError(error instanceof Error ? error.message : t('settings.scraper.unknownError'))
-    }).finally(() => setCryptoDebugLoading(false))
-  }, [activeSection, cryptoDebugInfo, cryptoDebugLoading, t])
 
   useEffect(() => {
     if (!window.aniPlay) return
@@ -104,13 +76,6 @@ export function SettingsPage() {
 
   useEffect(() => {
     void window.aniPlay?.adBlock.getState().then(setAdBlockState).catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    // Load current ciphermap metadata from main process
-    window.aniPlay?.getCiphermapInfo().then((res) => {
-      if (res?.success && res.data) setCiphermapInfo(res.data)
-    }).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -181,51 +146,9 @@ export function SettingsPage() {
     setDiscordPresenceConnected(settings.connected)
   }
 
-  const syncCiphermap = async () => {
-    setSyncStatus('syncing')
-    setSyncError(null)
-    try {
-      const res = await window.aniPlay?.syncCiphermap()
-      if (res?.success) {
-        setSyncStatus('success')
-        setCiphermapInfo({ generatedAt: res.generatedAt, entries: res.entries, source: res.source, tag: res.tag ?? null })
-      } else {
-        setSyncStatus('error')
-        setSyncError(res?.error ?? t('settings.scraper.unknownError'))
-      }
-    } catch (e: unknown) {
-      setSyncStatus('error')
-      setSyncError(e instanceof Error ? e.message : t('settings.scraper.unknownError'))
-    }
-  }
-
-  const refreshCryptoDebugInfo = async () => {
-    setCryptoDebugLoading(true)
-    setCryptoDebugError(null)
-    try {
-      const info = await window.aniPlay?.getAllAnimeDebugInfo(true)
-      if (info) setCryptoDebugInfo(info)
-    } catch (error: unknown) {
-      setCryptoDebugError(error instanceof Error ? error.message : t('settings.scraper.unknownError'))
-    } finally {
-      setCryptoDebugLoading(false)
-    }
-  }
-
-  const exportCryptoDebugInfo = async () => {
-    setCryptoExportStatus('syncing')
-    setCryptoExportError(null)
-    try {
-      const result = await window.aniPlay?.exportAllAnimeDebugInfo()
-      setCryptoExportStatus(result?.saved ? 'success' : 'idle')
-    } catch (error: unknown) {
-      setCryptoExportStatus('error')
-      setCryptoExportError(error instanceof Error ? error.message : t('settings.scraper.unknownError'))
-    }
-  }
-
-  const openProjectPage = (page: 'repository' | 'issues' | 'pulls' | 'discord') => {
-    void window.aniPlay?.openProjectPage(page)
+  const openProjectPage = (page: 'repository' | 'issues' | 'pulls' | 'discord' | 'documentation') => {
+    const apiPage = page as Parameters<NonNullable<typeof window.aniPlay>['openProjectPage']>[0]
+    void window.aniPlay?.openProjectPage(apiPage)
   }
 
   const selectNotificationSoundMode = (mode: NotificationSoundMode) => {
@@ -275,7 +198,6 @@ export function SettingsPage() {
     { id: 'project', label: t('settings.project.title'), icon: <Globe size={16} /> },
     { id: 'adblock', label: t('settings.adblock.title'), icon: <Shield size={16} /> },
     { id: 'advanced', label: t('settings.advanced.title'), icon: <SlidersHorizontal size={16} /> },
-    { id: 'scraper', label: t('settings.scraper.title'), icon: <ShieldCheck size={16} /> },
   ]
 
   return (
@@ -700,6 +622,10 @@ export function SettingsPage() {
                   {t('settings.project.title')}
                 </h3>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  <button onClick={() => openProjectPage('documentation')} className="rounded-xl border border-m3-outline/20 bg-m3-surface-container/40 px-4 py-3 text-left transition-all hover:bg-m3-on-surface/10">
+                    <div className="mb-1 flex items-center gap-2"><Book size={16} /><span className="text-sm font-bold">{t('settings.project.documentation')}</span></div>
+                    <p className="text-xs text-m3-on-surface-variant">{t('settings.project.documentationDescription')}</p>
+                  </button>
                   <button onClick={() => openProjectPage('repository')} className="rounded-xl border border-m3-outline/20 bg-m3-surface-container/40 px-4 py-3 text-left transition-all hover:bg-m3-on-surface/10">
                     <div className="mb-1 flex items-center gap-2"><Globe size={16} /><span className="text-sm font-bold">{t('settings.project.repo')}</span></div>
                     <p className="text-xs text-m3-on-surface-variant">{t('settings.project.repoDescription')}</p>
@@ -863,127 +789,6 @@ export function SettingsPage() {
                       </button>
                     </div>
                   </div>
-                </div>
-              </section>
-            )}
-
-            {activeSection === 'scraper' && (
-              <section>
-                <h3 className="mb-4 flex items-center gap-2 text-xl font-bold">
-                  <ShieldCheck size={20} />
-                  {t('settings.scraper.title')}
-                </h3>
-
-                <div className="space-y-4 rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold">{t('settings.scraper.cipherMap')}</p>
-                      <p className="mt-0.5 text-xs text-m3-on-surface-variant">{t('settings.scraper.cipherDescription')}</p>
-                      <p className="mt-1 text-xs text-m3-on-surface-variant/70">{t('settings.scraper.cryptoDescription')}</p>
-                      {ciphermapInfo ? (
-                        <p className="mt-1 text-xs text-m3-on-surface-variant/70">
-                          {t('settings.scraper.lastSynced', { date: new Date(ciphermapInfo.generatedAt).toLocaleString() })}{' '}
-                          {ciphermapInfo.tag && (
-                            <span className="ml-1 rounded bg-m3-primary/20 px-1.5 py-0.5 font-mono text-m3-primary">
-                              {ciphermapInfo.tag}
-                            </span>
-                          )}{' '}
-                          &middot; {t('settings.scraper.entries', { count: ciphermapInfo.entries })}
-                        </p>
-                      ) : (
-                        <p className="mt-1 text-xs text-m3-on-surface-variant/50">{t('settings.scraper.fallback')}</p>
-                      )}
-                    </div>
-                    <button
-                      onClick={syncCiphermap}
-                      disabled={syncStatus === 'syncing'}
-                      className="flex shrink-0 items-center gap-2 rounded-xl border border-m3-outline/30 px-4 py-2 text-sm font-bold transition-all hover:bg-m3-on-surface/10 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <RefreshCw size={14} className={syncStatus === 'syncing' ? 'animate-spin' : ''} />
-                      {syncStatus === 'syncing' ? t('settings.scraper.updating') : t('settings.scraper.updateCipherMap')}
-                    </button>
-                  </div>
-
-                  {syncStatus === 'success' && <p className="text-xs text-green-400">✓ {t('settings.scraper.success')}</p>}
-                  {syncStatus === 'error' && <p className="text-xs text-red-400">✗ {t('settings.scraper.error', { error: syncError })}</p>}
-                </div>
-
-                <div className="mt-4 rounded-2xl border border-m3-outline/20 bg-m3-surface-container/40 p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-bold">{t('settings.scraper.cryptoDebug')}</p>
-                      <p className="mt-0.5 text-xs text-m3-on-surface-variant">{t('settings.scraper.cryptoDebugDescription')}</p>
-                    </div>
-                    <div className="flex shrink-0 flex-wrap justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => void exportCryptoDebugInfo()}
-                        disabled={!cryptoDebugInfo || cryptoExportStatus === 'syncing'}
-                        className="flex items-center gap-2 rounded-xl border border-m3-outline/30 px-4 py-2 text-sm font-bold transition-all hover:bg-m3-on-surface/10 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <Download size={14} />
-                        {cryptoExportStatus === 'syncing' ? t('settings.scraper.exportingDebug') : t('settings.scraper.exportDebug')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void refreshCryptoDebugInfo()}
-                        disabled={cryptoDebugLoading}
-                        className="flex items-center gap-2 rounded-xl border border-m3-outline/30 px-4 py-2 text-sm font-bold transition-all hover:bg-m3-on-surface/10 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <RefreshCw size={14} className={cryptoDebugLoading ? 'animate-spin' : ''} />
-                        {cryptoDebugLoading ? t('settings.scraper.loadingDebug') : t('settings.scraper.refreshDebug')}
-                      </button>
-                    </div>
-                  </div>
-
-                  {cryptoDebugError && <p role="alert" className="mt-3 text-xs text-red-400">{t('settings.scraper.error', { error: cryptoDebugError })}</p>}
-                  {cryptoExportStatus === 'success' && <p className="mt-3 text-xs text-green-400">✓ {t('settings.scraper.exportSuccess')}</p>}
-                  {cryptoExportStatus === 'error' && <p role="alert" className="mt-3 text-xs text-red-400">✗ {t('settings.scraper.exportError', { error: cryptoExportError })}</p>}
-
-                  {cryptoDebugInfo && (
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      {[
-                        ['Source', cryptoDebugInfo.source],
-                        ['Epoch', String(cryptoDebugInfo.epoch)],
-                        ['Build ID', cryptoDebugInfo.buildId],
-                        ['Legacy CTR', cryptoDebugInfo.legacyCtr ? 'true' : 'false'],
-                        ['Fetched at', new Date(cryptoDebugInfo.fetchedAt).toLocaleString()],
-                        ['Cache expires', new Date(cryptoDebugInfo.cacheExpiresAt).toLocaleString()],
-                        ['API URL', cryptoDebugInfo.apiUrl],
-                        ['Referer', cryptoDebugInfo.referer],
-                        ['App JS URL', cryptoDebugInfo.appJsUrl ?? '—'],
-                        ['Query hash', cryptoDebugInfo.queryHash],
-                        ['Part A', cryptoDebugInfo.partA],
-                        ['Part B', cryptoDebugInfo.partB],
-                        ['Derived key (hex)', cryptoDebugInfo.derivedKeyHex],
-                      ].map(([label, value]) => (
-                        <label key={label} className={`block min-w-0 ${value.length > 48 ? 'md:col-span-2' : ''}`}>
-                          <span className="mb-1 block text-[10px] font-black uppercase tracking-wider text-m3-on-surface-variant">
-                            {label}
-                          </span>
-                          <input
-                            readOnly
-                            value={value}
-                            onFocus={(event) => event.currentTarget.select()}
-                            className="w-full rounded-xl border border-m3-outline/20 bg-m3-surface/55 px-3 py-2 font-mono text-xs text-m3-on-surface outline-none focus:border-m3-primary/60"
-                          />
-                        </label>
-                      ))}
-                      {cryptoDebugInfo.error && (
-                        <label className="block min-w-0 md:col-span-2">
-                          <span className="mb-1 block text-[10px] font-black uppercase tracking-wider text-amber-300">
-                            Fallback reason
-                          </span>
-                          <input
-                            readOnly
-                            value={cryptoDebugInfo.error}
-                            onFocus={(event) => event.currentTarget.select()}
-                            className="w-full rounded-xl border border-amber-300/20 bg-amber-300/5 px-3 py-2 font-mono text-xs text-amber-100 outline-none"
-                          />
-                        </label>
-                      )}
-                    </div>
-                  )}
                 </div>
               </section>
             )}

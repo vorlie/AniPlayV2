@@ -10,7 +10,7 @@ export const HOST_GRACE_MS = 10_000
 
 const ROOM_CODE_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
 const ROOM_CODE_PATTERN = /^[0-9A-HJKMNP-TV-Z]{10}$/
-const PROVIDERS = new Set(['allanime', 'anikoto', 'miruro', 'desu', 'docchi'])
+const PROVIDERS = new Set(['anikoto', 'desu', 'docchi', 'anidb', 'anikoto2'])
 
 export type Role = 'host' | 'guest'
 

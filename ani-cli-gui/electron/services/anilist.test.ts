@@ -53,22 +53,22 @@ describe('AniList normalization', () => {
 describe('catalog candidate scoring', () => {
   it('ranks exact alternate titles above unrelated results', () => {
     const media = normalizeMedia({ id: 1, title: { english: 'Frieren', romaji: 'Sousou no Frieren' }, episodes: 28 })
-    const exact = scoreCandidate(media, { id: 'a', name: 'Sousou no Frieren', episodes: 28, catalogProvider: 'allanime' })
-    const unrelated = scoreCandidate(media, { id: 'b', name: 'One Piece', episodes: 1000, catalogProvider: 'allanime' })
+    const exact = scoreCandidate(media, { id: 'a', name: 'Sousou no Frieren', episodes: 28, catalogProvider: 'anikoto' })
+    const unrelated = scoreCandidate(media, { id: 'b', name: 'One Piece', episodes: 1000, catalogProvider: 'anikoto' })
     expect(exact.confidence).toBeGreaterThanOrEqual(.9)
     expect(exact.confidence).toBeGreaterThan(unrelated.confidence)
   })
 
   it('penalizes conflicting episode counts', () => {
     const media = normalizeMedia({ id: 1, title: { english: 'Example' }, episodes: 12 })
-    const matching = scoreCandidate(media, { id: 'a', name: 'Example', episodes: 12, catalogProvider: 'allanime' })
-    const conflicting = scoreCandidate(media, { id: 'b', name: 'Example', episodes: 120, catalogProvider: 'allanime' })
+    const matching = scoreCandidate(media, { id: 'a', name: 'Example', episodes: 12, catalogProvider: 'anikoto' })
+    const conflicting = scoreCandidate(media, { id: 'b', name: 'Example', episodes: 120, catalogProvider: 'anikoto' })
     expect(matching.confidence).toBeGreaterThan(conflicting.confidence)
   })
 })
 
 describe('catalog mapping providers', () => {
-  it('normalizes old provider-less mappings to AllAnime', () => {
+  it('normalizes old provider-less mappings to the default supported provider', () => {
     const legacy = {
       mediaId: 1,
       scraperId: 'legacy-id',
@@ -78,7 +78,7 @@ describe('catalog mapping providers', () => {
       confirmedAt: 1,
     } as CatalogMapping
 
-    expect(normalizeCatalogMapping(legacy).catalogProvider).toBe('allanime')
+    expect(normalizeCatalogMapping(legacy).catalogProvider).toBe('anikoto')
   })
 
   it('stores provider metadata on mappings', () => {
@@ -91,7 +91,7 @@ describe('catalog mapping providers', () => {
 
   it('does not reuse a saved mapping for a different active provider', () => {
     const service = new AniListService(mkdtempSync(join(tmpdir(), 'aniplay-anilist-')))
-    service.confirmMapping(1, { id: 'old-allanime-id', name: 'Example', episodes: 12, catalogProvider: 'allanime' }, 'sub')
+    service.confirmMapping(1, { id: 'old-anikoto-id', name: 'Example', episodes: 12, catalogProvider: 'anikoto' }, 'sub')
 
     const media = normalizeMedia({ id: 1, title: { english: 'Example' }, episodes: 12 })
     const resolution = service.resolveMapping(media, [{ id: 'anikoto:test', name: 'Example', episodes: 12, catalogProvider: 'anikoto' }], 'sub')

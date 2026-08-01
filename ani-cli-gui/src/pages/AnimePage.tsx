@@ -272,9 +272,9 @@ export function AnimePage({
     if (!loadingEp) return
     const timer = window.setInterval(() => {
       setSourceStatusIndex((current) => current + 1)
-    }, anime.catalogProvider === 'allanime' ? 4500 : 6000)
+    }, 6000)
     return () => window.clearInterval(timer)
-  }, [anime.catalogProvider, loadingEp])
+  }, [loadingEp])
 
   const visibleEpisodes = episodeQuery.trim()
     ? episodes.filter((episode) => episode.includes(episodeQuery.trim()))

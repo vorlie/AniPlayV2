@@ -10,11 +10,11 @@ describe('remote notice normalization', () => {
       updatedAt: '2026-07-07T12:00:00Z',
       notices: [
         {
-          id: 'allanime-outage-2026-07-07',
+          id: 'anikoto-outage-2026-07-07',
           severity: 'warning',
-          title: 'AllAnime is currently broken',
-          message: 'AllAnime changed their backend.',
-          providers: ['allanime', 'docchi', 'invalid'],
+          title: 'Anikoto is currently broken',
+          message: 'Anikoto changed their backend.',
+          providers: ['anikoto', 'docchi', 'invalid'],
           minVersion: '1.9.0',
           startsAt: '2026-07-07T12:00:00Z',
           dismissible: true,
@@ -33,9 +33,9 @@ describe('remote notice normalization', () => {
     expect(state.sourceUpdatedAt).toBe('2026-07-07T12:00:00.000Z')
     expect(state.notices).toHaveLength(2)
     expect(state.notices[0]).toMatchObject({
-      id: 'allanime-outage-2026-07-07',
+      id: 'anikoto-outage-2026-07-07',
       severity: 'warning',
-      providers: ['allanime', 'docchi'],
+      providers: ['anikoto', 'docchi'],
       link: 'https://github.com/pystardust/ani-cli/issues/1763',
     })
     expect(state.notices[1].link).toBeUndefined()
