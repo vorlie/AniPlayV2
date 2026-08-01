@@ -40,7 +40,7 @@ The AniList workspace bundles three sub-views:
 ### Browse
 
 The Browse tab is the catalog search surface. Pick a provider
-(Anikoto 1, Anikoto 2, AllAnime, AniDB.app, Desu, Docchi), choose `sub` or
+(Anikoto 1, Anikoto 2, AniDB.app, Desu, Docchi), choose `sub` or
 `dub`, and switch between compact-list and poster-grid layouts. The Docchi
 provider exposes an opt-in for adult entries; toggle it under
 **Settings → Adult content**.
@@ -94,7 +94,6 @@ The Settings page is rendered from the `sections` config in
 | **Player → Discord Rich Presence** | Toggle, requires Discord Desktop |
 | **Downloads → Torrent streaming** | Cache folder, cache limit, deletion, bandwidth, mpv path, privacy consent |
 | **Embedded players → Ad blocking** | EasyList-only / uBlock presets, block known ad hosts |
-| **AllAnime scraper tools** | Refresh + export crypto diagnostics, sync cipher map |
 | **Updates** | Check / download / install from GitHub releases |
 
 Each toggle writes through to the Electron main process via the IPC handlers
@@ -178,11 +177,6 @@ region.
 
 ## Exporting data
 
-- **Profile card** — *AniList → Profile → Export* opens a native save
-  dialog and writes a 1200×630 PNG generated locally from the profile SVG.
-- **AllAnime diagnostic JSON** — *Settings → AllAnime scraper tools →
-  Export* writes a versioned JSON containing crypto diagnostics and the
-  active cipher map for compatible projects.
 - **Watch history** — kept locally in Electron's user-data directory as
   `viewing-events.v1.jsonl` (append-only) and a rebuildable
   `viewing-summary.v1.json` aggregate. Both can be copied for backup.
@@ -207,10 +201,6 @@ Stored data includes:
   `viewing-summary.v1.json` aggregate.
 - Renderer preferences and up to 100 resume-history entries in Chromium
   local storage.
-
-Profile images and AllAnime diagnostic JSON files are generated locally
-through native save dialogs. AniPlay does not upload them to a separate
-sharing service.
 
 ---
 

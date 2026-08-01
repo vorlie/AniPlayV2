@@ -29,7 +29,7 @@ toolchain that wires them together, and the IPC channel inventory.
 │   ├── main.ts          window lifecycle, IPC handlers, media headers,  │
 │   │                    ad-block session, single-instance lock          │
 │   ├── scrape.ts        catalog provider dispatch (ani-cli style)       │
-│   ├── providers/       allanime, anikoto, anikoto2, anidb, desu,       │
+│   ├── providers/       anikoto, anikoto2, anidb, desu,       │
 │   │                    docchi (each with its own .test.ts)             │
 │   ├── services/        anilist, discord-presence, adblock,             │
 │   │                    remote-notices, updater, viewing-log,           │
@@ -217,15 +217,6 @@ sender's frame is the renderer (dev URL or `dist/index.html`).
 | `open-provider-episode` | `(showId, episode, catalogProvider, translationType?)` | Opens a system browser to the provider page |
 | `open-project-page` | `(page: 'repository' \| 'issues' \| 'pulls' \| 'discord')` | Opens a system browser |
 
-### AllAnime diagnostics
-
-| Channel | Args | Returns |
-| --- | --- | --- |
-| `get-ciphermap-info` | `()` | `{ generatedAt, entries, source, tag }` |
-| `sync-ciphermap` | `()` | Fetches the upstream `ani-cli` script, parses the sed chain, writes `ciphermap.json`, and hot-reloads the live cipher map |
-| `get-allanime-debug-info` | `(refresh?)` | Active cipher, runtime epoch, derived key, fallback reason, etc. |
-| `export-allanime-debug-info` | `()` | Writes a versioned `aniplay-allanime-debug-YYYY-MM-DD.json` via native save dialog |
-
 ### AniList
 
 | Channel | Args | Returns |
@@ -320,7 +311,6 @@ to a per-provider module under `electron/providers/`:
 
 | File | Catalog id | Notes |
 | --- | --- | --- |
-| `allanime-utils.ts` | (helper) | Cipher-map runtime, crypto bootstrap, provider-owned frame detection |
 | `anikoto.ts` | `'anikoto'` | MegaPlay + embed servers; default AniPlay catalog |
 | `anikoto2.ts` | `'anikoto2'` | Independent anikoto.cz catalog |
 | `anidb.ts` | `'anidb'` | Native AniDB.app source; supports Cloudflare verification |

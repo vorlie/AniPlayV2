@@ -26,7 +26,6 @@ macOS packaging is not configured.
 | --- | --- |
 | AniList sign-in, library and profile | AniList workspace (`AniList` tab) |
 | Anime browsing across six catalogs | Browse tab |
-| Provider notices and cipher map tools | Settings → AllAnime scraper tools |
 | HLS / native browser playback | Player tab |
 | Watch Together rooms (10-char codes) | Player tab → Watch Together button |
 | Torrent streaming via WebTorrent | Player tab → *Try torrent* button |
@@ -42,7 +41,7 @@ macOS packaging is not configured.
 ### Browsing and playback
 
 - Compact-list and poster-grid layouts for catalog search.
-- Six playback catalogs: **Anikoto 1** (default), **Anikoto 2**, **AllAnime**,
+- Five playback catalogs: **Anikoto 1** (default), **Anikoto 2**,
   **AniDB.app**, **Desu** (Polish), **Docchi** (Polish, opt-in for adult).
 - Direct HLS / video playback in the native player or supported embedded
   players; switch servers, resolutions, subtitles, and sub/dub on the fly.

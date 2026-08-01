@@ -307,8 +307,6 @@ All variables are read in the main process unless marked otherwise.
 | `VITE_ANILIST_CLIENT_ID` | Renderer | Compatibility fallback for the AniList client ID |
 | `DISCORD_CLIENT_ID` | Main | Override the bundled Discord application ID |
 | `ANIPLAY_SAFE_GRAPHICS=1` | Main | Disable hardware acceleration for the current launch |
-| `ANIPLAY_DEBUG_ALLANIME=true` | Main | Log classified AllAnime episode-response diagnostics |
-| `ANIPLAY_DEBUG_ALLANIME=full` | Main | Include full AllAnime response bodies in logs — use carefully |
 | `ANIPLAY_ANIKOTO_NATIVE=true` | Main | Experimentally attempt native MegaPlay source extraction |
 | `ANIPLAY_STATUS_URL` | Main | Override the remote provider-status document URL |
 | `ANIPLAY_WATCH_TOGETHER_URL` | Main | Override the Watch Together Worker endpoint at runtime |

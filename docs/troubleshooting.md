@@ -14,7 +14,7 @@ provider, and episode URL where the failure appears.
 2. [Renderer does not start](#renderer-does-not-start)
 3. [Packaging and build failures](#packaging-and-build-failures)
 4. [Provider and embedded-player issues](#provider-and-embedded-player-issues)
-5. [AllAnime, cipher map, and provider notices](#allanime-cipher-map-and-provider-notices)
+5. [Pprovider notices](#provider-notices)
 6. [Downloads, FFmpeg, and HLS proxy](#downloads-ffmpeg-and-hls-proxy)
 7. [Torrents and WebTorrent](#torrents-and-webtorrent)
 8. [Watch Together](#watch-together)
@@ -141,12 +141,9 @@ runs reuse the cache.
 
 - Check in-app **provider notices** — outages and catalog changes are
   surfaced there.
-- Try another provider (Anikoto 1, Anikoto 2, AllAnime, AniDB.app, Desu,
+- Try another provider (Anikoto 1, Anikoto 2, AniDB.app, Desu,
   Docchi). Each maintains an independent catalog.
 - Switch `sub` / `dub` — some providers only have one or the other.
-- For AllAnime, refresh the cipher map through
-  **Settings → AllAnime scraper tools → Sync cipher map now**, or run
-  `npm run sync:ciphermap` from your checkout.
 
 ### JW Player error `233011`
 
@@ -186,32 +183,7 @@ writing your own hook, keep the MegaPlay domain list identical:
 
 ---
 
-## AllAnime, cipher map, and provider notices
-
-### AllAnime diagnostic export format
-
-*Settings → AllAnime scraper tools → Export* writes
-`aniplay-allanime-debug-YYYY-MM-DD.json` containing the live crypto
-bootstrap values and the active cipher map. Schema version is `1`. Files
-**do not** include AniList tokens, watch history, or other personal
-account data.
-
-### `sync-ciphermap` reports "Parsed too few map entries"
-
-The script aborts when fewer than 60 sed pairs are parsed. That means the
-upstream `pystardust/ani-cli` script changed its structure (it normally
-embeds the sed chain in a single line inside `provider_init`). Inspect the
-current upstream file:
-
-```powershell
-Invoke-WebRequest `
-  -Uri "https://raw.githubusercontent.com/pystardust/ani-cli/refs/heads/master/ani-cli" `
-  -OutFile "ignore/ani-cli"
-npm run sync:ciphermap
-```
-
-If the script changed, update `electron/main.ts → sync-ciphermap` to match
-the new layout and file an issue upstream.
+## Provider notices
 
 ### Provider notices won't dismiss
 
@@ -455,9 +427,7 @@ and `viewing-summary.v1.json` is rebuildable from it.
 
 **Does AniPlay upload anything?**
 
-AniPlay does not upload your data to a sharing service. Profile images
-and AllAnime diagnostic exports are generated locally through native
-save dialogs. Normal application features still contact their respective
+AniPlay does not upload your data to a sharing service. Normal application features still contact their respective
 services: playback providers, AniList, GitHub update endpoints, the
 provider-status endpoint, the optional Watch Together coordination worker,
 filter-list hosts, image hosts, and Discord Desktop when Rich Presence is
@@ -494,6 +464,5 @@ The Linux target produces an AppImage and a `tar.gz`.
 3. File a new issue with:
    - AniPlay version (`Help → About` or `Settings → Updates`),
    - The provider and the title you tried,
-   - The contents of `Settings → AllAnime scraper tools → Export`,
    - For renderer crashes, the preformatted `<pre>` block that replaces
      the root when an error fires before React mounts.

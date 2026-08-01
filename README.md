@@ -15,13 +15,12 @@ AniPlay does not host anime or video files. Search results and playback links co
 ### Browsing and playback
 
 - Search in compact-list or poster-grid layouts.
-- Switch between six playback catalogs:
+- Switch between five playback catalogs:
 
   | Provider | Catalog | Notes |
   | --- | --- | --- |
   | Anikoto 1 | English sub/dub | Default API/MegaPlay provider; optional experimental AniList-first search |
   | Anikoto 2 | English SUB/H-SUB/DUB | Independent anikoto.cz catalog with multiple embedded-player servers |
-  | AllAnime | English sub/dub | Dynamic crypto bootstrap with bundled fallback data |
   | AniDB.app | English sub/dub | Independent native catalog; may request in-app Cloudflare verification |
   | Desu | Polish subtitles | Polish catalog and supported provider mirrors |
   | Docchi | Polish subtitles | Experimental; adult entries require an explicit settings opt-in |
@@ -86,19 +85,6 @@ Watch Together requires AniList sign-in and a controllable non-embed source. It 
 - English and Polish interface languages, custom accent colors, notification sounds, and safe graphics mode.
 
 Portable Windows builds cannot update themselves in place. Download a newer portable release manually. Automatic installation is also unavailable in development and current Linux builds.
-
-### AllAnime maintenance and diagnostics
-
-Settings -> AllAnime scraper tools provides:
-
-- Runtime epoch and build ID.
-- Extracted Part A and Part B bootstrap values.
-- Derived-key hex, persisted-query hash, API/referer URLs, and app bundle URL.
-- Dynamic or fallback source, legacy CTR state, cache lifetime, and fallback reason.
-- Runtime cipher-map synchronization from the latest upstream `ani-cli` release.
-- A versioned JSON export containing the crypto diagnostics and complete active cipher map for compatible projects.
-
-The diagnostic export contains provider bootstrap material, not AniList tokens, watch history, or other personal account data.
 
 ## Community and issues
 
@@ -187,8 +173,6 @@ npm run dev
 | `VITE_ANILIST_CLIENT_ID` | Compatibility fallback for the AniList client ID |
 | `DISCORD_CLIENT_ID` | Override the bundled Discord application ID |
 | `ANIPLAY_SAFE_GRAPHICS=1` | Disable hardware acceleration for the current launch |
-| `ANIPLAY_DEBUG_ALLANIME=true` | Log classified AllAnime episode-response diagnostics |
-| `ANIPLAY_DEBUG_ALLANIME=full` | Include full AllAnime response bodies in logs; use carefully |
 | `ANIPLAY_ANIKOTO_NATIVE=true` | Experimentally attempt native MegaPlay source extraction in addition to embeds |
 | `ANIPLAY_STATUS_URL` | Override the remote provider-status document URL |
 | `ANIPLAY_WATCH_TOGETHER_URL` | Override the Watch Together Worker endpoint at runtime |
@@ -221,22 +205,6 @@ Rich Presence is disabled by default. Enable it under Settings -> Player -> Disc
 - AniList-linked playback can use the anime cover and AniList page.
 - Catalog-only playback uses AniPlay's fallback artwork.
 - Pausing freezes the remaining-time display; ending or closing playback clears the activity.
-
-## Maintaining the developer cipher map
-
-The in-app scraper page can synchronize its runtime map automatically. For a repository-side maintenance snapshot, download upstream `ani-cli` and run the parser:
-
-```powershell
-cd D:\Projekty\AniPlayV2
-Invoke-WebRequest `
-  -Uri "https://raw.githubusercontent.com/pystardust/ani-cli/refs/heads/master/ani-cli" `
-  -OutFile "ignore/ani-cli"
-
-cd ani-cli-gui
-npm run sync:ciphermap
-```
-
-This writes `ignore/ciphermap.json` with the hex-to-character map and extracted user agent, referer, base/API domains, default mode, query hash, and key seed.
 
 ## Troubleshooting
 
