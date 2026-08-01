@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ArrowRight, Grid2X2, List, Loader2, Magnet, Search, Tv2, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { CATALOG_PROVIDER_KEY, getAniListFirstSearch, getCatalogProvider, getTranslationType, invokeSearch, type AnimeSearchResult, type CatalogProvider } from '../lib/api'
+import { CATALOG_PROVIDER_KEY, getAniListFirstSearch, getCatalogProvider, invokeSearch, type AnimeSearchResult, type CatalogProvider } from '../lib/api'
 import { buildTorrentSearchQuery } from '../lib/torrent-search'
 
 interface BrowsePageProps {
@@ -35,11 +35,10 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
   const [torrentTarget, setTorrentTarget] = useState<AnimeSearchResult | null>(null)
   const [torrentEpisode, setTorrentEpisode] = useState('1')
   const [torrentSeason, setTorrentSeason] = useState('')
-  const translationType = getTranslationType()
   const aniListFirstSearch = getAniListFirstSearch()
   const providerGroups: Array<{ label: string; providers: CatalogProvider[] }> = [
     { label: t('browse.polishSources'), providers: ['desu', 'docchi'] },
-    { label: t('browse.englishSources'), providers: ['anikoto', 'anikoto2', 'allanime', 'anidb'] },
+    { label: t('browse.englishSources'), providers: ['anikoto', 'anikoto2', 'anidb'] },
   ]
 
   const search = async () => {
@@ -76,12 +75,9 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
         ? t('browse.providerDescriptions.anidb')
         : catalogProvider === 'anikoto'
           ? aniListFirstSearch ? t('browse.providerDescriptions.anikotoFirst') : t('browse.providerDescriptions.anikoto')
-          : catalogProvider === 'anikoto2'
-            ? t('browse.providerDescriptions.anikoto2')
-          : t('browse.providerDescriptions.allanime', { mode: translationType === 'dub' ? t('browse.modeDubbed') : t('browse.modeSubbed') })
+          : t('browse.providerDescriptions.anikoto2')
 
   const providerLabel = (provider: CatalogProvider) => {
-    if (provider === 'allanime') return `AllAnime · ${translationType.toUpperCase()}`
     if (provider === 'desu') return 'Desu · PL SUB'
     if (provider === 'docchi') return 'Docchi · PL'
     if (provider === 'anidb') return 'AniDB.app · EN'
@@ -132,7 +128,8 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
 
   return (
     <div className="flex-1 flex flex-col gap-4 md:gap-5">
-      <section className="m3-card overflow-hidden p-5 md:p-7">
+      <section className="relative overflow-hidden rounded-3xl border border-m3-outline/20 bg-m3-surface-container/70 p-5 shadow-2xl backdrop-blur-xl md:p-7">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-cyan-400/0 via-m3-primary to-fuchsia-500/0" />
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
           <div>
             <p className="section-label"><Search size={14} /> {t('browse.sectionLabel')}</p>
@@ -184,7 +181,8 @@ export function BrowsePage({ searchQuery, setSearchQuery, results, setResults, o
         {error && <p id="search-error" role="alert" className="mt-3 rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-sm text-red-300">{error}</p>}
       </section>
 
-      <section className="m3-card p-4 md:p-6 flex-1 min-h-[340px]">
+      <section className="relative flex-1 min-h-[340px] overflow-hidden rounded-3xl border border-m3-outline/20 bg-m3-surface-container/70 p-4 shadow-2xl backdrop-blur-xl md:p-6">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-cyan-400/0 via-m3-primary to-fuchsia-500/0" />
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h3 className="text-xl font-black">{t('browse.results')}</h3>

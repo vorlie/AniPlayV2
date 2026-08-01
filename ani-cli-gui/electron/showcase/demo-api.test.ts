@@ -79,7 +79,7 @@ describe('showcase fixture API', () => {
     const api = createShowcaseApi()
 
     await api.aniList.dashboard.get()
-    await api.search('', 'sub', 'allanime')
+    await api.search('', 'sub', 'anikoto')
     await api.watchTogether.create({ content })
     await api.downloads.getState()
     await api.updater.check()

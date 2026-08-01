@@ -12,7 +12,7 @@ import {
 } from './protocol'
 
 const content = {
-  provider: 'allanime',
+  provider: 'anikoto',
   showId: 'show-1',
   animeName: 'Example',
   episode: '2',

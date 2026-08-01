@@ -96,6 +96,7 @@ export function applyTheme(themeId: ThemeId, accent: string, root: HTMLElement =
     root.style.setProperty('--color-m3-surface-variant', '#2B2A2E')
   }
   root.style.setProperty('--color-m3-primary', primary)
+  root.style.setProperty('--accent-glow', primary)
   root.style.setProperty('--color-m3-on-primary', usesDirectAccent ? contrastTextFor({ r, g, b }) : hexFromArgb(dark.onPrimary))
   root.style.setProperty('--color-m3-primary-container', hexFromArgb(dark.primaryContainer))
   root.style.setProperty('--color-m3-on-primary-container', hexFromArgb(dark.onPrimaryContainer))

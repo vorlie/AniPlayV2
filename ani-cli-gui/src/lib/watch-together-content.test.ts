@@ -7,7 +7,7 @@ describe('watch together content', () => {
     expect(hasControllableWatchTogetherSource([{ embed: true }])).toBe(false)
     expect(hasControllableWatchTogetherSource([{ torrent: true }])).toBe(false)
     expect(shouldWarnAboutUncontrollableAnikotoSource('anikoto', [{ embed: true }])).toBe(true)
-    expect(shouldWarnAboutUncontrollableAnikotoSource('allanime', [{ embed: true }])).toBe(false)
+    expect(shouldWarnAboutUncontrollableAnikotoSource('docchi', [{ embed: true }])).toBe(false)
   })
 
   it('contains only stable content identifiers', () => {
@@ -25,20 +25,20 @@ describe('watch together content', () => {
 
   it('keeps the payload unchanged for providers that do not expose a stream URL', () => {
     const content = buildWatchTogetherContent({
-      id: 'allanime:demo',
+      id: 'docchi:demo',
       name: 'Other Anime',
       episodes: 24,
-      catalogProvider: 'allanime',
+      catalogProvider: 'docchi',
     }, '1', 'dub')
 
-    expect(content.provider).toBe('allanime')
+    expect(content.provider).toBe('docchi')
     expect(Object.keys(content)).toEqual(['provider', 'showId', 'animeName', 'episode', 'translationType', 'aniListMediaId'])
   })
 
   it('matches the active player using every stable room identifier', () => {
     const content = buildWatchTogetherContent({ id: '42', name: 'Room Anime', catalogProvider: 'anikoto' }, '6', 'sub')
     expect(watchTogetherContentMatches(content, 'anikoto', '42', '6', 'sub')).toBe(true)
-    expect(watchTogetherContentMatches(content, 'allanime', '42', '6', 'sub')).toBe(false)
+    expect(watchTogetherContentMatches(content, 'docchi', '42', '6', 'sub')).toBe(false)
     expect(watchTogetherContentMatches(content, 'anikoto', '42', '7', 'sub')).toBe(false)
     expect(watchTogetherContentMatches(content, 'anikoto', '42', '6', 'dub')).toBe(false)
   })

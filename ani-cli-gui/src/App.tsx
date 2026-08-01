@@ -258,25 +258,89 @@ function App() {
       </div>
 
       {/* Header */}
-      <header className="app-header relative z-10 w-full max-w-[1500px] mx-auto flex items-center justify-between gap-3 mb-4 md:mb-5 draggable" style={{ WebkitAppRegion: 'drag' } as CSSProperties}>
-        <div className="effect-container items-center gap-3">
-          <button type="button" onClick={handleLogoClick} className="effect-neon aniplay-logo-button font-sakura text-3xl md:text-4xl tracking-wide select-none" aria-label="AniPlay">
-            <span className="glow-layer">AniPlay</span>
-            <span className="text-layer">AniPlay</span>
-          </button>
-          <span className="hidden lg:inline text-xs font-bold uppercase tracking-[0.18em] text-m3-on-surface-variant">{t('app.tagline')}</span>
-          {isTestBuild && (
-            <span className="hidden sm:inline-flex rounded-full border border-amber-300/35 bg-amber-300/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-amber-100">
-              {t('app.testBuild', { version: appVersion })}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2" style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
-          <button type="button" onClick={openGlobalWatchTogether} className="inline-flex items-center gap-2 rounded-full border border-m3-outline/20 bg-m3-surface-container/90 px-3 py-2 text-sm font-semibold text-m3-on-surface shadow-sm">
-            <Sparkles size={16} />
-            <span>{t('watchTogether.title')}</span>
-          </button>
-          <Navigation activeTab={activeTab} setActiveTab={setActiveTab} hasActivePlayer={activeAnime !== null} downloadCount={activeDownloadCount} />
+      <header
+        className="app-header relative w-full max-w-[1500px] mx-auto mb-5"
+        style={{ WebkitAppRegion: "drag" } as CSSProperties}
+      >
+        <div className="relative overflow-hidden rounded-[28px] border border-m3-outline/20 bg-m3-surface-container/80 backdrop-blur-xl shadow-[0_18px_50px_rgba(0,0,0,0.2)] ring-1 ring-white/5">
+
+          {/* Accent line */}
+          <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-cyan-400/0 via-m3-primary to-fuchsia-500/0" />
+
+          <div className="flex items-center justify-between px-6 py-4 gap-6">
+
+            {/* LEFT */}
+            <div className="flex items-center gap-4 min-w-auto">
+
+              <button
+                type="button"
+                onClick={handleLogoClick}
+                className="group text-left"
+                style={{ WebkitAppRegion: "no-drag" } as CSSProperties}
+              >
+                <div className="font-black tracking-[0.35em] text-2xl uppercase text-m3-primary transition-all group-hover:drop-shadow-[0_0_10px_var(--accent-glow)]">
+                  ANI//PLAY
+                </div>
+
+                <div className="mt-0.5 text-[10px] uppercase tracking-[0.25em] text-m3-on-surface-variant">
+                  {t('app.tagline')}
+                </div>
+              </button>
+
+              {isTestBuild && (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1">
+                  <div className="text-[9px] font-bold tracking-[0.25em] text-amber-300 uppercase">
+                    TEST
+                  </div>
+
+                  <div className="text-[10px] text-amber-100">
+                    {appVersion}
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* CENTER */}
+            <Navigation
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              hasActivePlayer={activeAnime !== null}
+              downloadCount={activeDownloadCount}
+              className="!static !bg-transparent !border-0 !shadow-none !backdrop-blur-0 flex-1 justify-center"
+            />
+
+            {/* RIGHT */}
+            <div
+              className="flex items-center gap-3"
+              style={{ WebkitAppRegion: "no-drag" } as CSSProperties}
+            >
+
+              <button
+                type="button"
+                onClick={openGlobalWatchTogether}
+                className="inline-flex
+                  items-center
+                  gap-2
+                  rounded-xl
+                  border
+                  border-m3-outline/25
+                  bg-m3-surface-container/80
+                  px-4
+                  py-2
+                  text-sm
+                  font-semibold
+                  text-m3-primary
+                  transition-all
+                  hover:bg-m3-primary/20
+                  hover:border-m3-primary/50
+                "
+              >
+                <Sparkles size={16} />
+                <span>{t('watchTogether.title')}</span>
+              </button>
+            </div>
+          </div>
         </div>
       </header>
 
