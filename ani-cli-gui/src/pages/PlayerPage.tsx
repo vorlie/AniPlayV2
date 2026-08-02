@@ -29,6 +29,7 @@ import {
 import { useWatchTogether } from "../contexts/WatchTogetherContext";
 import { WatchTogetherCompanion } from "../components/WatchTogetherCompanion";
 import type { TorrentSessionState } from "../torrent-types";
+import { getNextSubtitleTrackIndex } from "../lib/player-subtitles";
 
 interface StreamLink {
   url: string;
@@ -183,6 +184,9 @@ export function PlayerPage({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPip, setIsPip] = useState(false);
+  const [captionTrackIndex, setCaptionTrackIndex] = useState(
+    () => (links[0]?.subtitles?.length ? 0 : -1),
+  );
   const [downloadStatus, setDownloadStatus] = useState<
     "idle" | "starting" | "queued" | "error"
   >("idle");
@@ -200,6 +204,11 @@ export function PlayerPage({
   );
 
   const activeLink = links[activeIdx];
+  const availableSubtitles = activeLink?.subtitles ?? [];
+  const resolvedCaptionTrackIndex =
+    availableSubtitles.length === 0
+      ? -1
+      : Math.min(Math.max(captionTrackIndex, 0), availableSubtitles.length - 1);
   const resumeSeconds = useMemo(
     () => toResumeSeconds(initialResumeSeconds),
     [initialResumeSeconds],
@@ -553,6 +562,26 @@ export function PlayerPage({
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
+  const syncSubtitleTracks = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || availableSubtitles.length === 0) return;
+    for (const [index, track] of Array.from(video.textTracks ?? []).entries()) {
+      track.mode = index === resolvedCaptionTrackIndex ? "showing" : "hidden";
+    }
+  }, [availableSubtitles.length, resolvedCaptionTrackIndex]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !availableSubtitles.length) return;
+    syncSubtitleTracks();
+    video.addEventListener("loadedmetadata", syncSubtitleTracks);
+    video.addEventListener("loadeddata", syncSubtitleTracks);
+    return () => {
+      video.removeEventListener("loadedmetadata", syncSubtitleTracks);
+      video.removeEventListener("loadeddata", syncSubtitleTracks);
+    };
+  }, [availableSubtitles.length, syncSubtitleTracks]);
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !activeLink || activeLink.embed) return;
@@ -872,7 +901,7 @@ export function PlayerPage({
       <div
         className={
           isOverlay
-            ? "fixed inset-0 bg-black z-50 flex flex-col relative"
+            ? "fixed inset-0 bg-black z-50 flex flex-col"
             : `m3-card p-4 md:p-6 flex flex-col gap-3 relative min-w-0 ${watchTogetherState?.code ? "2xl:col-start-2 2xl:row-start-1 2xl:h-fit 2xl:self-start" : ""}`
         }
         style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
@@ -1151,6 +1180,27 @@ export function PlayerPage({
                 >
                   +85s
                 </button>
+                {availableSubtitles.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCaptionTrackIndex((current) =>
+                        getNextSubtitleTrackIndex(
+                          current,
+                          availableSubtitles.length,
+                        ),
+                      )
+                    }
+                    className="rounded-lg border border-m3-outline/30 px-2 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface transition-all"
+                    title={
+                      resolvedCaptionTrackIndex >= 0
+                        ? availableSubtitles[resolvedCaptionTrackIndex]?.label ?? "Closed captions"
+                        : "Closed captions off"
+                    }
+                  >
+                    {resolvedCaptionTrackIndex >= 0 ? "CC" : "CC OFF"}
+                  </button>
+                ) : null}
                 <button
                   onClick={toggleMute}
                   className="p-2 rounded-lg border border-m3-outline/30 text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface transition-all"
@@ -1221,6 +1271,7 @@ export function PlayerPage({
                   key={i}
                   onClick={() => {
                     setActiveIdx(i);
+                    setCaptionTrackIndex(0);
                     setShowServers(false);
                   }}
                   className={`px-4 py-2 rounded-full text-sm font-bold border transition-all ${

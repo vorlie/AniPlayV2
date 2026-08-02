@@ -8,8 +8,8 @@ import type { AdBlockMode, AdBlockSettings, AdBlockState } from '../../src/adblo
 const SETTINGS_FILE = 'adblock-settings.json'
 
 const LIST_URLS = {
-  easyList: 'https://ublockorigin.pages.dev/thirdparties/easylist.txt',
-  easyPrivacy: 'https://ublockorigin.pages.dev/thirdparties/easyprivacy.txt',
+  easyList: 'https://raw.githubusercontent.com/easylist/easylist/master/easylist/easylist.txt',
+  easyPrivacy: 'https://raw.githubusercontent.com/easylist/easylist/master/easyprivacy/easyprivacy.txt',
   ublockFilters: 'https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/filters.txt',
   badware: 'https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/badware.txt',
   resourceAbuse: 'https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/resource-abuse.txt',
@@ -103,6 +103,17 @@ function normalizePersistedSettings(value: Partial<PersistedAdBlockSettings> | n
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Unknown error'
+}
+
+function getCacheVersion(): string {
+  const now = new Date()
+
+  const year = now.getUTCFullYear()
+  const start = Date.UTC(year, 0, 1)
+  const days = Math.floor((now.getTime() - start) / 86400000)
+  const week = Math.ceil((days + new Date(start).getUTCDay() + 1) / 7)
+
+  return `${year}-w${String(week).padStart(2, '0')}`
 }
 
 export class AdBlockService {
@@ -213,6 +224,25 @@ export class AdBlockService {
     }
   }
 
+  private async cleanupOldCaches(currentVersion: string): Promise<void> {
+    const dir = app.getPath('userData')
+    const files = await fsp.readdir(dir)
+
+    const prefix = `adblock-${this.settings.mode}-`
+
+    await Promise.all(
+      files
+        .filter(file =>
+          file.startsWith(prefix) &&
+          file.endsWith('.bin') &&
+          !file.endsWith(`${currentVersion}.bin`)
+        )
+        .map(file =>
+          fsp.unlink(join(dir, file)).catch(() => {})
+        )
+    )
+  }
+
   private async loadBlocker(): Promise<void> {
     const token = ++this.loadToken
     const urls = PRESET_LISTS[this.settings.mode]
@@ -223,7 +253,8 @@ export class AdBlockService {
     }
 
     try {
-      const cachePath = join(app.getPath('userData'), `adblock-${this.settings.mode}.bin`)
+      const cacheVersion = getCacheVersion()
+      const cachePath = join(app.getPath('userData'), `adblock-${this.settings.mode}-${cacheVersion}.bin`)
       const blocker = await ElectronBlocker.fromLists(fetch, urls, {
         enableMutationObserver: false,
         loadCosmeticFilters: false,
@@ -238,6 +269,7 @@ export class AdBlockService {
       this.blocker = blocker
       this.lastError = undefined
       console.log(`[adblock] ${this.settings.mode} mode enabled with ${urls.length} lists`)
+      await this.cleanupOldCaches(cacheVersion)
     } catch (error: unknown) {
       if (token !== this.loadToken) return
       this.blocker = null
