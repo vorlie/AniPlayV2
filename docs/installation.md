@@ -66,15 +66,15 @@ All commands below assume this working directory.
 ## Pre-built releases
 
 If you only want to run AniPlay, grab one of the official GitHub release
-assets. The 1.17.2 release ships with:
+assets. The 1.18.1 release ships with:
 
 | Asset | Platform | Format | Size |
 | --- | --- | --- | --- |
-| [`AniPlay-Setup-1.17.2-x64.exe`](https://github.com/vorlie/AniPlayV2/releases/download/1.17.2/AniPlay-Setup-1.17.2-x64.exe) | Windows 10 / 11 (x64) | NSIS installer | ~212 MiB |
-| [`AniPlay-Portable-1.17.2-x64.exe`](https://github.com/vorlie/AniPlayV2/releases/download/1.17.2/AniPlay-Portable-1.17.2-x64.exe) | Windows 10 / 11 (x64) | Single-file portable | ~212 MiB |
-| [`AniPlay-1.17.2.AppImage`](https://github.com/vorlie/AniPlayV2/releases/download/1.17.2/AniPlay-1.17.2.AppImage) | Linux (x64) | AppImage | ~293 MiB |
-| [`ani-cli-gui-1.17.2.tar.gz`](https://github.com/vorlie/AniPlayV2/releases/download/1.17.2/ani-cli-gui-1.17.2.tar.gz) | Linux (x64) | `tar.gz` archive | ~277 MiB |
-| [`latest.yml`](https://github.com/vorlie/AniPlayV2/releases/download/1.17.2/latest.yml) | Windows / Linux | Auto-update manifest | < 1 KiB |
+| [`AniPlay-Setup-1.18.1-x64.exe`](https://github.com/vorlie/AniPlayV2/releases/download/1.18.1/AniPlay-Setup-1.18.1-x64.exe) | Windows 10 / 11 (x64) | NSIS installer | ~212 MiB |
+| [`AniPlay-Portable-1.18.1-x64.exe`](https://github.com/vorlie/AniPlayV2/releases/download/1.18.1/AniPlay-Portable-1.18.1-x64.exe) | Windows 10 / 11 (x64) | Single-file portable | ~212 MiB |
+| [`AniPlay-1.18.1.AppImage`](https://github.com/vorlie/AniPlayV2/releases/download/1.18.1/AniPlay-1.18.1.AppImage) | Linux (x64) | AppImage | ~293 MiB |
+| [`ani-cli-gui-1.18.1.tar.gz`](https://github.com/vorlie/AniPlayV2/releases/download/1.18.1/ani-cli-gui-1.18.1.tar.gz) | Linux (x64) | `tar.gz` archive | ~277 MiB |
+| [`latest.yml`](https://github.com/vorlie/AniPlayV2/releases/download/1.18.1/latest.yml) | Windows / Linux | Auto-update manifest | < 1 KiB |
 | `*.blockmap` | Windows | Differential update map | < 1 MiB |
 
 Download everything in one go with `curl`, then verify with the SHA-256
@@ -83,7 +83,7 @@ checksums the GitHub API returns for the same release:
 ````powershell
 # 1. Inspect the release (size, asset names, checksums)
 $release = Invoke-RestMethod `
-  -Uri "https://api.github.com/repos/vorlie/AniPlayV2/releases/tags/1.17.2"
+  -Uri "https://api.github.com/repos/vorlie/AniPlayV2/releases/tags/1.18.1"
 
 $release.assets |
   Select-Object name, size, @{n='sha256';e={
@@ -94,32 +94,32 @@ $release.assets |
 # 2. Download the Windows portable build (use -L to follow redirects,
 #    -O to keep the remote filename, and -# for a compact progress bar)
 curl.exe -L -O `
-  https://github.com/vorlie/AniPlayV2/releases/download/1.17.2/AniPlay-Portable-1.17.2-x64.exe
+  https://github.com/vorlie/AniPlayV2/releases/download/1.18.1/AniPlay-Portable-1.18.1-x64.exe
 
 # 3. Verify the SHA-256 of the downloaded artefact
-Get-FileHash AniPlay-Portable-1.17.2-x64.exe -Algorithm SHA256
+Get-FileHash AniPlay-Portable-1.18.1-x64.exe -Algorithm SHA256
 ````
 
 ````sh
 # bash
-curl -s https://api.github.com/repos/vorlie/AniPlayV2/releases/tags/1.17.2 |
+curl -s https://api.github.com/repos/vorlie/AniPlayV2/releases/tags/1.18.1 |
   jq '.assets[] | {name, size, sha256: (.digest | sub("^sha256:"; "")), url: .browser_download_url}'
 
-curl -L -O https://github.com/vorlie/AniPlayV2/releases/download/1.17.2/AniPlay-Portable-1.17.2-x64.exe
-sha256sum AniPlay-Portable-1.17.2-x64.exe
+curl -L -O https://github.com/vorlie/AniPlayV2/releases/download/1.18.1/AniPlay-Portable-1.18.1-x64.exe
+sha256sum AniPlay-Portable-1.18.1-x64.exe
 ````
 
-Expected SHA-256 sums for 1.17.2:
+Expected SHA-256 sums for 1.18.1:
 
 | Asset | SHA-256 |
 | --- | --- |
-| `AniPlay-Setup-1.17.2-x64.exe` | `7e0f5772b2de892c6108e1dc4efd8339088a3399df2684676fdd8126e9e88caf` |
-| `AniPlay-Portable-1.17.2-x64.exe` | `23f9e28a690a3cb784f9d85504f2dc7421dda95844c56154865fea0e960a619a` |
-| `AniPlay-1.17.2.AppImage` | `8559f2aa2576efaffdbb85db973d90ad061d3ef9828d6d83717afa2d02261f3d` |
-| `ani-cli-gui-1.17.2.tar.gz` | `f8ef1441864323b6b3a7717c86e5853784562099507e1f89ec47d5719862d34f` |
+| `AniPlay-Setup-1.18.1-x64.exe` | `sha256:1da221727e5d1264429ca332dc47d8ee47e5d2cbb0cafae976b5ce5033b0685c` |
+| `AniPlay-Portable-1.18.1-x64.exe` | `sha256:5f4da88dd71a2a2a89f0f0005b43aab2bfe7c8438039e45c551c3007e8066526` |
+| `AniPlay-1.18.1.AppImage` | `sha256:6f554774dc226c045c399336259be5eb35c0146400096ce7edd223ef58f3af7b` |
+| `ani-cli-gui-1.18.1.tar.gz` | `sha256:01dad066bec27b548956eab46966adf1ebd78f6831379f19b3a2bfd5f55cc70f` |
 
 > The SHA-256 values come straight from
-> `GET https://api.github.com/repos/vorlie/AniPlayV2/releases/tags/1.17.2`,
+> `GET https://api.github.com/repos/vorlie/AniPlayV2/releases/tags/1.18.1`,
 > so the table never goes stale by hand: re-run the `curl`/`Invoke-RestMethod`
 > snippet whenever you need to verify a newer release.
 
@@ -130,7 +130,7 @@ that nothing is registered with the system — drop it on a USB stick or run
 it from a folder without admin rights.
 
 On Linux, mark the AppImage as executable and double-click it (or run
-`./AniPlay-1.17.2.AppImage`). For headless servers, unpack the `tar.gz`
+`./AniPlay-1.18.1.AppImage`). For headless servers, unpack the `tar.gz`
 and launch the contained `ani-cli-gui` binary.
 
 ---
