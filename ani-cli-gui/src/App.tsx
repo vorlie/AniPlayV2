@@ -166,13 +166,13 @@ function App() {
     { id: 'downloads', label: t('app.downloads'), icon: Download, badge: activeDownloadCount || undefined },
     { id: 'settings', label: t('app.settings'), icon: Settings },
   ]
-  const nativeControls = window.aniPlay?.windowControls;
+  const nativeControls = (window.aniPlay as any)?.windowControls;
   // Window controls
-  const windowControls = [
-    { icon: Minus, label: 'Minimize', onClick: () => nativeControls?.minimize() },
-    { icon: Square, label: 'Maximize', onClick: () => nativeControls?.maximize() },
-    { icon: X, label: 'Close', onClick: () => nativeControls?.close() }
-  ]
+  const windowControls = nativeControls ? [
+    { icon: Minus, label: 'Minimize', onClick: () => nativeControls.minimize() },
+    { icon: Square, label: 'Maximize', onClick: () => nativeControls.maximize() },
+    { icon: X, label: 'Close', onClick: () => nativeControls.close() }
+  ] : [];
 
   // Breadcrumbs for header
   const breadcrumbs: BreadcrumbItem[] = [

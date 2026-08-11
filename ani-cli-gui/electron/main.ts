@@ -818,10 +818,11 @@ function createWindow() {
 }
 
 ipcMain.on('window:minimize', () => {
-  win.minimize();
+  win?.minimize();
 });
 
 ipcMain.on('window:maximize', () => {
+  if (!win) return;
   if (win.isMaximized()) {
     win.unmaximize();
   } else {
@@ -830,7 +831,7 @@ ipcMain.on('window:maximize', () => {
 });
 
 ipcMain.on('window:close', () => {
-  win.close();
+  win?.close();
 });
 
 function extractWatchTogetherInvite(value: string): string | null {
