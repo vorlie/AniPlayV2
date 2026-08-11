@@ -1,12 +1,5 @@
 import { useCallback, useState } from "react";
-import {
-  ArrowLeft,
-  ArrowRight,
-  ChevronRight,
-  Compass,
-  Library,
-  UserRound,
-} from "lucide-react";
+import { Compass, Library, UserRound } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { HomePage } from "./HomePage";
 import { ProfilePage } from "./ProfilePage";
@@ -164,26 +157,6 @@ export function AniListPage({
     restoreScroll(nextHistory[targetIndex].scrollY);
   };
 
-  const goForward = () => {
-    if (historyIndex >= routeHistory.length - 1) return;
-
-    const targetIndex = historyIndex + 1;
-
-    const nextHistory = routeHistory.map((entry, index) =>
-      index === historyIndex
-        ? {
-            ...entry,
-            scrollY: window.scrollY,
-          }
-        : entry,
-    );
-
-    setRouteHistory(nextHistory);
-    setHistoryIndex(targetIndex);
-
-    restoreScroll(nextHistory[targetIndex].scrollY);
-  };
-
   const openMedia = (
     media: Pick<AnimeSummary, "id" | "title">,
     parent: AniListSection = visibleSection,
@@ -214,9 +187,6 @@ export function AniListPage({
     );
   }, []);
 
-  const sectionLabel = (section: AniListSection) =>
-    t(`anilistWorkspace.${section}`);
-
   const selectSection = (section: AniListSection) => {
     if (currentRoute.view === section) return;
 
@@ -226,83 +196,10 @@ export function AniListPage({
   };
 
   return (
-    <div className="flex flex-1 flex-col gap-5">
-      {/* Workspace Navigation */}
-      <section
-        className="
-          m3-card
-          relative
-          overflow-hidden
-          p-4
-        "
-      >
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-cyan-400/0 via-m3-primary to-fuchsia-500/0" />
-
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 mb-4">
-          <button
-            type="button"
-            disabled={historyIndex === 0}
-            onClick={goBack}
-            className="icon-button !size-9 disabled:opacity-35"
-            aria-label={t("anilistWorkspace.goBack")}
-          >
-            <ArrowLeft size={16} />
-          </button>
-
-          <button
-            type="button"
-            disabled={historyIndex >= routeHistory.length - 1}
-            onClick={goForward}
-            className="icon-button !size-9 disabled:opacity-35"
-            aria-label={t("anilistWorkspace.goForward")}
-          >
-            <ArrowRight size={16} />
-          </button>
-
-          <nav
-            className="
-              flex
-              items-center
-              gap-1
-              overflow-hidden
-              text-xs
-            "
-          >
-            <span className="font-black text-m3-primary">
-              {t("nav.anilist")}
-            </span>
-
-            {currentRoute.view !== "overview" && (
-              <>
-                <ChevronRight size={14} className="text-m3-outline" />
-
-                <span className="font-bold">
-                  {sectionLabel(visibleSection)}
-                </span>
-              </>
-            )}
-
-            {currentRoute.view === "media" && (
-              <>
-                <ChevronRight size={14} className="text-m3-outline" />
-
-                <span className="truncate font-black text-m3-primary">
-                  {currentRoute.title ?? t("anilistWorkspace.animeDetails")}
-                </span>
-              </>
-            )}
-          </nav>
-        </div>
-
-        {/* Tabs */}
-        <div
-          className="
-            grid
-            grid-cols-3
-            gap-2
-          "
-        >
+    <div className="page">
+      {/* Tabs */}
+      <section className="anilist-workspace-nav">
+        <div className="anilist-workspace-tabs">
           {sections.map(({ id, labelKey, descriptionKey, icon: Icon }) => {
             const active = visibleSection === id;
 
@@ -311,54 +208,16 @@ export function AniListPage({
                 key={id}
                 type="button"
                 onClick={() => selectSection(id)}
-                className={`
-                    group
-                    flex
-                    items-center
-                    gap-3
-                    rounded-2xl
-                    px-4
-                    py-3
-                    text-left
-                    transition-all
-
-                    ${
-                      active
-                        ? `
-                          bg-m3-primary
-                          text-m3-on-primary
-                          shadow-lg
-                        `
-                        : `
-                          text-m3-on-surface-variant
-                          hover:bg-m3-on-surface/10
-                          hover:text-m3-on-surface
-                        `
-                    }
-                  `}
+                className={`anilist-workspace-tab ${
+                  active ? "anilist-workspace-tab-active" : ""
+                }`}
               >
-                <Icon size={20} />
+                <Icon size={17} />
 
-                <div className="min-w-0">
-                  <strong className="block text-sm">{t(labelKey)}</strong>
-
-                  <span
-                    className={`
-                        hidden
-                        truncate
-                        text-[10px]
-                        lg:block
-
-                        ${
-                          active
-                            ? "text-m3-on-primary/70"
-                            : "text-m3-on-surface-variant"
-                        }
-                      `}
-                  >
-                    {t(descriptionKey)}
-                  </span>
-                </div>
+                <span className="anilist-workspace-tab-content">
+                  <strong>{t(labelKey)}</strong>
+                  <span>{t(descriptionKey)}</span>
+                </span>
               </button>
             );
           })}
@@ -366,7 +225,6 @@ export function AniListPage({
       </section>
 
       {/* Content */}
-
       {currentRoute.view === "overview" ? (
         <ProfilePage onOpenMedia={(media) => openMedia(media, "overview")} />
       ) : (

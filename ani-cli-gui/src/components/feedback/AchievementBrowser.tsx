@@ -13,13 +13,14 @@ import {
   X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { AniListProfile } from "../anilist-types";
+import type { AniListProfile } from "../../anilist-types";
 import {
   createAchievements,
   type AchievementCategory,
   type ProfileAchievement,
-} from "../lib/profile-achievements";
-import type { ViewingSummary } from "../viewing-types";
+} from "../../lib/profile-achievements";
+import type { ViewingSummary } from "../../viewing-types";
+import { IconButton } from "../ui/IconButton";
 
 type AchievementFilter = "all" | "earned" | "locked";
 
@@ -46,17 +47,21 @@ function AchievementCard({
   compact?: boolean;
 }) {
   const { t, i18n } = useTranslation();
+
   const format = useMemo(
     () =>
       new Intl.NumberFormat(i18n.language, {
         maximumFractionDigits:
-          achievement.category === "time" || achievement.category === "activity"
+          achievement.category === "time" ||
+          achievement.category === "activity"
             ? 1
             : 0,
       }),
     [achievement.category, i18n.language],
   );
+
   const current = Math.min(achievement.target, achievement.current);
+
   const specialGoal = [
     "trendsetter",
     "hiddenGemHunter",
@@ -71,57 +76,64 @@ function AchievementCard({
     "nightOwl",
     "goldenWeek",
   ].includes(achievement.id);
+
   return (
     <article
-      className={`rounded-2xl border ${compact ? "p-3" : "p-4"} ${achievement.earned ? "border-m3-primary/35 bg-m3-primary/10" : "border-m3-outline/15 bg-m3-surface/35"}`}
+      className={`achievement-card ${
+        achievement.earned ? "achievement-card-earned" : ""
+      } ${compact ? "achievement-card-compact" : ""}`}
     >
-      <div className="flex items-start gap-3">
-        <div
-          className={`flex size-10 shrink-0 items-center justify-center rounded-full ${achievement.earned ? "bg-m3-primary text-m3-on-primary" : "bg-m3-surface-variant/45 text-m3-on-surface-variant"}`}
-        >
+      <div className="achievement-icon">
+        {achievement.earned ? (
+          <Check size={17} />
+        ) : (
+          <CategoryIcon category={achievement.category} />
+        )}
+      </div>
+
+      <div className="achievement-content">
+        <div className="achievement-heading">
+          <div className="achievement-copy">
+            <p className="achievement-name">
+              {t(`profile.achievements.items.${achievement.id}`)}
+            </p>
+
+            {!compact ? (
+              <p className="achievement-description">
+                {t(
+                  specialGoal
+                    ? `profile.achievements.specialGoals.${achievement.id}`
+                    : `profile.achievements.goals.${achievement.category}`,
+                  { target: achievement.target },
+                )}
+              </p>
+            ) : null}
+          </div>
+
           {achievement.earned ? (
-            <Check size={18} />
+            <span className="achievement-status">
+              {t("profile.achievements.earned")}
+            </span>
           ) : (
-            <CategoryIcon category={achievement.category} />
+            <Lock
+              className="achievement-lock"
+              size={14}
+              aria-label={t("profile.achievements.filters.locked")}
+            />
           )}
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="font-black">
-                {t(`profile.achievements.items.${achievement.id}`)}
-              </p>
-              {compact ? null : (
-                <p className="mt-0.5 text-xs text-m3-on-surface-variant">
-                  {t(
-                    specialGoal
-                      ? `profile.achievements.specialGoals.${achievement.id}`
-                      : `profile.achievements.goals.${achievement.category}`,
-                    { target: achievement.target },
-                  )}
-                </p>
-              )}
-            </div>
-            {achievement.earned ? (
-              <span className="rounded-full bg-m3-primary/15 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-m3-primary">
-                {t("profile.achievements.earned")}
-              </span>
-            ) : (
-              <Lock
-                className="mt-1 shrink-0 text-m3-on-surface-variant"
-                size={14}
-              />
-            )}
-          </div>
-          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-m3-surface-variant/45">
+
+        <div className="achievement-progress">
+          <div className="achievement-progress-track">
             <div
-              className="h-full rounded-full bg-m3-primary"
+              className="achievement-progress-fill"
               style={{ width: `${achievement.progress}%` }}
             />
           </div>
-          <p className="mt-1.5 text-right text-[11px] font-bold text-m3-on-surface-variant">
+
+          <span className="achievement-progress-value">
             {format.format(current)} / {format.format(achievement.target)}
-          </p>
+          </span>
         </div>
       </div>
     </article>
@@ -138,62 +150,81 @@ export function AchievementsSection({
   viewing: ViewingSummary;
 }) {
   const { t } = useTranslation();
+
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<AchievementFilter>("all");
-  const [category, setCategory] = useState<AchievementCategory | "all">("all");
+  const [category, setCategory] = useState<AchievementCategory | "all">(
+    "all",
+  );
+
   const achievements = useMemo(
     () => createAchievements(stats, facts, viewing),
     [facts, stats, viewing],
   );
-  const earned = achievements.filter((item) => item.earned);
+
+  const earned = achievements.filter(
+    (item: ProfileAchievement) => item.earned,
+  );
+
   const featured = [
     ...earned.slice(-2).reverse(),
     ...achievements
-      .filter((item) => !item.earned)
-      .sort((a, b) => b.progress - a.progress),
+      .filter((item: ProfileAchievement) => !item.earned)
+      .sort(
+        (a: ProfileAchievement, b: ProfileAchievement) =>
+          b.progress - a.progress,
+      ),
   ].slice(0, 4);
+
   const visible = achievements.filter(
-    (item) =>
+    (item: ProfileAchievement) =>
       (filter === "all" || (filter === "earned") === item.earned) &&
       (category === "all" || category === item.category),
   );
 
   useEffect(() => {
     if (!open) return;
+
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
     };
+
     window.addEventListener("keydown", onKeyDown);
+
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
   return (
     <>
-      <section className="m3-card p-5">
-        <div className="flex items-start justify-between gap-3">
+      <section className="achievements-section">
+        <header className="achievements-section-header">
           <div>
-            <div className="flex items-center gap-2">
-              <Trophy className="text-m3-primary" size={19} />
-              <h2 className="text-lg font-black">
-                {t("profile.achievements.title")}
-              </h2>
+            <div className="achievements-title-row">
+              <Trophy size={17} />
+
+              <h2>{t("profile.achievements.title")}</h2>
             </div>
-            <p className="mt-1 text-xs text-m3-on-surface-variant">
+
+            <p>
               {t("profile.achievements.summary", {
                 earned: earned.length,
                 total: achievements.length,
               })}
             </p>
           </div>
+
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="rounded-full border border-m3-primary/30 bg-m3-primary/10 px-3 py-1.5 text-xs font-black text-m3-primary hover:bg-m3-primary/20"
+            className="achievements-browse"
           >
             {t("profile.achievements.browse")}
           </button>
-        </div>
-        <div className="mt-5 grid gap-3">
+        </header>
+
+        <div className="achievements-featured">
           {featured.map((achievement) => (
             <AchievementCard
               key={achievement.id}
@@ -206,47 +237,49 @@ export function AchievementsSection({
 
       {open ? (
         <div
-          className="fixed inset-0 z-80 flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm"
+          className="achievements-overlay"
           role="presentation"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setOpen(false);
+            if (event.target === event.currentTarget) {
+              setOpen(false);
+            }
           }}
         >
           <section
             role="dialog"
             aria-modal="true"
             aria-labelledby="achievements-title"
-            className="m3-card flex max-h-[88vh] w-full max-w-7xl flex-col overflow-hidden !bg-m3-surface-container shadow-2xl"
+            className="achievements-dialog"
           >
-            <header className="flex items-start justify-between gap-4 border-b border-m3-outline/10 p-5">
+            <header className="achievements-dialog-header">
               <div>
-                <p className="section-label">
-                  <Sparkles size={13} /> {t("profile.achievements.collection")}
+                <p className="achievements-eyebrow">
+                  <Sparkles size={12} />
+                  {t("profile.achievements.collection")}
                 </p>
-                <h2
-                  id="achievements-title"
-                  className="mt-2 text-2xl font-black"
-                >
+
+                <h2 id="achievements-title">
                   {t("profile.achievements.browserTitle")}
                 </h2>
-                <p className="mt-1 text-sm text-m3-on-surface-variant">
+
+                <p>
                   {t("profile.achievements.summary", {
                     earned: earned.length,
                     total: achievements.length,
                   })}
                 </p>
               </div>
-              <button
-                type="button"
+
+              <IconButton
+                icon={X}
+                size={18}
+                label={t("profile.achievements.close")}
                 onClick={() => setOpen(false)}
-                className="icon-button"
-                aria-label={t("profile.achievements.close")}
-              >
-                <X size={18} />
-              </button>
+              />
             </header>
-            <div className="border-b border-m3-outline/10 px-5 py-4">
-              <div className="flex flex-wrap gap-2">
+
+            <div className="achievements-toolbar">
+              <div className="achievement-filter-group">
                 {(["all", "earned", "locked"] as AchievementFilter[]).map(
                   (item) => (
                     <button
@@ -254,14 +287,17 @@ export function AchievementsSection({
                       key={item}
                       onClick={() => setFilter(item)}
                       aria-pressed={filter === item}
-                      className={`rounded-full px-3 py-1.5 text-xs font-bold ${filter === item ? "bg-m3-primary text-m3-on-primary" : "bg-m3-surface-variant/35 text-m3-on-surface-variant"}`}
+                      className={`achievement-filter ${
+                        filter === item ? "active" : ""
+                      }`}
                     >
                       {t(`profile.achievements.filters.${item}`)}
                     </button>
                   ),
                 )}
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
+
+              <div className="achievement-category-group">
                 {(
                   [
                     "all",
@@ -278,32 +314,37 @@ export function AchievementsSection({
                     key={item}
                     onClick={() => setCategory(item)}
                     aria-pressed={category === item}
-                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold ${category === item ? "border-m3-primary bg-m3-primary/10 text-m3-primary" : "border-m3-outline/15 text-m3-on-surface-variant"}`}
+                    className={`achievement-category ${
+                      category === item ? "active" : ""
+                    }`}
                   >
                     {item === "all" ? (
-                      <Trophy size={14} />
+                      <Trophy size={13} />
                     ) : (
-                      <CategoryIcon category={item} size={14} />
-                    )}{" "}
+                      <CategoryIcon category={item} size={13} />
+                    )}
+
                     {t(`profile.achievements.categories.${item}`)}
                   </button>
                 ))}
               </div>
             </div>
-            <div className="overflow-y-auto p-5">
-              <div className="grid gap-3 sm:grid-cols-2">
-                {visible.map((achievement) => (
+
+            <div className="achievements-dialog-content">
+              <div className="achievements-grid">
+                {visible.map((achievement: ProfileAchievement) => (
                   <AchievementCard
                     key={achievement.id}
                     achievement={achievement}
                   />
                 ))}
               </div>
-              {visible.length ? null : (
-                <div className="py-16 text-center text-sm text-m3-on-surface-variant">
+
+              {visible.length === 0 ? (
+                <div className="achievements-empty">
                   {t("profile.achievements.empty")}
                 </div>
-              )}
+              ) : null}
             </div>
           </section>
         </div>

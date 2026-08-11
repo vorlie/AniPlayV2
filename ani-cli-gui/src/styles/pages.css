@@ -1,0 +1,216 @@
+/*
+ * Page Styles - New AniPlay Design Language
+ * 
+ * Page-level styling for AniPlay pages
+ */
+
+/* Page structure */
+.page {
+  padding: var(--space-6) 0;
+}
+
+.page-header {
+  margin-bottom: var(--space-8);
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: var(--space-2);
+}
+
+.page-description {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Section styling */
+.section {
+  margin-bottom: var(--space-10);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.section-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: var(--space-1);
+}
+
+.section-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* Profile Hero */
+.profile-hero {
+  position: relative;
+  margin-bottom: var(--space-8);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  min-height: 240px;
+}
+
+.profile-hero-banner {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.3;
+}
+
+.profile-hero-banner-fallback {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--accent-dim) 0%, var(--background-surface) 100%);
+}
+
+.profile-hero-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  min-height: 240px;
+  background: linear-gradient(to top, var(--background) 0%, transparent 50%, var(--background) 100%);
+}
+
+@media (min-width: 1024px) {
+  .profile-hero-content {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+}
+
+.profile-hero-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-md);
+  border: 3px solid var(--background-surface);
+  object-fit: cover;
+  box-shadow: var(--shadow-md);
+}
+
+.profile-hero-avatar-fallback {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-md);
+  border: 3px solid var(--background-surface);
+  background: var(--accent);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+}
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12) var(--space-6);
+  text-align: center;
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  color: var(--text-dim);
+  margin-bottom: var(--space-4);
+}
+
+.empty-state-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: var(--space-2);
+}
+
+.empty-state-description {
+  font-size: 14px;
+  color: var(--text-secondary);
+  max-width: 400px;
+}
+
+/* Loading state */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12) var(--space-6);
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Dashboard Shelf */
+.dashboard-shelf {
+  border: 1px solid var(--border);
+  background: var(--background-surface);
+  border-radius: var(--radius-md);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .page {
+    padding: var(--space-4) 0;
+  }
+
+  .page-title {
+    font-size: 24px;
+  }
+
+  .section {
+    margin-bottom: var(--space-8);
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .profile-hero {
+    min-height: 240px;
+  }
+
+  .profile-hero-content {
+    min-height: 240px;
+  }
+
+  .profile-hero-avatar,
+  .profile-hero-avatar-fallback {
+    width: 80px;
+    height: 80px;
+  }
+}

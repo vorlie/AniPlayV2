@@ -403,11 +403,9 @@ function createWindow() {
   win = new BrowserWindow({
     width: 1200,
     height: 800,
+    frame: false,
     titleBarStyle: 'hidden',
-    titleBarOverlay: {
-      color: '#1C1B1F',
-      symbolColor: '#D0BCFF'
-    },
+    title: 'AniPlay',
     webPreferences: {
       preload: join(__dirname, 'preload.mjs'),
       nodeIntegration: false,
@@ -612,7 +610,7 @@ function createWindow() {
               ? await getAnikotoEpisodePageUrl(animeId, episode, mode)
               : provider === 'anikoto2'
                 ? getAnikoto2EpisodePageUrl(animeId, episode)
-              : null
+                : null
       if (!url) throw new Error('Browser fallback is not available for this provider')
       await shell.openExternal(url)
       return { success: true }
@@ -818,6 +816,22 @@ function createWindow() {
     })
   }
 }
+
+ipcMain.on('window:minimize', () => {
+  win.minimize();
+});
+
+ipcMain.on('window:maximize', () => {
+  if (win.isMaximized()) {
+    win.unmaximize();
+  } else {
+    win.maximize();
+  }
+});
+
+ipcMain.on('window:close', () => {
+  win.close();
+});
 
 function extractWatchTogetherInvite(value: string): string | null {
   try {

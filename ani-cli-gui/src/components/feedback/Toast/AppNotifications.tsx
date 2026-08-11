@@ -50,3 +50,4 @@ export function AppNotifications({ items, onDismiss }: { items: AppNotification[
     </div>
   )
 }
+

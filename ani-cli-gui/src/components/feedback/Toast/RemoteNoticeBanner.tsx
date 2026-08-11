@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, ExternalLink, Info, RefreshCw, ShieldAlert, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import type { CatalogProvider } from '../catalog-types'
-import type { RemoteNotice, RemoteNoticeState } from '../remote-notice-types'
+import type { CatalogProvider } from '../../../catalog-types'
+import type { RemoteNotice, RemoteNoticeState } from '../../../remote-notice-types'
 
 interface RemoteNoticeBannerProps {
   provider?: CatalogProvider

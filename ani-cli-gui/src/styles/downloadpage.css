@@ -1,0 +1,451 @@
+.downloads-page {
+    width: 100%;
+    min-width: 0;
+    padding: 24px 0px 48px;
+}
+
+/* Header */
+
+.downloads-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.downloads-eyebrow {
+    margin-bottom: 5px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.downloads-title {
+    margin: 0;
+    color: var(--text);
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+}
+
+.downloads-subtitle {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 9px;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.downloads-subtitle-separator {
+    opacity: 0.4;
+}
+
+.downloads-directory {
+    overflow: hidden;
+    max-width: 520px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.7;
+}
+
+.downloads-clear {
+    flex-shrink: 0;
+}
+
+/* Alert */
+
+.downloads-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 28px;
+    padding: 13px 15px;
+    border-left: 2px solid var(--error, #ff5449);
+    background: color-mix(in srgb,
+            var(--error, #ff5449) 7%,
+            transparent);
+    color: var(--error, #ff8a83);
+}
+
+.downloads-alert-title {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 750;
+}
+
+.downloads-alert-message {
+    margin: 3px 0 0;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+/* Sections */
+
+.downloads-content {
+    display: flex;
+    flex-direction: column;
+    gap: 38px;
+}
+
+.download-section {
+    min-width: 0;
+}
+
+.download-section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    margin-bottom: 8px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-subtle, var(--border));
+}
+
+.download-section-header h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.download-section-header span {
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+/* List */
+
+.download-list {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+}
+
+/* Download row */
+
+.download-row {
+    position: relative;
+    display: grid;
+    grid-template-columns:
+        34px minmax(260px, 2fr) 100px minmax(180px, 1fr) minmax(220px, 1.2fr) auto;
+    align-items: center;
+    gap: 14px;
+    min-height: 76px;
+    padding: 12px 8px;
+    border-bottom: 1px solid var(--border-subtle, var(--border));
+    transition:
+        background 140ms ease,
+        padding 140ms ease;
+}
+
+.download-row:first-child {
+    border-top: 0;
+}
+
+.download-row:hover {
+    background: var(--surface-hover, rgba(255, 255, 255, 0.025));
+}
+
+/*
+ * Active jobs get a subtle surface treatment.
+ * Completed jobs remain mostly transparent.
+ */
+.download-row--active {
+    background: color-mix(in srgb,
+            var(--accent) 3%,
+            transparent);
+}
+
+.download-row--active:hover {
+    background: color-mix(in srgb,
+            var(--accent) 6%,
+            transparent);
+}
+
+/* Status */
+
+.download-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+}
+
+.download-status--active {
+    color: var(--accent);
+}
+
+.download-status--completed {
+    color: var(--success, #69d391);
+}
+
+.download-status--error {
+    color: var(--error, #ff6b61);
+}
+
+.download-status-spin {
+    animation: download-spin 1.2s linear infinite;
+}
+
+@keyframes download-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Main content */
+
+.download-main {
+    min-width: 0;
+}
+
+.download-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    min-width: 0;
+}
+
+.download-title-group {
+    display: flex;
+    align-items: baseline;
+    min-width: 0;
+    gap: 10px;
+}
+
+.download-title {
+    overflow: hidden;
+    margin: 0;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 750;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.download-episode {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.download-state {
+    flex-shrink: 0;
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+}
+
+.download-state--completed {
+    color: var(--success, #69d391);
+}
+
+.download-state--error {
+    color: var(--error, #ff6b61);
+}
+
+/* Metadata */
+
+.download-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    margin-top: 4px;
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.download-meta span+span::before {
+    content: "·";
+    margin: 0 7px;
+    opacity: 0.4;
+}
+
+/* Progress */
+
+.download-progress {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 9px;
+}
+
+.download-progress-track {
+    position: relative;
+    overflow: hidden;
+    width: min(460px, 100%);
+    height: 4px;
+    border-radius: 999px;
+    background: var(--border);
+}
+
+.download-progress-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: var(--accent);
+    transition: width 250ms ease;
+}
+
+.download-progress-value {
+    flex-shrink: 0;
+    min-width: 32px;
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 750;
+    text-align: right;
+}
+
+.download-progress-track--indeterminate .download-progress-fill {
+    width: 35%;
+    animation: download-indeterminate 1.4s ease-in-out infinite;
+}
+
+@keyframes download-indeterminate {
+    0% {
+        transform: translateX(-120%);
+    }
+
+    50% {
+        transform: translateX(180%);
+    }
+
+    100% {
+        transform: translateX(300%);
+    }
+}
+
+/* Error / filename */
+
+.download-error {
+    margin: 7px 0 0;
+    color: var(--error, #ff6b61);
+    font-size: 11px;
+}
+
+.download-file {
+    overflow: hidden;
+    margin: 6px 0 0;
+    color: var(--text-muted);
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.65;
+}
+
+/* Actions */
+
+.download-actions {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    opacity: 0.65;
+    transition: opacity 140ms ease;
+}
+
+.download-row:hover .download-actions {
+    opacity: 1;
+}
+
+.download-action {
+    width: 32px !important;
+    height: 32px !important;
+}
+
+/* Empty */
+
+.downloads-empty {
+    display: flex;
+    min-height: 340px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    text-align: center;
+}
+
+.downloads-empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--accent);
+    background: var(--surface);
+}
+
+.downloads-empty h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 750;
+}
+
+.downloads-empty p {
+    max-width: 380px;
+    margin: 6px 0 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* Narrow windows */
+
+@media (max-width: 720px) {
+    .downloads-page {
+        padding-right: 16px;
+        padding-left: 16px;
+    }
+
+    .downloads-header {
+        margin-bottom: 24px;
+    }
+
+    .downloads-title {
+        font-size: 26px;
+    }
+
+    .download-row {
+        grid-template-columns: 30px minmax(0, 1fr) auto;
+        gap: 10px;
+        padding-top: 13px;
+        padding-bottom: 13px;
+    }
+
+    .download-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .download-state {
+        order: -1;
+    }
+
+    .download-title-group {
+        display: block;
+    }
+
+    .download-episode {
+        margin-left: 7px;
+    }
+
+    .download-actions {
+        align-self: flex-start;
+    }
+}

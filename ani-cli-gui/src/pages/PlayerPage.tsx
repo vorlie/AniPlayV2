@@ -27,7 +27,7 @@ import {
   watchTogetherContentMatches,
 } from "../lib/watch-together-content";
 import { useWatchTogether } from "../contexts/WatchTogetherContext";
-import { WatchTogetherCompanion } from "../components/WatchTogetherCompanion";
+import { WatchTogetherCompanion } from "../components/aniplay/PlayerControls/WatchTogetherCompanion";
 import type { TorrentSessionState } from "../torrent-types";
 import { getNextSubtitleTrackIndex } from "../lib/player-subtitles";
 
@@ -184,8 +184,8 @@ export function PlayerPage({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPip, setIsPip] = useState(false);
-  const [captionTrackIndex, setCaptionTrackIndex] = useState(
-    () => (links[0]?.subtitles?.length ? 0 : -1),
+  const [captionTrackIndex, setCaptionTrackIndex] = useState(() =>
+    links[0]?.subtitles?.length ? 0 : -1,
   );
   const [downloadStatus, setDownloadStatus] = useState<
     "idle" | "starting" | "queued" | "error"
@@ -896,71 +896,73 @@ export function PlayerPage({
 
   return (
     <div
-      className={`relative min-w-0 ${watchTogetherState?.code && !isOverlay ? "2xl:contents" : ""}`}
+      className={`player-shell ${
+        watchTogetherState?.code && !isOverlay
+          ? "player-shell--watch-together"
+          : ""
+      }`}
     >
       <div
-        className={
-          isOverlay
-            ? "fixed inset-0 bg-black z-50 flex flex-col"
-            : `m3-card p-4 md:p-6 flex flex-col gap-3 relative min-w-0 ${watchTogetherState?.code ? "2xl:col-start-2 2xl:row-start-1 2xl:h-fit 2xl:self-start" : ""}`
-        }
+        className={`player-container ${
+          isOverlay ? "player-container--overlay" : ""
+        } ${
+          watchTogetherState?.code && !isOverlay
+            ? "player-container--watch-together"
+            : ""
+        }`}
         style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
       >
-        <div
-          className={
-            isOverlay
-              ? "p-4 flex items-center justify-between absolute top-0 left-0 w-full z-10 bg-gradient-to-b from-black/90 to-transparent"
-              : "flex items-center justify-between"
-          }
+        <header
+          className={`player-header ${
+            isOverlay ? "player-header--overlay" : ""
+          }`}
         >
-          <div className="flex items-center space-x-3">
+          <div className="player-header-main">
             <button
+              type="button"
               onClick={handleBack}
-              className={
-                isOverlay
-                  ? "p-2 rounded-full hover:bg-white/20 transition-colors text-white"
-                  : "p-2 rounded-full hover:bg-m3-on-surface/10 transition-colors text-m3-on-surface"
-              }
+              className="player-back-button"
+              aria-label={t("player.back")}
             >
-              <ArrowLeft size={22} />
+              <ArrowLeft size={20} />
             </button>
-            <h2
-              className={
-                isOverlay
-                  ? "font-tempo text-lg font-bold text-white tracking-wider drop-shadow-md"
-                  : "font-tempo text-lg md:text-xl font-bold text-m3-on-surface tracking-wide"
-              }
-            >
-              {title}
-            </h2>
+
+            <div className="player-title">
+              <span className="player-title-kicker">
+                {t("player.nowPlaying")}
+              </span>
+
+              <h2>{title}</h2>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+
+          <div className="player-header-actions">
             {watchTogetherState?.code && !isOverlay ? (
               <button
                 type="button"
                 onClick={() => setCompanionOpen(!companionOpen)}
-                className="relative inline-flex items-center gap-2 rounded-full border border-m3-outline/30 px-3 py-2 text-sm font-bold text-m3-on-surface hover:bg-m3-on-surface/10 2xl:hidden"
+                className="player-action player-action--companion"
                 aria-expanded={companionOpen}
                 aria-label={t("watchTogether.openCompanion")}
               >
                 <MessageSquare size={16} />
-                <span className="hidden sm:inline">
-                  {t("watchTogether.chat")}
-                </span>
+
+                <span>{t("watchTogether.chat")}</span>
+
                 {unreadCount > 0 ? (
-                  <span className="rounded-full bg-m3-primary px-1.5 py-0.5 text-[10px] text-m3-on-primary">
-                    {unreadCount}
-                  </span>
+                  <span className="player-unread-badge">{unreadCount}</span>
                 ) : null}
               </button>
             ) : null}
-            {!isOverlay && (
-              <span className="hidden md:inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full bg-m3-primary/15 text-m3-primary font-bold">
-                <Sparkles size={12} />
-                {t("player.persistent")}
-              </span>
-            )}
-            {activeLink?.downloadable && (
+
+            {!isOverlay ? (
+              <div className="player-persistent">
+                <Sparkles size={13} />
+                <span>{t("player.persistent")}</span>
+              </div>
+            ) : null}
+
+            {activeLink?.downloadable ? (
               <button
                 type="button"
                 onClick={() => void startDownload()}
@@ -976,323 +978,328 @@ export function PlayerPage({
                     ? t("player.downloadError")
                     : t("player.downloadCurrent")
                 }
-                className={`flex items-center gap-2 px-3 md:px-4 py-2 rounded-full border transition-all text-sm font-bold disabled:opacity-40 ${isOverlay ? "border-white/30 text-white hover:bg-white/10" : "border-m3-outline/30 text-m3-on-surface hover:bg-m3-on-surface/10"}`}
+                className="player-action"
               >
                 {downloadStatus === "starting" ? (
-                  <Loader2 className="animate-spin" size={16} />
+                  <Loader2 className="player-spinner" size={16} />
                 ) : (
                   <Download size={16} />
                 )}
-                <span className="hidden sm:inline">
+
+                <span>
                   {downloadStatus === "queued"
                     ? t("player.queued")
                     : t("player.download")}
                 </span>
               </button>
-            )}
+            ) : null}
+
             <button
-              onClick={() => setShowServers((s) => !s)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-full border transition-all text-sm font-bold ${showServers ? "bg-m3-primary text-m3-on-primary border-transparent" : isOverlay ? "border-white/30 text-white hover:bg-white/10" : "border-m3-outline/30 text-m3-on-surface hover:bg-m3-on-surface/10"}`}
+              type="button"
+              onClick={() => setShowServers((value) => !value)}
+              className={`player-action player-server-toggle ${
+                showServers ? "player-server-toggle--active" : ""
+              }`}
             >
               <Server size={16} />
               <span>{t("player.servers", { count: links.length })}</span>
             </button>
           </div>
-        </div>
+        </header>
 
         {anikotoRoomSourceUnavailable ? (
           <div
             role="alert"
-            className={
-              isOverlay
-                ? "absolute left-1/2 top-20 z-30 w-[min(92%,720px)] -translate-x-1/2 rounded-2xl border border-amber-300/30 bg-amber-950/95 px-4 py-3 text-sm text-amber-100 shadow-2xl"
-                : "rounded-2xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm text-amber-200"
-            }
+            className={`player-alert player-alert--warning ${
+              isOverlay ? "player-alert--overlay" : ""
+            }`}
           >
-            {t("watchTogether.anikotoDirectUnavailable")}
+            <div className="player-alert-icon">
+              <Sparkles size={15} />
+            </div>
+
+            <span>{t("watchTogether.anikotoDirectUnavailable")}</span>
           </div>
         ) : null}
 
         {activeLink?.torrent && torrentState ? (
           <div
-            className="grid grid-cols-2 gap-2 rounded-2xl border border-m3-primary/20 bg-m3-primary/5 px-4 py-3 text-xs text-m3-on-surface-variant sm:grid-cols-4"
+            className="player-torrent-stats"
             aria-label={t("torrent.sessionStats")}
           >
-            <span className="flex items-center gap-2">
+            <div className="player-torrent-stat">
               <Users size={14} />
-              {torrentState.peers} {t("torrent.peers")}
-            </span>
-            <span className="flex items-center gap-2">
+              <span>
+                <strong>{torrentState.peers}</strong>
+                {t("torrent.peers")}
+              </span>
+            </div>
+
+            <div className="player-torrent-stat">
               <Download size={14} />
-              {formatBytes(torrentState.downloadSpeed)}/s
-            </span>
-            <span className="flex items-center gap-2">
+              <span>
+                <strong>{formatBytes(torrentState.downloadSpeed)}</strong>/s
+              </span>
+            </div>
+
+            <div className="player-torrent-stat">
               <Upload size={14} />
-              {formatBytes(torrentState.uploadSpeed)}/s
-            </span>
-            <span className="flex items-center gap-2">
+              <span>
+                <strong>{formatBytes(torrentState.uploadSpeed)}</strong>/s
+              </span>
+            </div>
+
+            <div className="player-torrent-stat">
               <Gauge size={14} />
-              {Math.round(torrentState.progress * 100)}%
-            </span>
-          </div>
-        ) : null}
-
-        {roomGuestLocked && roomAutoplayBlocked ? (
-          <button
-            type="button"
-            className="absolute inset-0 z-30 m-auto h-fit w-fit rounded-full bg-m3-primary px-5 py-3 font-black text-m3-on-primary shadow-2xl"
-            onClick={() => {
-              const video = videoRef.current;
-              if (!video) return;
-              void video
-                .play()
-                .then(() => {
-                  setRoomAutoplayBlocked(false);
-                  return setReady(true);
-                })
-                .catch(() => {});
-            }}
-          >
-            {t("watchTogether.autoplayBlocked")}
-          </button>
-        ) : null}
-
-        {isOverlay ? (
-          <div className="flex-1 flex items-center justify-center bg-black">
-            {isEmbedLink ? (
-              <iframe
-                src={activeLink.url}
-                className="h-full w-full border-0"
-                allow="autoplay; fullscreen; picture-in-picture"
-                title={title}
-              />
-            ) : (
-              <video
-                ref={videoRef}
-                crossOrigin={
-                  activeLink?.subtitles?.length ? "anonymous" : undefined
-                }
-                className="w-full h-full object-contain"
-                controls={useNativeControls && !roomGuestLocked}
-                autoPlay
-                onError={tryNextServer}
-                onPlaying={(e) => handlePlaying(e.currentTarget)}
-                onWaiting={() => {
-                  playingRef.current = false;
-                  flushWatchSegment(false);
-                  if (roomMatchesPlayer) void setReady(false).catch(() => {});
-                }}
-                onPause={(e) => handlePause(e.currentTarget)}
-                onEnded={(e) => handleEnded(e.currentTarget)}
-                onTimeUpdate={(e) => handleTimeUpdate(e.currentTarget)}
-                onDurationChange={(e) => handleDurationChange(e.currentTarget)}
-                onVolumeChange={(e) => {
-                  const v = e.target as HTMLVideoElement;
-                  setVolume(v.volume);
-                  setMuted(v.muted);
-                }}
-              >
-                {activeLink?.subtitles?.map((track, index) => (
-                  <track
-                    key={`${track.url}:${index}`}
-                    src={track.url}
-                    label={track.label}
-                    kind="captions"
-                    default={index === 0}
-                  />
-                ))}
-              </video>
-            )}
-          </div>
-        ) : (
-          <div
-            className="w-full mx-auto"
-            style={{ maxWidth: "min(100%, calc(62vh * 1.7778))" }}
-          >
-            <div className="aspect-video rounded-2xl overflow-hidden bg-black border border-m3-outline/20">
-              {isEmbedLink ? (
-                <iframe
-                  src={activeLink.url}
-                  className="h-full w-full border-0"
-                  allow="autoplay; fullscreen; picture-in-picture"
-                  title={title}
-                />
-              ) : (
-                <video
-                  ref={videoRef}
-                  crossOrigin={
-                    activeLink?.subtitles?.length ? "anonymous" : undefined
-                  }
-                  className="w-full h-full object-contain"
-                  controls={useNativeControls && !roomGuestLocked}
-                  autoPlay
-                  onError={tryNextServer}
-                  onPlaying={(e) => handlePlaying(e.currentTarget)}
-                  onWaiting={() => {
-                    playingRef.current = false;
-                    flushWatchSegment(false);
-                    if (roomMatchesPlayer) void setReady(false).catch(() => {});
-                  }}
-                  onPause={(e) => handlePause(e.currentTarget)}
-                  onEnded={(e) => handleEnded(e.currentTarget)}
-                  onTimeUpdate={(e) => handleTimeUpdate(e.currentTarget)}
-                  onDurationChange={(e) =>
-                    handleDurationChange(e.currentTarget)
-                  }
-                  onVolumeChange={(e) => {
-                    const v = e.target as HTMLVideoElement;
-                    setVolume(v.volume);
-                    setMuted(v.muted);
-                  }}
-                >
-                  {activeLink?.subtitles?.map((track, index) => (
-                    <track
-                      key={`${track.url}:${index}`}
-                      src={track.url}
-                      label={track.label}
-                      kind="captions"
-                      default={index === 0}
-                    />
-                  ))}
-                </video>
-              )}
+              <span>
+                <strong>{Math.round(torrentState.progress * 100)}%</strong>
+              </span>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {!isEmbedLink && !useNativeControls && (
-          <div
-            className={
-              isOverlay ? "absolute left-3 right-3 bottom-1 z-20" : "mt-2"
-            }
-          >
-            <div className="rounded-2xl border border-m3-outline/25 bg-m3-surface/75 backdrop-blur-xl px-3 py-3 shadow-2xl">
-              <div className="flex items-center gap-2 text-m3-on-surface text-xs mb-2">
-                <button
-                  onClick={togglePlay}
-                  className="p-2 rounded-lg bg-m3-primary text-m3-on-primary hover:brightness-110 transition-all"
-                >
-                  {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-                </button>
-                <button
-                  onClick={skipForward}
-                  className="p-2 rounded-lg border border-m3-outline/30 text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface transition-all"
-                >
-                  +85s
-                </button>
-                {availableSubtitles.length > 0 ? (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCaptionTrackIndex((current) =>
-                        getNextSubtitleTrackIndex(
-                          current,
-                          availableSubtitles.length,
-                        ),
-                      )
-                    }
-                    className="rounded-lg border border-m3-outline/30 px-2 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface transition-all"
-                    title={
-                      resolvedCaptionTrackIndex >= 0
-                        ? availableSubtitles[resolvedCaptionTrackIndex]?.label ?? "Closed captions"
-                        : "Closed captions off"
-                    }
-                  >
-                    {resolvedCaptionTrackIndex >= 0 ? "CC" : "CC OFF"}
-                  </button>
-                ) : null}
-                <button
-                  onClick={toggleMute}
-                  className="p-2 rounded-lg border border-m3-outline/30 text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface transition-all"
-                >
-                  {muted || volume === 0 ? (
-                    <VolumeX size={16} />
-                  ) : (
-                    <Volume2 size={16} />
-                  )}
-                </button>
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  value={muted ? 0 : volume}
-                  onChange={(e) => setVideoVolume(Number(e.target.value))}
-                  className="w-20 accent-[var(--color-m3-primary)]"
+        <div
+          className={`player-stage ${isOverlay ? "player-stage--overlay" : ""}`}
+        >
+          {roomGuestLocked && roomAutoplayBlocked ? (
+            <button
+              type="button"
+              className="player-autoplay-prompt"
+              onClick={() => {
+                const video = videoRef.current;
+                if (!video) return;
+
+                void video
+                  .play()
+                  .then(() => {
+                    setRoomAutoplayBlocked(false);
+                    return setReady(true);
+                  })
+                  .catch(() => {});
+              }}
+            >
+              <Play size={18} />
+              {t("watchTogether.autoplayBlocked")}
+            </button>
+          ) : null}
+
+          {isEmbedLink ? (
+            <iframe
+              src={activeLink.url}
+              className="player-embed"
+              allow="autoplay; fullscreen; picture-in-picture"
+              title={title}
+            />
+          ) : (
+            <video
+              ref={videoRef}
+              crossOrigin={
+                activeLink?.subtitles?.length ? "anonymous" : undefined
+              }
+              className="player-video"
+              controls={useNativeControls && !roomGuestLocked}
+              autoPlay
+              onError={tryNextServer}
+              onPlaying={(event) => handlePlaying(event.currentTarget)}
+              onWaiting={() => {
+                playingRef.current = false;
+                flushWatchSegment(false);
+
+                if (roomMatchesPlayer) {
+                  void setReady(false).catch(() => {});
+                }
+              }}
+              onPause={(event) => handlePause(event.currentTarget)}
+              onEnded={(event) => handleEnded(event.currentTarget)}
+              onTimeUpdate={(event) => handleTimeUpdate(event.currentTarget)}
+              onDurationChange={(event) =>
+                handleDurationChange(event.currentTarget)
+              }
+              onVolumeChange={(event) => {
+                const video = event.target as HTMLVideoElement;
+                setVolume(video.volume);
+                setMuted(video.muted);
+              }}
+            >
+              {activeLink?.subtitles?.map((track, index) => (
+                <track
+                  key={`${track.url}:${index}`}
+                  src={track.url}
+                  label={track.label}
+                  kind="captions"
+                  default={index === 0}
                 />
-                <span className="ml-1 px-2 py-1 rounded-md bg-m3-surface-container/70 border border-m3-outline/20 text-m3-on-surface-variant">
-                  {formatTime(currentTime)} / {formatTime(duration)}
-                </span>
+              ))}
+            </video>
+          )}
+        </div>
+
+        {!isEmbedLink && !useNativeControls ? (
+          <div
+            className={`player-controls ${
+              isOverlay ? "player-controls--overlay" : ""
+            }`}
+          >
+            <div className="player-controls-main">
+              <button
+                type="button"
+                onClick={togglePlay}
+                className="player-control-button player-control-button--primary"
+                aria-label={isPlaying ? t("player.pause") : t("player.play")}
+              >
+                {isPlaying ? <Pause size={17} /> : <Play size={17} />}
+              </button>
+
+              <button
+                type="button"
+                onClick={skipForward}
+                className="player-control-button player-control-button--secondary"
+              >
+                +85s
+              </button>
+
+              {availableSubtitles.length > 0 ? (
                 <button
-                  onClick={enterFullscreen}
-                  className="ml-auto p-2 rounded-lg border border-m3-outline/30 text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface transition-all"
+                  type="button"
+                  onClick={() =>
+                    setCaptionTrackIndex((current) =>
+                      getNextSubtitleTrackIndex(
+                        current,
+                        availableSubtitles.length,
+                      ),
+                    )
+                  }
+                  className="player-control-button player-control-button--compact"
+                  title={
+                    resolvedCaptionTrackIndex >= 0
+                      ? (availableSubtitles[resolvedCaptionTrackIndex]?.label ??
+                        "Closed captions")
+                      : "Closed captions off"
+                  }
                 >
-                  <Maximize2 size={16} />
+                  {resolvedCaptionTrackIndex >= 0 ? "CC" : "CC OFF"}
                 </button>
-                <button
-                  onClick={togglePip}
-                  className="p-2 rounded-lg border border-m3-outline/30 text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface transition-all"
-                  title={t("player.pictureInPicture")}
-                >
-                  {isPip ? (
-                    <Minimize2 size={16} />
-                  ) : (
-                    <PictureInPicture2 size={16} />
-                  )}
-                </button>
-              </div>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={toggleMute}
+                className="player-control-button"
+                aria-label={
+                  muted || volume === 0 ? t("player.unmute") : t("player.mute")
+                }
+              >
+                {muted || volume === 0 ? (
+                  <VolumeX size={17} />
+                ) : (
+                  <Volume2 size={17} />
+                )}
+              </button>
+
               <input
                 type="range"
                 min={0}
-                max={Math.max(duration, 0)}
-                step={0.1}
-                value={Math.min(currentTime, duration || 0)}
-                onChange={(e) => seek(Number(e.target.value))}
-                className="w-full accent-[var(--color-m3-primary)]"
+                max={1}
+                step={0.01}
+                value={muted ? 0 : volume}
+                onChange={(event) => setVideoVolume(Number(event.target.value))}
+                className="player-volume"
+                aria-label={t("player.volume")}
               />
-            </div>
-          </div>
-        )}
 
-        {showServers && (
-          <div
-            className={
-              isOverlay
-                ? "absolute bottom-0 left-0 right-0 bg-m3-surface/95 backdrop-blur-xl border-t border-m3-outline/20 p-4 z-20"
-                : "bg-m3-surface/70 rounded-2xl border border-m3-outline/20 p-4"
-            }
+              <span className="player-time">
+                {formatTime(currentTime)}
+                <span>/</span>
+                {formatTime(duration)}
+              </span>
+
+              <button
+                type="button"
+                onClick={enterFullscreen}
+                className="player-control-button player-control-button--utility"
+                aria-label={t("player.fullscreen")}
+              >
+                <Maximize2 size={17} />
+              </button>
+
+              <button
+                type="button"
+                onClick={togglePip}
+                className="player-control-button player-control-button--utility"
+                title={t("player.pictureInPicture")}
+                aria-label={t("player.pictureInPicture")}
+              >
+                {isPip ? (
+                  <Minimize2 size={17} />
+                ) : (
+                  <PictureInPicture2 size={17} />
+                )}
+              </button>
+            </div>
+
+            <input
+              type="range"
+              min={0}
+              max={Math.max(duration, 0)}
+              step={0.1}
+              value={Math.min(currentTime, duration || 0)}
+              onChange={(event) => seek(Number(event.target.value))}
+              className="player-progress"
+              aria-label={t("player.seek")}
+            />
+          </div>
+        ) : null}
+
+        {showServers ? (
+          <section
+            className={`player-server-panel ${
+              isOverlay ? "player-server-panel--overlay" : ""
+            }`}
           >
-            <p className="text-xs text-m3-on-surface-variant mb-3 uppercase tracking-widest font-bold">
-              {t("player.selectServer")}
-            </p>
-            <div className="flex flex-wrap gap-2 max-h-[40vh] overflow-y-auto pr-1">
-              {links.map((link, i) => (
+            <div className="player-server-panel-header">
+              <div>
+                <span className="player-panel-eyebrow">
+                  {t("player.servers", { count: links.length })}
+                </span>
+
+                <h3>{t("player.selectServer")}</h3>
+              </div>
+
+              <Server size={18} />
+            </div>
+
+            <div className="player-server-list">
+              {links.map((link, index) => (
                 <button
-                  key={i}
+                  type="button"
+                  key={index}
                   onClick={() => {
-                    setActiveIdx(i);
+                    setActiveIdx(index);
                     setCaptionTrackIndex(0);
                     setShowServers(false);
                   }}
-                  className={`px-4 py-2 rounded-full text-sm font-bold border transition-all ${
-                    i === activeIdx
-                      ? "bg-m3-primary text-m3-on-primary border-transparent shadow-lg"
-                      : "border-m3-outline/30 text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface"
+                  className={`player-server ${
+                    index === activeIdx ? "player-server--active" : ""
                   }`}
                 >
-                  <span className="opacity-60 text-xs mr-1">
+                  <span className="player-server-provider">
                     {link.provider}
                   </span>
-                  {link.resolution}
-                  {link.hls && (
-                    <span className="ml-1 text-xs opacity-50">HLS</span>
-                  )}
+
+                  <span className="player-server-resolution">
+                    {link.resolution}
+                  </span>
+
+                  {link.hls ? (
+                    <span className="player-server-type">HLS</span>
+                  ) : null}
                 </button>
               ))}
             </div>
-          </div>
-        )}
+          </section>
+        ) : null}
       </div>
+
       {watchTogetherState?.code && !isOverlay ? (
         <WatchTogetherCompanion />
       ) : null}

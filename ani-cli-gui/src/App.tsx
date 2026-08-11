@@ -1,23 +1,24 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { BrowsePage } from './pages/BrowsePage'
 import { HistoryPage } from './pages/HistoryPage'
 import { AnimePage } from './pages/AnimePage'
 import { AniListPage } from './pages/AniListPage'
-import { Navigation } from './components/Navigation'
-import { AppNotifications, type AppNotification, type AppNotificationKind } from './components/AppNotifications'
+import { AppNotifications, type AppNotification, type AppNotificationKind } from './components/feedback/Toast/AppNotifications'
 import { useTranslation } from 'react-i18next'
 import { replaceLegacyHistoryEntry, type HistoryEntry } from './lib/history'
 import { invokeSearch } from './lib/api'
 import type { DownloadState } from './download-types'
 import { DownloadsPage } from './pages/DownloadsPage'
-import { RemoteNoticeBanner } from './components/RemoteNoticeBanner'
+import { RemoteNoticeBanner } from './components/feedback/Toast/RemoteNoticeBanner'
 import type { CatalogProvider, TranslationType } from './catalog-types'
 import type { UpdateState } from './updater-types'
 import { playNotificationSound, shouldPlayNotificationSound, type NotificationSoundLevel } from './lib/notification-sounds'
-import { WatchTogetherSetupDialog } from './components/WatchTogetherSetupDialog'
-import { Sparkles } from 'lucide-react'
+import { WatchTogetherSetupDialog } from './components/aniplay/PlayerControls/WatchTogetherSetupDialog'
+import { Sparkles, Minus, Square, X, Home, Search, Clock, Download, Settings } from 'lucide-react'
 import type { WatchTogetherCreateContext } from './watch-together-types'
 import { useWatchTogether } from './contexts/WatchTogetherContext'
+import { Layout } from './components/layout/Layout'
+import { type SidebarItem, type BreadcrumbItem } from './components/layout'
 
 interface AnimeSelection {
   id: string
@@ -29,10 +30,6 @@ interface AnimeSelection {
 }
 
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
-
-const LOGO_CLICK_TARGET = 7
-const LOGO_CLICK_WINDOW_MS = 4000
-const TEST_BUILD_VERSION_PATTERN = /-(?:test|alpha|beta|rc)\b/i
 
 function createNotification(title: string, body: string | undefined, kind: AppNotificationKind, durationMs?: number): AppNotification {
   return {
@@ -64,13 +61,10 @@ function App() {
   const [downloadState, setDownloadState] = useState<DownloadState | null>(null)
   const [aniListOpenRequest, setAniListOpenRequest] = useState<{ id: number; nonce: number } | null>(null)
   const [notifications, setNotifications] = useState<AppNotification[]>(initialNotifications)
-  const [appVersion, setAppVersion] = useState<string | null>(null)
-  const [secretSakuraMode, setSecretSakuraMode] = useState(false)
   const [watchTogetherOpen, setWatchTogetherOpen] = useState(false)
   const [watchTogetherContext, setWatchTogetherContext] = useState<WatchTogetherCreateContext | null>(null)
   const [watchTogetherPlayerNonce, setWatchTogetherPlayerNonce] = useState(0)
   const { state: watchTogetherState, inviteCode: watchTogetherInviteCode, setCompanionOpen } = useWatchTogether()
-  const logoClickTimesRef = useRef<number[]>([])
   const watchedEpisodesRef = useRef(new Set<string>())
   const watchBadgeThresholdsRef = useRef(new Set<number>())
   const updateNotificationKeysRef = useRef(new Set<string>())
@@ -86,9 +80,10 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (!window.aniPlay) return
-    void window.aniPlay.downloads.getState().then(setDownloadState)
-    return window.aniPlay.downloads.onChanged(setDownloadState)
+    const aniPlay = window.aniPlay
+    if (!aniPlay) return
+    void aniPlay.downloads.getState().then(setDownloadState)
+    return aniPlay.downloads.onChanged(setDownloadState)
   }, [])
 
   useEffect(() => {
@@ -134,7 +129,6 @@ function App() {
   }, [openWatchTogether, watchTogetherState?.code])
 
   const notifyUpdateState = useCallback((state: UpdateState) => {
-    setAppVersion(state.currentVersion)
     if (state.phase !== 'available' && state.phase !== 'downloaded') return
     const version = state.availableVersion ?? 'the latest version'
     const key = `${state.phase}:${version}`
@@ -151,7 +145,7 @@ function App() {
 
   useEffect(() => {
     if (!window.aniPlay) return
-    void window.aniPlay.updater.getState().then(notifyUpdateState).catch(() => {})
+    void window.aniPlay.updater.getState().then(notifyUpdateState).catch(() => { })
     return window.aniPlay.updater.onChanged(notifyUpdateState)
   }, [notifyUpdateState])
 
@@ -163,7 +157,42 @@ function App() {
   }, [notify, t])
 
   const activeDownloadCount = downloadState?.jobs.filter((job) => ['queued', 'resolving', 'downloading'].includes(job.status)).length ?? 0
-  const isTestBuild = appVersion ? TEST_BUILD_VERSION_PATTERN.test(appVersion) : false
+
+  // Sidebar navigation items
+  const sidebarItems: SidebarItem[] = [
+    { id: 'anilist', label: t('app.home'), icon: Home },
+    { id: 'search', label: t('app.browse'), icon: Search },
+    { id: 'history', label: t('app.history'), icon: Clock },
+    { id: 'downloads', label: t('app.downloads'), icon: Download, badge: activeDownloadCount || undefined },
+    { id: 'settings', label: t('app.settings'), icon: Settings },
+  ]
+  const nativeControls = window.aniPlay?.windowControls;
+  // Window controls
+  const windowControls = [
+    { icon: Minus, label: 'Minimize', onClick: () => nativeControls?.minimize() },
+    { icon: Square, label: 'Maximize', onClick: () => nativeControls?.maximize() },
+    { icon: X, label: 'Close', onClick: () => nativeControls?.close() }
+  ]
+
+  // Breadcrumbs for header
+  const breadcrumbs: BreadcrumbItem[] = [
+    { label: t('nav.anilist'), active: activeTab === 'anilist' && !activeAnime },
+  ]
+
+  if (activeTab !== 'anilist') {
+    const tabLabels: Record<string, string> = {
+      search: t('app.browse'),
+      history: t('app.history'),
+      downloads: t('app.downloads'),
+      settings: t('app.settings'),
+      player: t('app.player'),
+    }
+    breadcrumbs.push({ label: tabLabels[activeTab] || activeTab, active: !activeAnime })
+  }
+
+  if (activeAnime) {
+    breadcrumbs.push({ label: activeAnime.name, active: true })
+  }
 
   const handleResumeFromHistory = async (historyItem: HistoryEntry) => {
     let item = historyItem
@@ -222,16 +251,6 @@ function App() {
     setActiveTab('anilist')
   }
 
-  const handleLogoClick = () => {
-    if (secretSakuraMode) return
-    const now = Date.now()
-    logoClickTimesRef.current = [...logoClickTimesRef.current.filter((time) => now - time <= LOGO_CLICK_WINDOW_MS), now]
-    if (logoClickTimesRef.current.length < LOGO_CLICK_TARGET) return
-    logoClickTimesRef.current = []
-    setSecretSakuraMode(true)
-    notify(t('notifications.secretTitle'), t('notifications.secretBody'), 'easter-egg', 7000)
-  }
-
   const handleEpisodeStarted = useCallback((animeId: string, episode: string) => {
     const key = `${animeId}:${episode}`
     if (watchedEpisodesRef.current.has(key)) return
@@ -250,107 +269,47 @@ function App() {
   }, [notify, t])
 
   return (
-    <div className={`app-shell min-h-screen bg-m3-surface text-m3-on-surface p-3 md:p-5 relative overflow-hidden flex flex-col ${secretSakuraMode ? 'secret-sakura-mode' : ''}`}>
-      {/* Background Floats */}
-      <div className="ambient-background absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-m3-primary/10 blur-[120px] rounded-full animate-blob"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[--custom-display-name-styles-dark-1-color] opacity-20 blur-[120px] rounded-full animate-blob animation-delay-2000"></div>
-      </div>
-
-      {/* Header */}
-      <header
-        className="app-header relative w-full max-w-[1500px] mx-auto mb-5"
-        style={{ WebkitAppRegion: "drag" } as CSSProperties}
-      >
-        <div className="relative overflow-hidden rounded-[28px] border border-m3-outline/20 bg-m3-surface-container/80 backdrop-blur-xl shadow-[0_18px_50px_rgba(0,0,0,0.2)] ring-1 ring-white/5">
-
-          {/* Accent line */}
-          <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-cyan-400/0 via-m3-primary to-fuchsia-500/0" />
-
-          <div className="flex items-center justify-between px-6 py-4 gap-6">
-
-            {/* LEFT */}
-            <div className="flex items-center gap-4 min-w-auto">
-
-              <button
-                type="button"
-                onClick={handleLogoClick}
-                className="group text-left"
-                style={{ WebkitAppRegion: "no-drag" } as CSSProperties}
-              >
-                <div className="font-black tracking-[0.35em] text-2xl uppercase text-m3-primary transition-all group-hover:drop-shadow-[0_0_10px_var(--accent-glow)]">
-                  ANI//PLAY
-                </div>
-
-                <div className="mt-0.5 text-[10px] uppercase tracking-[0.25em] text-m3-on-surface-variant">
-                  {t('app.tagline')}
-                </div>
-              </button>
-
-              {isTestBuild && (
-                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1">
-                  <div className="text-[9px] font-bold tracking-[0.25em] text-amber-300 uppercase">
-                    TEST
-                  </div>
-
-                  <div className="text-[10px] text-amber-100">
-                    {appVersion}
-                  </div>
-                </div>
-              )}
-
-            </div>
-
-            {/* CENTER */}
-            <Navigation
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              hasActivePlayer={activeAnime !== null}
-              downloadCount={activeDownloadCount}
-              className="!static !bg-transparent !border-0 !shadow-none !backdrop-blur-0 flex-1 justify-center"
-            />
-
-            {/* RIGHT */}
-            <div
-              className="flex items-center gap-3"
-              style={{ WebkitAppRegion: "no-drag" } as CSSProperties}
-            >
-
-              <button
-                type="button"
-                onClick={openGlobalWatchTogether}
-                className="inline-flex
-                  items-center
-                  gap-2
-                  rounded-xl
-                  border
-                  border-m3-outline/25
-                  bg-m3-surface-container/80
-                  px-4
-                  py-2
-                  text-sm
-                  font-semibold
-                  text-m3-primary
-                  transition-all
-                  hover:bg-m3-primary/20
-                  hover:border-m3-primary/50
-                "
-              >
-                <Sparkles size={16} />
-                <span>{t('watchTogether.title')}</span>
-              </button>
-            </div>
+    <Layout
+      sidebar={{
+        items: sidebarItems,
+        activeId: activeAnime ? 'player' : activeTab,
+        onItemClick: (id) => {
+          if (id === 'player' && activeAnime) {
+            setActiveTab('player')
+          } else {
+            setActiveTab(id)
+            if (id !== 'player') {
+              setActiveAnime(null)
+            }
+          }
+        },
+      }}
+      header={{
+        logo: (
+          <div className="app-logo">
+            <span className="font-black tracking-wider text-lg">ANI//PLAY</span>
           </div>
-        </div>
-      </header>
-
-      {/* Main Content Area */}
-      <main className="app-main relative z-10 flex-1 flex flex-col w-full max-w-[1500px] mx-auto pb-20 md:pb-4">
+        ),
+        breadcrumbs,
+        rightContent: (
+          <button
+            type="button"
+            onClick={openGlobalWatchTogether}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-[var(--accent-dim)] text-[var(--accent)] text-sm font-medium hover:bg-[var(--accent-dimmer)] transition-colors"
+          >
+            <Sparkles size={14} />
+            <span>{t('watchTogether.title')}</span>
+          </button>
+        ),
+        windowControls,
+      }}
+    >
+      <div className="container">
         <div className="mb-4">
           <RemoteNoticeBanner provider={activeAnime?.catalogProvider} />
         </div>
 
-        <div className={activeTab === 'anilist' ? 'flex flex-1 flex-col' : 'hidden'} aria-hidden={activeTab !== 'anilist'}>
+        <div className={activeTab === 'anilist' ? '' : 'hidden'} aria-hidden={activeTab !== 'anilist'}>
           <AniListPage
             key={aniListOpenRequest?.nonce ?? 'anilist-workspace'}
             setSearchQuery={setSearchQuery}
@@ -374,7 +333,7 @@ function App() {
         )}
 
         {activeAnime && (
-          <div className={activeTab === 'player' ? 'flex flex-1 flex-col' : 'hidden'} aria-hidden={activeTab !== 'player'}>
+          <div className={activeTab === 'player' ? '' : 'hidden'} aria-hidden={activeTab !== 'player'}>
             <AnimePage
               key={`${activeAnime.id}:${resumeTranslationType ?? 'default'}:${watchTogetherPlayerNonce}:${torrentEpisodeRequest?.nonce ?? 'provider'}`}
               anime={activeAnime}
@@ -406,18 +365,18 @@ function App() {
 
         {activeTab === 'settings' && (
           <Suspense fallback={
-            <div className="m3-card flex-1 min-h-[220px] flex items-center justify-center text-m3-on-surface-variant text-sm">
+            <div className="flex-1 min-h-[220px] flex items-center justify-center text-[var(--text-secondary)] text-sm">
               {t('app.loadingSettings')}
             </div>
           }>
             <SettingsPage />
           </Suspense>
-         )}
-      </main>
+        )}
+      </div>
 
       <AppNotifications items={notifications} onDismiss={dismissNotification} />
       <WatchTogetherSetupDialog key={watchTogetherInviteCode ?? 'watch-together'} anime={activeAnime ?? undefined} context={watchTogetherContext} isOpen={watchTogetherOpen || Boolean(watchTogetherInviteCode)} onOpenChange={setWatchTogetherOpen} />
-    </div>
+    </Layout>
   )
 }
 

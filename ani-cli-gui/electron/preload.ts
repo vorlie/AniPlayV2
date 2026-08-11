@@ -138,6 +138,11 @@ const productionApi = {
       return () => ipcRenderer.removeListener('torrent:changed', listener)
     },
   },
+  windowControls: {
+    minimize: () => ipcRenderer.send('window:minimize'),
+    maximize: () => ipcRenderer.send('window:maximize'),
+    close: () => ipcRenderer.send('window:close'),
+  },
 }
 
 const api = process.argv.includes(SHOWCASE_PRELOAD_SWITCH) ? createShowcaseApi() : productionApi

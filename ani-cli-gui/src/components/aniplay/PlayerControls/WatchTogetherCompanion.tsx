@@ -13,7 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useWatchTogether } from "../contexts/WatchTogetherContext";
+import { useWatchTogether } from "../../../contexts/WatchTogetherContext";
 
 type ViewportMode = "mobile" | "desktop" | "wide";
 
