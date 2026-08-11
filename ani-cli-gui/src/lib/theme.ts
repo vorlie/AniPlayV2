@@ -1,7 +1,7 @@
 import { argbFromRgb, hexFromArgb, themeFromSourceColor } from '@material/material-color-utilities'
 import { loadThemeCssFromContent, loadThemeCssFromFile, unloadThemeCss, unloadAllThemeCss } from './themeCss'
 
-export type ThemeId = 'editorial' | string // Allow custom theme IDs
+export type ThemeId = 'editorial' | 'system24' | string // Allow custom theme IDs
 
 export interface ThemeDefinition {
   id: ThemeId
@@ -18,10 +18,12 @@ export const CUSTOM_THEMES_STORAGE_KEY = 'theme.custom'
 
 export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
   editorial: { id: 'editorial', defaultAccent: '#FF5338', cssPath: '/themes/editorial.css' },
+  system24: { id: 'system24', defaultAccent: '#FF6B9D', cssPath: '/themes/system24.css' },
 }
 
 const ACCENT_STORAGE_KEYS: Record<string, string> = {
   editorial: 'theme.primary.editorial',
+  system24: 'theme.primary.system24',
 }
 
 const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i
@@ -41,7 +43,7 @@ function contrastTextFor({ r, g, b }: { r: number; g: number; b: number }) {
 }
 
 export function isThemeId(value: string | null): value is ThemeId {
-  return value !== null && (value === 'editorial' || value.startsWith('custom-'))
+  return value !== null && (value === 'editorial' || value === 'system24' || value.startsWith('custom-'))
 }
 
 export function isValidAccent(value: string | null): value is string {
@@ -54,8 +56,23 @@ export function getTheme(storage: Pick<Storage, 'getItem'> = localStorage): Them
 }
 
 export function getThemeAccent(themeId: ThemeId, storage: Pick<Storage, 'getItem'> = localStorage): string {
-  const saved = storage.getItem(ACCENT_STORAGE_KEYS[themeId])
-  return isValidAccent(saved) ? saved.toUpperCase() : THEME_DEFINITIONS[themeId].defaultAccent
+  const storageKey = ACCENT_STORAGE_KEYS[themeId] || `theme.primary.${themeId}`
+  const saved = storage.getItem(storageKey)
+  if (isValidAccent(saved)) return saved.toUpperCase()
+
+  // Check built-in themes first
+  if (THEME_DEFINITIONS[themeId]) {
+    return THEME_DEFINITIONS[themeId].defaultAccent
+  }
+
+  // Fall back to custom themes
+  const customThemes = getCustomThemes(storage as Storage)
+  if (customThemes[themeId]) {
+    return customThemes[themeId].defaultAccent
+  }
+
+  // Ultimate fallback
+  return '#FF5338'
 }
 
 export function migrateLegacyThemeStorage(storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> = localStorage) {
@@ -68,7 +85,7 @@ export function applyTheme(themeId: ThemeId, accent: string, root: HTMLElement =
   const { r, g, b } = hexToRgb(safeAccent)
   const sourceColor = argbFromRgb(r, g, b)
   const dark = themeFromSourceColor(sourceColor, [{ name: 'custom-primary', value: sourceColor, blend: true }]).schemes.dark
-  const usesDirectAccent = themeId === 'editorial' || themeId.startsWith('custom-')
+  const usesDirectAccent = themeId === 'editorial' || themeId === 'system24' || themeId.startsWith('custom-')
   const primary = usesDirectAccent ? safeAccent.toUpperCase() : hexFromArgb(dark.primary)
 
   root.dataset.theme = themeId
@@ -80,19 +97,19 @@ export function applyTheme(themeId: ThemeId, accent: string, root: HTMLElement =
   root.style.setProperty('--color-m3-on-primary', usesDirectAccent ? contrastTextFor({ r, g, b }) : hexFromArgb(dark.onPrimary))
   root.style.setProperty('--color-m3-primary-container', hexFromArgb(dark.primaryContainer))
   root.style.setProperty('--color-m3-on-primary-container', hexFromArgb(dark.onPrimaryContainer))
-  root.style.setProperty('--color-m3-secondary', themeId === 'editorial' ? '#72E6BE' : hexFromArgb(dark.secondary))
-  root.style.setProperty('--color-m3-on-secondary', themeId === 'editorial' ? '#09251D' : hexFromArgb(dark.onSecondary))
+  root.style.setProperty('--color-m3-secondary', themeId === 'editorial' ? '#72E6BE' : themeId === 'system24' ? '#2ed573' : hexFromArgb(dark.secondary))
+  root.style.setProperty('--color-m3-on-secondary', themeId === 'editorial' ? '#09251D' : themeId === 'system24' ? '#0a0b0e' : hexFromArgb(dark.onSecondary))
   root.style.setProperty(
     '--color-m3-outline',
-    themeId === 'editorial' ? '#918D87' : hexFromArgb(dark.outline),
+    themeId === 'editorial' ? '#918D87' : themeId === 'system24' ? '#2a2d35' : hexFromArgb(dark.outline),
   )
   root.style.setProperty(
     '--color-m3-on-surface',
-    themeId === 'editorial' ? '#F5F2ED' : hexFromArgb(dark.onSurface),
+    themeId === 'editorial' ? '#F5F2ED' : themeId === 'system24' ? '#e8eaed' : hexFromArgb(dark.onSurface),
   )
   root.style.setProperty(
     '--color-m3-on-surface-variant',
-    themeId === 'editorial' ? '#BBB7B0' : hexFromArgb(dark.onSurfaceVariant),
+    themeId === 'editorial' ? '#BBB7B0' : themeId === 'system24' ? '#9ca3af' : hexFromArgb(dark.onSurfaceVariant),
   )
 
   // Load theme-specific CSS
@@ -134,14 +151,27 @@ export function saveTheme(themeId: ThemeId, storage: Pick<Storage, 'getItem' | '
 
 export function saveThemeAccent(themeId: ThemeId, accent: string, storage: Pick<Storage, 'setItem'> = localStorage, root: HTMLElement = document.documentElement) {
   if (!isValidAccent(accent)) return false
-  storage.setItem(ACCENT_STORAGE_KEYS[themeId], accent.toUpperCase())
+  const storageKey = ACCENT_STORAGE_KEYS[themeId] || `theme.primary.${themeId}`
+  storage.setItem(storageKey, accent.toUpperCase())
   applyTheme(themeId, accent, root)
   return true
 }
 
 export function resetThemeAccent(themeId: ThemeId, storage: Pick<Storage, 'removeItem'> = localStorage, root: HTMLElement = document.documentElement) {
-  storage.removeItem(ACCENT_STORAGE_KEYS[themeId])
-  const accent = THEME_DEFINITIONS[themeId].defaultAccent
+  const storageKey = ACCENT_STORAGE_KEYS[themeId] || `theme.primary.${themeId}`
+  storage.removeItem(storageKey)
+
+  // Get default accent from built-in or custom theme
+  let accent = '#FF5338'
+  if (THEME_DEFINITIONS[themeId]) {
+    accent = THEME_DEFINITIONS[themeId].defaultAccent
+  } else {
+    const customThemes = getCustomThemes(storage as Storage)
+    if (customThemes[themeId]) {
+      accent = customThemes[themeId].defaultAccent
+    }
+  }
+
   applyTheme(themeId, accent, root)
   return accent
 }

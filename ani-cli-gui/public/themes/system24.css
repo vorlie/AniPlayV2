@@ -1,0 +1,1259 @@
+/* ============================================
+   AniPlay — System24 Terminal Theme
+   ============================================
+   A terminal/IRC-inspired theme based on the
+   System24 Discord theme reference.
+   
+   Characteristics:
+   - Monospace typography throughout
+   - Thin 1px panel borders
+   - Near-black monochrome palette
+   - Dense information layout
+   - Border-label aesthetic
+   - Square/minimally rounded controls
+   - Strong geometric panel structure
+   - Subtle purple/pink accent
+   - Terminal/IRC interface feeling
+   ============================================ */
+
+/* ============================================
+   Typography
+   ============================================ */
+
+:root {
+    /* Monospace font for the entire UI */
+    --font-sans: "JetBrains Mono", "IBM Plex Mono", "Fira Code", "Consolas",
+                 "Courier New", monospace;
+    --font-mono: "JetBrains Mono", "IBM Plex Mono", "Fira Code", "Consolas",
+                 "Courier New", monospace;
+}
+
+/* ============================================
+   Color System
+   ============================================ */
+
+:root {
+    /* Near-black backgrounds */
+    --background: #080808;
+    --background-surface: #0a0a0a;
+    --background-surface-hover: #0f0f0f;
+    --surface-hover: rgba(255, 255, 255, 0.02);
+
+    /* Text hierarchy - low contrast */
+    --text: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    --text-muted: #606060;
+    --text-dim: #404040;
+
+    /* Thin borders - low contrast */
+    --border: #2a2a2a;
+    --border-subtle: #222222;
+    --border-focus: #ff6b9d;
+
+    /* Accent - purple/pink like the reference */
+    --accent: #ff6b9d;
+    --accent-hover: #ff7aa8;
+    --accent-dim: rgba(255, 107, 157, 0.15);
+    --accent-dimmer: rgba(255, 107, 157, 0.08);
+
+    /* Semantic colors - restrained */
+    --error: #ff4757;
+    --warning: #ffa502;
+    --success: #2ed573;
+    --info: #3742fa;
+
+    /* Border radius - almost square */
+    --radius-sm: 0px;
+    --radius-md: 0px;
+    --radius-lg: 2px;
+    --radius-xl: 2px;
+
+    /* Spacing - compact */
+    --space-1: 2px;
+    --space-2: 4px;
+    --space-3: 6px;
+    --space-4: 8px;
+    --space-5: 10px;
+    --space-6: 12px;
+
+    /* Transitions - fast */
+    --transition-fast: 80ms ease;
+    --transition-normal: 120ms ease;
+}
+
+/* ============================================
+   Global Styles
+   ============================================ */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+   Scrollbars - Terminal Style
+   ============================================ */
+
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 0px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* ============================================
+   Input & Form Styles - Terminal
+   ============================================ */
+
+input,
+select,
+textarea {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    background: var(--background-surface);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-muted);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--background-surface-hover);
+}
+
+/* ============================================
+   Button Styles - Terminal
+   ============================================ */
+
+button {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    background: var(--background-surface);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+button:hover {
+    background: var(--background-surface-hover);
+    border-color: var(--text-muted);
+}
+
+button:active {
+    background: var(--surface-hover);
+}
+
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+
+button.primary:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+}
+
+/* ============================================
+   Link Styles
+   ============================================ */
+
+a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* ============================================
+   Selection
+   ============================================ */
+
+::selection {
+    background: var(--accent-dim);
+    color: var(--text);
+}
+
+/* ============================================
+   Header Application Bar
+   ============================================ */
+
+.app-header {
+    background: var(--background-surface);
+    border-bottom: 1px solid var(--border);
+    padding: 4px 8px;
+}
+
+/* ============================================
+   Sidebar Navigation - Terminal/IRC Style
+   ============================================ */
+
+.sidebar {
+    background: var(--background-surface);
+    border-right: 1px solid var(--border);
+}
+
+.nav-item {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 4px 8px;
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    transition: all var(--transition-fast);
+    text-transform: lowercase;
+}
+
+.nav-item:hover {
+    background: var(--background-surface-hover);
+    color: var(--text);
+    border-color: var(--border-subtle);
+}
+
+.nav-item.active {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-color: var(--accent);
+    font-weight: 500;
+}
+
+/* ============================================
+   Main Content Area
+   ============================================ */
+
+.main-content {
+    background: var(--background);
+    border-top-left-radius: 2px;
+}
+
+/* ============================================
+   Cards & Surfaces - Panel Style
+   ============================================ */
+
+.card,
+.surface {
+    background: var(--background-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+}
+
+.card:hover,
+.surface:hover {
+    border-color: var(--text-muted);
+}
+
+/* ============================================
+   Section Headers - Border-Label Aesthetic
+   ============================================ */
+
+.section-header,
+.home-section-header,
+.settings-section-header,
+.browse-section-header {
+    position: relative;
+    padding: 4px 0;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-header h2,
+.section-header h3,
+.home-section-header h2,
+.home-section-header h3,
+.settings-section-header h2,
+.browse-section-header h2 {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin: 0;
+    padding: 0 4px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+}
+
+.section-header-icon,
+.home-section-header-icon {
+    color: var(--accent);
+    font-size: 11px;
+}
+
+/* ============================================
+   Anime Cards & Posters - Panel Style
+   ============================================ */
+
+.poster-card,
+.browse-poster {
+    background: var(--background-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 6px;
+    transition: all var(--transition-fast);
+}
+
+.poster-card:hover,
+.browse-poster:hover {
+    border-color: var(--accent);
+    background: var(--background-surface-hover);
+}
+
+.poster-image,
+.browse-poster-image {
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+}
+
+.poster-title,
+.browse-poster-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text);
+    margin: 4px 0 2px;
+}
+
+.poster-meta,
+.browse-poster-meta {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+/* ============================================
+   Episode/Download/History Items - Terminal List
+   ============================================ */
+
+.list-item,
+.home-continue-item,
+.browse-item,
+.download-item,
+.history-item {
+    display: grid;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: transparent;
+    transition: background var(--transition-fast);
+    font-family: var(--font-mono);
+    font-size: 11px;
+}
+
+.list-item:hover,
+.home-continue-item:hover,
+.browse-item:hover,
+.download-item:hover,
+.history-item:hover {
+    background: var(--surface-hover);
+    border-color: var(--border);
+}
+
+.list-item:last-child,
+.home-continue-item:last-child,
+.browse-item:last-child {
+    border-bottom: none;
+}
+
+.list-item-title,
+.home-continue-title,
+.browse-item-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.list-item-meta,
+.home-continue-episode,
+.browse-item-meta {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+/* ============================================
+   Badges & Tags - Terminal Style
+   ============================================ */
+
+.badge,
+.tag,
+.home-featured-badge,
+.home-about-genre {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 500;
+    padding: 2px 6px;
+    border: 1px solid var(--accent);
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.badge.warning,
+.tag.warning {
+    border-color: var(--warning);
+    background: rgba(255, 165, 2, 0.1);
+    color: var(--warning);
+}
+
+.badge.error,
+.tag.error {
+    border-color: var(--error);
+    background: rgba(255, 71, 87, 0.1);
+    color: var(--error);
+}
+
+.badge.success,
+.tag.success {
+    border-color: var(--success);
+    background: rgba(46, 213, 115, 0.1);
+    color: var(--success);
+}
+
+/* ============================================
+   Tabs - Terminal Style
+   ============================================ */
+
+.tab,
+.home-tab,
+.home-shelf-tab {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    background: var(--background-surface);
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+    text-transform: lowercase;
+}
+
+.tab:hover,
+.home-tab:hover,
+.home-shelf-tab:hover {
+    background: var(--background-surface-hover);
+    color: var(--text);
+    border-color: var(--text-muted);
+}
+
+.tab.active,
+.home-tab.active,
+.home-shelf-tab.active {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+/* ============================================
+   Dialogs & Modals - Terminal Window
+   ============================================ */
+
+.dialog,
+.modal,
+.home-modal {
+    background: var(--background-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    padding: 12px;
+}
+
+.dialog-overlay,
+.modal-overlay {
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(2px);
+}
+
+/* ============================================
+   Loading States - Terminal
+   ============================================ */
+
+.loading-skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--background-surface) 25%,
+        var(--background-surface-hover) 50%,
+        var(--background-surface) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton 1s ease-in-out infinite;
+}
+
+@keyframes skeleton {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.spinner {
+    border: 1px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 0px;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   Empty States - Terminal
+   ============================================ */
+
+.empty-state,
+.home-collection-empty,
+.browse-empty,
+.settings-empty {
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--background-surface);
+    padding: 16px;
+    text-align: center;
+}
+
+.empty-state-icon,
+.home-collection-empty-icon,
+.browse-empty-icon,
+.settings-empty-icon {
+    font-family: var(--font-mono);
+    color: var(--accent);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--background-surface-hover);
+    padding: 8px;
+}
+
+.empty-state h3,
+.home-collection-empty h3,
+.browse-empty h3,
+.settings-empty h3 {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    margin: 8px 0 4px;
+}
+
+.empty-state p,
+.home-collection-empty p,
+.browse-empty p,
+.settings-empty p {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* ============================================
+   Error States - Terminal
+   ============================================ */
+
+.error-banner,
+.home-alert,
+.home-alert--error,
+.browse-error {
+    border: 1px solid var(--error);
+    border-left: 2px solid var(--error);
+    background: rgba(255, 71, 87, 0.05);
+    color: var(--error);
+    padding: 6px 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+}
+
+/* ============================================
+   Progress Bars - Terminal
+   ============================================ */
+
+.progress-bar,
+.settings-update-progress,
+.download-progress {
+    background: var(--border);
+    border-radius: 0px;
+    height: 3px;
+}
+
+.progress-fill,
+.settings-update-progress-fill,
+.download-progress-fill {
+    background: var(--accent);
+    border-radius: 0px;
+    transition: width var(--transition-normal);
+}
+
+/* ============================================
+   Toggle Switches - Terminal
+   ============================================ */
+
+.toggle,
+.settings-toggle {
+    background: var(--border);
+    border-radius: 0px;
+    border: 1px solid var(--border);
+    transition: background var(--transition-fast);
+}
+
+.toggle.active,
+.settings-toggle.active {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.toggle-track,
+.settings-toggle-track {
+    background: var(--text);
+    border-radius: 0px;
+    transition: transform var(--transition-fast);
+}
+
+.toggle.active .toggle-track,
+.settings-toggle.active .settings-toggle-track {
+    transform: translateX(20px);
+}
+
+/* ============================================
+   Icon Buttons - Terminal
+   ============================================ */
+
+.icon-button {
+    color: var(--text-secondary);
+    border: 1px solid transparent;
+    background: transparent;
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+}
+
+.icon-button:hover {
+    background: var(--background-surface-hover);
+    color: var(--text);
+    border-color: var(--border);
+}
+
+.icon-button:active {
+    transform: none;
+}
+
+/* ============================================
+   Dropdowns - Terminal
+   ============================================ */
+
+.dropdown {
+    background: var(--background-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    padding: 4px;
+}
+
+.dropdown-item {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 4px 8px;
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+}
+
+.dropdown-item:hover {
+    background: var(--background-surface-hover);
+}
+
+.dropdown-item.active {
+    background: var(--accent-dim);
+    color: var(--accent);
+}
+
+/* ============================================
+   Stats Cards - Terminal Panel
+   ============================================ */
+
+.stat-card {
+    background: var(--background-surface);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 6px 8px;
+}
+
+.stat-value {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.stat-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ============================================
+   Search Fields - Terminal Input
+   ============================================ */
+
+.search-field,
+.home-search-input,
+.home-search-form,
+.browse-search,
+.home-library-filter {
+    background: var(--background-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 4px 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.search-field:focus-within,
+.home-search-input:focus-within,
+.browse-search:focus-within {
+    border-color: var(--accent);
+    background: var(--background-surface-hover);
+}
+
+.search-field input,
+.home-search-input input,
+.browse-search input,
+.home-library-filter input {
+    background: transparent;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 2px 0;
+    border: none;
+}
+
+.search-icon,
+.home-search-icon,
+.browse-search-icon {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+/* ============================================
+   Settings Page - Terminal Style
+   ============================================ */
+
+.settings-page {
+    padding: 12px 16px 24px;
+}
+
+.settings-header {
+    margin-bottom: 16px;
+}
+
+.settings-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.settings-title {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text);
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.settings-subtitle {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin: 4px 0 0;
+}
+
+.settings-content {
+    display: grid;
+    gap: 16px;
+}
+
+.settings-section {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+    background: var(--background-surface);
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    transition: background var(--transition-fast);
+}
+
+.settings-row:last-child {
+    border-bottom: none;
+}
+
+.settings-row:hover {
+    background: var(--surface-hover);
+}
+
+.settings-row-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text);
+    margin: 0;
+}
+
+.settings-row-description {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    margin: 2px 0 0;
+}
+
+.settings-select,
+.settings-input {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 3px 6px;
+    border: 1px solid var(--border);
+    background: var(--background-surface);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+}
+
+.settings-select:focus,
+.settings-input:focus {
+    border-color: var(--accent);
+    background: var(--background-surface-hover);
+}
+
+.settings-button {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    background: var(--background-surface);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+}
+
+.settings-button:hover {
+    background: var(--background-surface-hover);
+    border-color: var(--text-muted);
+}
+
+.settings-button-group {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--background-surface);
+    padding: 0;
+}
+
+.settings-button-group button {
+    border: none;
+    border-radius: 0px;
+    padding: 4px 8px;
+    font-size: 10px;
+}
+
+.settings-button-group button:first-child {
+    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.settings-button-group button:last-child {
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.settings-button-group button:hover {
+    background: var(--background-surface-hover);
+}
+
+.settings-button-group button.active {
+    background: var(--accent);
+    color: white;
+}
+
+.settings-link-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--background-surface);
+    padding: 8px;
+    transition: all var(--transition-fast);
+}
+
+.settings-link-card:hover {
+    border-color: var(--accent);
+    background: var(--background-surface-hover);
+}
+
+.settings-link-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text);
+    margin: 0;
+}
+
+.settings-link-description {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    margin: 2px 0 0;
+}
+
+/* ============================================
+   Home Page - Terminal Style
+   ============================================ */
+
+.home-page {
+    padding: 12px 16px 24px;
+}
+
+.home-header {
+    margin-bottom: 16px;
+}
+
+.home-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.home-title {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text);
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.home-featured {
+    background: var(--background-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+
+.home-featured-overlay {
+    background: linear-gradient(
+        to right,
+        var(--background-surface) 0%,
+        var(--background-surface) 70%,
+        transparent 100%
+    );
+}
+
+.home-featured-title {
+    font-family: var(--font-mono);
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+    margin: 8px 0 4px;
+}
+
+.home-featured-meta {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+.home-featured-action {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 4px 10px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: white;
+    border-radius: var(--radius-sm);
+    margin-top: 8px;
+}
+
+.home-featured-action:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+}
+
+.home-airing,
+.home-shelf,
+.home-details-hero,
+.home-playback,
+.home-about,
+.home-anilist {
+    background: var(--background-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+}
+
+.home-airing-header,
+.home-shelf-title,
+.home-playback-title,
+.home-about-title,
+.home-anilist-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.home-airing-item,
+.home-shelf-grid,
+.home-continue-list {
+    display: grid;
+    gap: 4px;
+}
+
+.home-details-title {
+    font-family: var(--font-mono);
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.home-details-meta {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+.home-anilist-status {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    background: var(--background-surface-hover);
+    color: var(--text-muted);
+    border-radius: var(--radius-sm);
+}
+
+.home-anilist-status:hover {
+    border-color: var(--accent-dimmer);
+    color: var(--text);
+}
+
+.home-anilist-status.active {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: white;
+}
+
+.home-stepper {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--background-surface-hover);
+    padding: 6px;
+}
+
+.home-stepper-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.home-stepper-button {
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    padding: 4px;
+}
+
+.home-stepper-button:hover {
+    background: var(--background-surface-hover);
+}
+
+/* ============================================
+   Browse Page - Terminal Style
+   ============================================ */
+
+.browse-page {
+    padding: 12px 16px 24px;
+}
+
+.browse-header {
+    margin-bottom: 16px;
+}
+
+.browse-title {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text);
+    margin: 0;
+}
+
+.browse-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.browse-provider-button,
+.browse-view-button {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    background: var(--background-surface);
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
+}
+
+.browse-provider-button:hover,
+.browse-view-button:hover {
+    background: var(--background-surface-hover);
+    color: var(--text);
+}
+
+.browse-provider-button.active,
+.browse-view-button.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.browse-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+}
+
+.browse-poster-torrent {
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+}
+
+.browse-poster-torrent:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+/* ============================================
+   History Page - Terminal Style
+   ============================================ */
+
+.history-item {
+    font-family: var(--font-mono);
+    font-size: 11px;
+}
+
+/* ============================================
+   Downloads Page - Terminal Style
+   ============================================ */
+
+.download-item {
+    font-family: var(--font-mono);
+    font-size: 11px;
+}
+
+/* ============================================
+   Optional Terminal Details
+   ============================================ */
+
+/* Subtle scanline effect on main content */
+.main-content::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.03) 2px,
+        rgba(0, 0, 0, 0.03) 4px
+    );
+    opacity: 0.5;
+    z-index: 0;
+}
+
+.main-content > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* Monospace for all data values */
+.data-value {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-secondary);
+}
+
+/* ============================================
+   Responsive Adjustments
+   ============================================ */
+
+@media (max-width: 720px) {
+    .main-content {
+        border-top-left-radius: 0;
+    }
+}

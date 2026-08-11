@@ -2,6 +2,38 @@
 
 This directory contains theme-specific CSS files that can be dynamically loaded based on the active theme.
 
+## Built-in Themes
+
+### System24 Terminal
+A terminal/IRC-inspired theme based on the System24 Discord theme reference, featuring monospace typography, thin panel borders, and a dense layout.
+
+- **File**: `system24.css`
+- **Default Accent**: `#FF6B9D` (Purple/Pink)
+- **Characteristics**:
+  - Monospace typography throughout (JetBrains Mono, IBM Plex Mono, Fira Code)
+  - Thin 1px panel borders defining all UI regions
+  - Near-black monochrome palette (`#080808`, `#0a0a0a`)
+  - Purple/pink accent color matching the reference
+  - Border-label aesthetic for section headers
+  - Square/minimally rounded controls (0px-2px radius)
+  - Strong geometric panel structure
+  - Dense information layout with compact spacing
+  - Terminal/IRC interface feeling
+  - Subtle scanline effect on main content
+  - Low-contrast secondary text hierarchy
+  - Retro desktop aesthetic
+
+### Editorial
+Ink-black surfaces, print-inspired type, and vivid editorial accents.
+
+- **File**: `editorial.css`
+- **Default Accent**: `#FF5338` (Orange-red)
+- **Characteristics**:
+  - Editorial magazine aesthetic
+  - Print-inspired typography
+  - Vivid accent colors
+  - Larger border radius values
+
 ## How to Create a Custom Theme
 
 ### 1. Create a CSS File
@@ -16,10 +48,11 @@ public/themes/my-theme.css
 Edit `src/lib/theme.ts` to add your theme:
 
 ```typescript
-export type ThemeId = 'editorial' | 'my-theme'
+export type ThemeId = 'editorial' | 'system24' | 'my-theme'
 
 export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
   editorial: { id: 'editorial', defaultAccent: '#FF5338', cssPath: '/themes/editorial.css' },
+  system24: { id: 'system24', defaultAccent: '#FF6B9D', cssPath: '/themes/system24.css' },
   'my-theme': { id: 'my-theme', defaultAccent: '#YOUR_ACCENT_COLOR', cssPath: '/themes/my-theme.css' },
 }
 ```
@@ -28,7 +61,7 @@ export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
 
 Add your theme to the `ThemeId` type:
 ```typescript
-export type ThemeId = 'editorial' | 'my-theme'
+export type ThemeId = 'editorial' | 'system24' | 'my-theme'
 ```
 
 ### 4. Add Storage Key
@@ -37,24 +70,46 @@ Add a storage key for your theme's accent:
 ```typescript
 const ACCENT_STORAGE_KEYS: Record<ThemeId, string> = {
   editorial: 'theme.primary.editorial',
+  system24: 'theme.primary.system24',
   'my-theme': 'theme.primary.my-theme',
 }
 ```
 
-### 5. Customize CSS
+### 5. Add Translations
+
+Add your theme name and description to `src/i18n.ts` in both English and Polish:
+
+```typescript
+presets: {
+  editorial: {
+    name: 'AniPlay Editorial',
+    description: 'Ink-black surfaces, print-inspired type, and vivid editorial accents.',
+  },
+  system24: {
+    name: 'System24 Terminal',
+    description: 'Monospace typography, thin panel borders, dense layout, and terminal/IRC aesthetic.',
+  },
+  'my-theme': {
+    name: 'My Theme',
+    description: 'Your theme description here.',
+  },
+}
+```
+
+### 6. Customize CSS
 
 In your CSS file, you can override any CSS variables or add custom styles:
 
 ```css
 :root {
-  /* Custom border radius */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 10px;
-  
-  /* Custom spacing */
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
+  /* Custom border radius - square/terminal style */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 2px;
+
+  /* Custom spacing - compact */
+  --spacing-md: 8px;
+  --spacing-lg: 12px;
 }
 
 /* Custom component styles */

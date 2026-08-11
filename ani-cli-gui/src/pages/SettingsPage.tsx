@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Book, Bug, Check, FolderOpen, GitPullRequest, Globe, MessageCircle, RefreshCw, RotateCcw, Upload, Trash2 } from 'lucide-react'
+import { Book, Bug, FolderOpen, GitPullRequest, Globe, MessageCircle, RefreshCw, RotateCcw, Upload, Trash2 } from 'lucide-react'
 import { ADULT_CONTENT_OPT_IN_KEY, getAdultContentOptIn, ANILIST_SEARCH_KEY, getAniListFirstSearch, getTranslationType, TRANSLATION_TYPE_KEY, type TranslationType } from '../lib/api'
 import { getNotificationSoundMode, getNotificationSoundPreset, playNotificationSound, setNotificationSoundMode, setNotificationSoundPreset, type NotificationSoundMode, type NotificationSoundPreset } from '../lib/notification-sounds'
 import { setAppLanguage, supportedLanguages, type AppLanguage } from '../i18n'
@@ -167,13 +167,13 @@ export function SettingsPage() {
   const handleThemeDelete = (id: string) => {
     removeCustomTheme(id)
     setCustomThemes(getAllThemes())
-    
-    // If deleted theme was active, switch to editorial
+
+    // If deleted theme was active, switch to system24
     if (themeId === id) {
-      saveTheme('editorial')
-      setThemeId('editorial')
-      setPrimary(getThemeAccent('editorial'))
-      setAccentInput(getThemeAccent('editorial'))
+      saveTheme('system24')
+      setThemeId('system24')
+      setPrimary(getThemeAccent('system24'))
+      setAccentInput(getThemeAccent('system24'))
     }
   }
 
@@ -190,11 +190,6 @@ export function SettingsPage() {
     setPrimary(accent)
     setAccentInput(accent)
   }
-
-  useEffect(() => {
-    if (themeId === 'editorial') return
-    selectTheme('editorial')
-  }, [themeId])
 
   const toggleNativeControls = () => {
     setUseNativeControls((prev) => {
@@ -297,11 +292,22 @@ export function SettingsPage() {
         {/* Theme Section */}
         <SettingsSection title={t('settings.theme.title')}>
           <SettingRow
-            title={t('settings.theme.presets.editorial.name')}
-            description={t('settings.theme.presets.editorial.description')}
+            title={t('settings.theme.description')}
+            description=""
             control={
-              <div className="settings-theme-check">
-                <Check size={14} />
+              <div className="settings-button-group">
+                <button
+                  onClick={() => selectTheme('editorial')}
+                  className={themeId === 'editorial' ? 'active' : ''}
+                >
+                  {t('settings.theme.presets.editorial.name')}
+                </button>
+                <button
+                  onClick={() => selectTheme('system24')}
+                  className={themeId === 'system24' ? 'active' : ''}
+                >
+                  {t('settings.theme.presets.system24.name')}
+                </button>
               </div>
             }
           />

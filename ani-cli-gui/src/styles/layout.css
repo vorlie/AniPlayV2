@@ -27,7 +27,7 @@
   width: var(--sidebar-width);
   height: 100%;
   background: var(--background-surface);
-  border-right: 1px solid var(--border);
+  backdrop-filter: blur(10px);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -84,12 +84,12 @@
 .app-header {
   height: var(--header-height);
   background: var(--background-surface);
-  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--space-6);
   flex-shrink: 0;
+  backdrop-filter: blur(10px);
 }
 
 .app-header-left {
@@ -153,26 +153,13 @@
   flex: 1;
   min-width: 0;
   min-height: 0;
-  overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-width: none;
   background: var(--background);
 }
 
 .main-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.main-content::-webkit-scrollbar-track {
-  background: var(--background);
-}
-
-.main-content::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 4px;
-}
-
-.main-content::-webkit-scrollbar-thumb:hover {
-  background: var(--border-focus);
+  display: none;
 }
 
 /* Container */

@@ -501,6 +501,10 @@ const resources = {
               name: 'AniPlay Editorial',
               description: 'Ink-black surfaces, print-inspired type, and vivid editorial accents.',
             },
+            system24: {
+              name: 'System24 Terminal',
+              description: 'Monospace typography, thin panel borders, dense layout, and terminal/IRC aesthetic.',
+            },
           },
           customTitle: 'Custom theme',
           import: 'Import',
@@ -1116,6 +1120,10 @@ const resources = {
             editorial: {
               name: 'AniPlay Editorial',
               description: 'Atramentowa czerń, typografia inspirowana drukiem i wyraziste akcenty.',
+            },
+            system24: {
+              name: 'System24 Terminal',
+              description: 'Typografia monospaced, cienkie obramowania paneli, gęsty układ i estetyka terminal/IRC.',
             },
           },
           customTitle: 'Niestandardowy motyw',

@@ -57,4 +57,8 @@ html,
 body,
 #root {
   background: transparent;
+  margin:0;
+}
+html::-webkit-scrollbar {
+  display: none;
 }
