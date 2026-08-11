@@ -8,7 +8,7 @@ import { setAppLanguage, supportedLanguages, type AppLanguage } from '../i18n'
 import type { UpdateState } from '../updater-types'
 import type { AdBlockMode, AdBlockState } from '../adblock-types'
 import { getTheme, getThemeAccent, isValidAccent, resetThemeAccent, saveTheme, saveThemeAccent, type ThemeId } from '../lib/theme'
-import { getAppearanceSettings, saveAppearanceSettings, type AppearanceSettings, type WindowBackdrop } from '../lib/appearance'
+import { getAppearanceSettings, saveAppearanceSettings, type AppearanceSettings} from '../lib/appearance'
 import type { TorrentSettings } from '../torrent-types'
 import { Toggle } from '../components'
 

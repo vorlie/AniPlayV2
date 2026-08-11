@@ -20,6 +20,7 @@
 @import "./styles/watchtogethersetup.css";
 @import "./styles/player.css";
 @import "./styles/animepage.css";
+@import "./styles/homepage.css";
 
 .app-background,
 .app-background-overlay {

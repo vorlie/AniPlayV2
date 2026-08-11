@@ -5,6 +5,85 @@
  */
 
 /* AnimeCard - vertical poster card */
+
+/* AnimeCard - compact horizontal list card */
+.anime-list-card {
+  display: flex;
+  height: 8rem;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--background-surface);
+  color: inherit;
+  text-align: left;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform var(--transition-normal), border-color var(--transition-normal), background-color var(--transition-normal);
+}
+
+.anime-list-card:hover {
+  transform: translateY(-0.125rem);
+  border-color: var(--accent-dim);
+  background: var(--background-surface-hover);
+}
+
+.anime-list-card-poster {
+  width: 5.5rem;
+  flex-shrink: 0;
+  background: var(--background-surface-hover);
+}
+
+.anime-list-card-poster img,
+.anime-list-card-poster-fallback {
+  width: 100%;
+  height: 100%;
+}
+
+.anime-list-card-poster img {
+  display: block;
+  object-fit: cover;
+}
+
+.anime-list-card-content {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0.75rem;
+}
+
+.anime-list-card-label {
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.anime-list-card-title {
+  display: -webkit-box;
+  margin: 0.25rem 0 0;
+  overflow: hidden;
+  color: inherit;
+  font-size: 0.875rem;
+  font-weight: 900;
+  line-height: 1.25;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  transition: color var(--transition-normal);
+}
+
+.anime-list-card:hover .anime-list-card-title {
+  color: var(--accent);
+}
+
+.anime-list-card-meta {
+  display: flex;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
 .anime-card {
   position: relative;
   display: flex;

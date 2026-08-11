@@ -25,23 +25,23 @@ export function AnimeCard({ media, label, onClick }: AnimeCardProps) {
     <button
       type="button"
       onClick={onClick}
-      className="group flex h-32 overflow-hidden rounded-[24px] border border-m3-outline/10 bg-m3-surface-container/50 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-m3-primary/40 hover:bg-m3-surface-container"
+      className="anime-list-card"
     >
-      <div className="w-22 shrink-0 bg-m3-surface-variant/20">
+      <div className="anime-list-card-poster">
         {media.coverUrl ? (
-          <img src={media.coverUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
+          <img src={media.coverUrl} alt="" loading="lazy" />
         ) : (
-          <div className="h-full" style={{ backgroundColor: media.accentColor }} />
+          <div className="anime-list-card-poster-fallback" style={{ backgroundColor: media.accentColor }} />
         )}
       </div>
-      <div className="min-w-0 flex-1 p-3 flex flex-col justify-between">
+      <div className="anime-list-card-content">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-m3-primary">
+          <span className="anime-list-card-label">
             {label ?? media.format ?? fallback}
           </span>
-          <h4 className="mt-1 line-clamp-2 text-sm font-black group-hover:text-m3-primary">{media.title}</h4>
+          <h4 className="anime-list-card-title">{media.title}</h4>
         </div>
-        <div className="flex gap-2 text-[11px] text-m3-on-surface-variant">
+        <div className="anime-list-card-meta">
           <span>{episodeLabel(media, t, fallback)}</span>
           {media.averageScore ? <span>★ {media.averageScore}%</span> : null}
         </div>
