@@ -502,6 +502,10 @@ const resources = {
               description: 'Ink-black surfaces, print-inspired type, and vivid editorial accents.',
             },
           },
+          customTitle: 'Custom theme',
+          import: 'Import',
+          importTheme: 'Import theme',
+          importThemeDescription: 'Choose a CSS file with a theme to import.',
         },
         player: {
           title: 'Player',
@@ -1114,6 +1118,10 @@ const resources = {
               description: 'Atramentowa czerń, typografia inspirowana drukiem i wyraziste akcenty.',
             },
           },
+          customTitle: 'Niestandardowy motyw',
+          import: 'Importuj',
+          importTheme: 'Importuj motyw',
+          importThemeDescription: 'Wybierz plik CSS z motywem, aby go zaimportować.',
         },
         player: {
           title: 'Odtwarzacz',

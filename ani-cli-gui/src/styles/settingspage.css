@@ -449,6 +449,25 @@
     font-size: 13px;
 }
 
+/* Theme Import Styles */
+
+.settings-button-danger {
+    color: var(--error, #ff6b61);
+    border-color: var(--error, #ff6b61);
+}
+
+.settings-button-danger:hover {
+    background: color-mix(in srgb, var(--error, #ff6b61) 10%, transparent);
+}
+
+.settings-color-swatch {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+}
+
 /* Responsive */
 
 @media (max-width: 720px) {

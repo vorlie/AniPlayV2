@@ -1,13 +1,13 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Book, Bug, Check, FolderOpen, GitPullRequest, Globe, MessageCircle, RefreshCw, RotateCcw } from 'lucide-react'
+import { Book, Bug, Check, FolderOpen, GitPullRequest, Globe, MessageCircle, RefreshCw, RotateCcw, Upload, Trash2 } from 'lucide-react'
 import { ADULT_CONTENT_OPT_IN_KEY, getAdultContentOptIn, ANILIST_SEARCH_KEY, getAniListFirstSearch, getTranslationType, TRANSLATION_TYPE_KEY, type TranslationType } from '../lib/api'
 import { getNotificationSoundMode, getNotificationSoundPreset, playNotificationSound, setNotificationSoundMode, setNotificationSoundPreset, type NotificationSoundMode, type NotificationSoundPreset } from '../lib/notification-sounds'
 import { setAppLanguage, supportedLanguages, type AppLanguage } from '../i18n'
 import type { UpdateState } from '../updater-types'
 import type { AdBlockMode, AdBlockState } from '../adblock-types'
-import { getTheme, getThemeAccent, isValidAccent, resetThemeAccent, saveTheme, saveThemeAccent, type ThemeId } from '../lib/theme'
+import { getTheme, getThemeAccent, isValidAccent, resetThemeAccent, saveTheme, saveThemeAccent, getAllThemes, saveCustomTheme, removeCustomTheme, type ThemeId } from '../lib/theme'
 import { getAppearanceSettings, saveAppearanceSettings, type AppearanceSettings} from '../lib/appearance'
 import type { TorrentSettings } from '../torrent-types'
 import { Toggle } from '../components'
@@ -42,6 +42,8 @@ export function SettingsPage() {
   const [themeId, setThemeId] = useState<ThemeId>(getTheme)
   const [primary, setPrimary] = useState(() => getThemeAccent(getTheme()))
   const [accentInput, setAccentInput] = useState(() => getThemeAccent(getTheme()))
+  const [customThemes, setCustomThemes] = useState(() => getAllThemes())
+  const [importingTheme, setImportingTheme] = useState(false)
   const [useNativeControls, setUseNativeControls] = useState(true)
   const [translationType, setTranslationType] = useState<TranslationType>(getTranslationType)
   const [aniListFirstSearch, setAniListFirstSearch] = useState(getAniListFirstSearch)
@@ -120,6 +122,59 @@ export function SettingsPage() {
     const normalized = val.toUpperCase()
     setPrimary(normalized)
     setAccentInput(normalized)
+  }
+
+  const handleThemeImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setImportingTheme(true)
+    try {
+      const cssContent = await file.text()
+      const themeId = `custom-${Date.now()}`
+      const themeName = file.name.replace('.css', '')
+
+      const newTheme = {
+        id: themeId,
+        defaultAccent: primary,
+        cssContent,
+        isCustom: true,
+        name: themeName,
+      }
+
+      saveCustomTheme(newTheme)
+      setCustomThemes(getAllThemes())
+      
+      // Apply the imported theme
+      saveTheme(themeId as ThemeId)
+      setThemeId(themeId as ThemeId)
+    } catch (error) {
+      console.error('Failed to import theme:', error)
+    } finally {
+      setImportingTheme(false)
+      // Reset file input
+      e.target.value = ''
+    }
+  }
+
+  const handleThemePreview = (id: string) => {
+    saveTheme(id as ThemeId)
+    setThemeId(id as ThemeId)
+    setPrimary(getThemeAccent(id as ThemeId))
+    setAccentInput(getThemeAccent(id as ThemeId))
+  }
+
+  const handleThemeDelete = (id: string) => {
+    removeCustomTheme(id)
+    setCustomThemes(getAllThemes())
+    
+    // If deleted theme was active, switch to editorial
+    if (themeId === id) {
+      saveTheme('editorial')
+      setThemeId('editorial')
+      setPrimary(getThemeAccent('editorial'))
+      setAccentInput(getThemeAccent('editorial'))
+    }
   }
 
   const reset = () => {
@@ -370,6 +425,71 @@ export function SettingsPage() {
               />
             }
           />
+        </SettingsSection>
+
+        {/* Custom Themes Section */}
+        <SettingsSection title={t('settings.theme.customTitle')} count={Object.keys(customThemes).filter(id => id.startsWith('custom-')).length}>
+          <SettingRow
+            title={t('settings.theme.importTheme')}
+            description={t('settings.theme.importThemeDescription')}
+            control={
+              <div className="settings-color-row">
+                <input
+                  type="file"
+                  accept=".css"
+                  id="theme-css-input"
+                  className="hidden"
+                  onChange={handleThemeImport}
+                  disabled={importingTheme}
+                />
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('theme-css-input')?.click()}
+                  disabled={importingTheme}
+                  className="settings-button"
+                >
+                  {importingTheme ? <RefreshCw size={14} className="animate-spin" /> : <Upload size={14} />}
+                  {importingTheme ? t('settings.theme.importing') : t('settings.theme.import')}
+                </button>
+              </div>
+            }
+          />
+
+          {Object.entries(customThemes)
+            .filter(([id]) => id.startsWith('custom-'))
+            .map(([id, theme]) => (
+              <SettingRow
+                key={id}
+                title={theme.name || id}
+                description={
+                  <div className="settings-color-row">
+                    <div
+                      className="settings-color-swatch"
+                      style={{ backgroundColor: theme.defaultAccent }}
+                    />
+                    <span className="settings-color-text">{theme.defaultAccent}</span>
+                  </div>
+                }
+                control={
+                  <div className="settings-button-group">
+                    <button
+                      type="button"
+                      onClick={() => handleThemePreview(id)}
+                      className="settings-button"
+                    >
+                      {t('settings.theme.preview')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleThemeDelete(id)}
+                      className="settings-button settings-button-danger"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                }
+              />
+            ))}
         </SettingsSection>
 
         {/* Player Section */}

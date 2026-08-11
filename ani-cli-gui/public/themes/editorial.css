@@ -1,0 +1,49 @@
+/**
+ * Editorial Theme Custom CSS
+ * This file contains theme-specific overrides for the editorial theme
+ * 
+ * Users can create custom themes by:
+ * 1. Creating a new CSS file in public/themes/
+ * 2. Adding a theme definition to THEME_DEFINITIONS in src/lib/theme.ts
+ * 3. Specifying the cssPath property
+ */
+
+/* Example: Custom adjustments for editorial theme */
+/* Uncomment and modify as needed */
+
+/* Adjust border radius values for a more rounded look */
+/*
+:root {
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+*/
+
+/* Adjust spacing for a more compact layout */
+/*
+:root {
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+}
+*/
+
+/* Custom poster grid layout adjustments */
+/*
+.home-collection {
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 24px;
+}
+*/
+
+/* Custom card hover effects */
+/*
+.home-continue-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+*/

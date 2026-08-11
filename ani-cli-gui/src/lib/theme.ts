@@ -1,36 +1,34 @@
 import { argbFromRgb, hexFromArgb, themeFromSourceColor } from '@material/material-color-utilities'
+import { loadThemeCssFromContent, loadThemeCssFromFile, unloadThemeCss, unloadAllThemeCss } from './themeCss'
 
-export type ThemeId = 'editorial'
+export type ThemeId = 'editorial' | string // Allow custom theme IDs
 
 export interface ThemeDefinition {
   id: ThemeId
   defaultAccent: string
+  cssPath?: string // Optional path to theme-specific CSS file (for built-in themes)
+  cssContent?: string // CSS content for custom themes (loaded from app data)
+  isCustom?: boolean // Flag for user-imported themes
+  name?: string // Display name for custom themes
 }
 
 export const THEME_STORAGE_KEY = 'theme.id'
 export const LEGACY_ACCENT_STORAGE_KEY = 'theme.primary'
+export const CUSTOM_THEMES_STORAGE_KEY = 'theme.custom'
 
 export const THEME_DEFINITIONS: Record<ThemeId, ThemeDefinition> = {
-  editorial: { id: 'editorial', defaultAccent: '#FF5338' },
+  editorial: { id: 'editorial', defaultAccent: '#FF5338', cssPath: '/themes/editorial.css' },
 }
 
-const ACCENT_STORAGE_KEYS: Record<ThemeId, string> = {
+const ACCENT_STORAGE_KEYS: Record<string, string> = {
   editorial: 'theme.primary.editorial',
 }
 
 const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i
 
-function clamp(value: number, min = 0, max = 255) {
-  return Math.min(max, Math.max(min, value))
-}
-
 function hexToRgb(hex: string) {
   const value = Number.parseInt(hex.slice(1), 16)
   return { r: (value >> 16) & 255, g: (value >> 8) & 255, b: value & 255 }
-}
-
-function rgbToHex(r: number, g: number, b: number) {
-  return `#${[r, g, b].map((value) => clamp(value).toString(16).padStart(2, '0')).join('')}`
 }
 
 function contrastTextFor({ r, g, b }: { r: number; g: number; b: number }) {
@@ -43,7 +41,7 @@ function contrastTextFor({ r, g, b }: { r: number; g: number; b: number }) {
 }
 
 export function isThemeId(value: string | null): value is ThemeId {
-  return value === 'editorial'
+  return value !== null && (value === 'editorial' || value.startsWith('custom-'))
 }
 
 export function isValidAccent(value: string | null): value is string {
@@ -66,11 +64,11 @@ export function migrateLegacyThemeStorage(storage: Pick<Storage, 'getItem' | 'se
 }
 
 export function applyTheme(themeId: ThemeId, accent: string, root: HTMLElement = document.documentElement) {
-  const safeAccent = isValidAccent(accent) ? accent : THEME_DEFINITIONS[themeId].defaultAccent
+  const safeAccent = isValidAccent(accent) ? accent : THEME_DEFINITIONS[themeId]?.defaultAccent || '#FF5338'
   const { r, g, b } = hexToRgb(safeAccent)
   const sourceColor = argbFromRgb(r, g, b)
   const dark = themeFromSourceColor(sourceColor, [{ name: 'custom-primary', value: sourceColor, blend: true }]).schemes.dark
-  const usesDirectAccent = themeId === 'editorial'
+  const usesDirectAccent = themeId === 'editorial' || themeId.startsWith('custom-')
   const primary = usesDirectAccent ? safeAccent.toUpperCase() : hexFromArgb(dark.primary)
 
   root.dataset.theme = themeId
@@ -96,6 +94,22 @@ export function applyTheme(themeId: ThemeId, accent: string, root: HTMLElement =
     '--color-m3-on-surface-variant',
     themeId === 'editorial' ? '#BBB7B0' : hexFromArgb(dark.onSurfaceVariant),
   )
+
+  // Load theme-specific CSS
+  const allThemes = getAllThemes();
+  const themeDefinition = allThemes[themeId];
+  
+  if (themeDefinition) {
+    unloadThemeCss(themeId);
+    
+    if (themeDefinition.cssContent) {
+      // Load from content (custom themes)
+      loadThemeCssFromContent(themeId, themeDefinition.cssContent);
+    } else if (themeDefinition.cssPath) {
+      // Load from file (built-in themes)
+      loadThemeCssFromFile(themeId, themeDefinition.cssPath);
+    }
+  }
 }
 
 export function initializeTheme(storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> = localStorage, root: HTMLElement = document.documentElement) {
@@ -107,6 +121,13 @@ export function initializeTheme(storage: Pick<Storage, 'getItem' | 'setItem' | '
 }
 
 export function saveTheme(themeId: ThemeId, storage: Pick<Storage, 'getItem' | 'setItem'> = localStorage, root: HTMLElement = document.documentElement) {
+  const previousTheme = getTheme(storage);
+  
+  // Unload previous theme CSS
+  if (previousTheme !== themeId) {
+    unloadThemeCss(previousTheme);
+  }
+  
   storage.setItem(THEME_STORAGE_KEY, themeId)
   applyTheme(themeId, getThemeAccent(themeId, storage), root)
 }
@@ -124,3 +145,68 @@ export function resetThemeAccent(themeId: ThemeId, storage: Pick<Storage, 'remov
   applyTheme(themeId, accent, root)
   return accent
 }
+
+/**
+ * Unloads all theme-specific CSS files
+ * Useful for cleanup or when resetting themes
+ */
+export function unloadAllThemeCssFiles() {
+  unloadAllThemeCss();
+}
+
+/**
+ * Save a custom theme
+ * @param theme - The custom theme definition
+ * @param storage - Storage to use (defaults to localStorage)
+ */
+export function saveCustomTheme(theme: ThemeDefinition, storage = localStorage): void {
+  const customThemes = getCustomThemes(storage);
+  customThemes[theme.id] = theme;
+  storage.setItem(CUSTOM_THEMES_STORAGE_KEY, JSON.stringify(customThemes));
+}
+
+/**
+ * Get all custom themes
+ * @param storage - Storage to use (defaults to localStorage)
+ */
+export function getCustomThemes(storage = localStorage): Record<string, ThemeDefinition> {
+  const saved = storage.getItem(CUSTOM_THEMES_STORAGE_KEY);
+  if (!saved) return {};
+  try {
+    return JSON.parse(saved);
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Remove a custom theme
+ * @param themeId - The theme ID to remove
+ * @param storage - Storage to use (defaults to localStorage)
+ */
+export function removeCustomTheme(themeId: string, storage = localStorage): void {
+  const customThemes = getCustomThemes(storage);
+  delete customThemes[themeId];
+  storage.setItem(CUSTOM_THEMES_STORAGE_KEY, JSON.stringify(customThemes));
+  unloadThemeCss(themeId);
+}
+
+/**
+ * Get all available themes (built-in + custom)
+ * @param storage - Storage to use (defaults to localStorage)
+ */
+export function getAllThemes(storage = localStorage): Record<string, ThemeDefinition> {
+  return {
+    ...THEME_DEFINITIONS,
+    ...getCustomThemes(storage),
+  };
+}
+
+export {
+  loadThemeCssFromContent as loadThemeCss,
+  loadThemeCssFromFile,
+  unloadThemeCss,
+  unloadAllThemeCss,
+  isThemeCssLoaded,
+  getLoadedThemeIds,
+} from './themeCss'
