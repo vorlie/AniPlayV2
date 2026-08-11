@@ -36,6 +36,8 @@ import type {
   DashboardData,
   ListUpdateInput,
 } from "../anilist-types";
+import { AnimeCard as AnimeCardNew } from "../components/media/AnimeCard";
+import { AnimePoster } from "../components/media/AnimePoster";
 
 interface HomePageProps {
   setSearchQuery: (val: string) => void;
@@ -199,55 +201,6 @@ function rankPlaybackCandidates(
     .sort((a, b) => b.confidence - a.confidence);
 }
 
-function MediaCard({
-  media,
-  label,
-  onClick,
-}: {
-  media: AnimeSummary;
-  label?: string;
-  onClick: () => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group flex h-32 overflow-hidden rounded-[24px] border border-m3-outline/10 bg-m3-surface-container/50 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-m3-primary/40 hover:bg-m3-surface-container"
-    >
-      <div className="w-22 shrink-0 bg-m3-surface-variant/20">
-        {media.coverUrl ? (
-          <img
-            src={media.coverUrl}
-            alt=""
-            className="h-full w-full object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <div
-            className="h-full"
-            style={{ backgroundColor: media.accentColor }}
-          />
-        )}
-      </div>
-      <div className="min-w-0 flex-1 p-3 flex flex-col justify-between">
-        <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-m3-primary">
-            {label ?? media.format ?? t("home.animeFallback")}
-          </span>
-          <h4 className="mt-1 line-clamp-2 text-sm font-black group-hover:text-m3-primary">
-            {media.title}
-          </h4>
-        </div>
-        <div className="flex gap-2 text-[11px] text-m3-on-surface-variant">
-          <span>{episodeLabel(media, t)}</span>
-          {media.averageScore ? <span>★ {media.averageScore}%</span> : null}
-        </div>
-      </div>
-    </button>
-  );
-}
-
 function Section({
   title,
   icon,
@@ -263,14 +216,16 @@ function Section({
 }) {
   if (!items.length) return null;
   return (
-    <section className="space-y-3">
-      <div className="flex items-center gap-2 text-m3-on-surface">
-        {icon}
-        <h3 className="text-lg font-black">{title}</h3>
+    <section className="section">
+      <div className="section-header">
+        <div className="flex items-center gap-2">
+          {icon}
+          <h3 className="section-title">{title}</h3>
+        </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+      <div className="anime-grid anime-grid-cols-4">
         {items.map((item) => (
-          <MediaCard
+          <AnimeCardNew
             key={item.id}
             media={item}
             label={label}
@@ -279,45 +234,6 @@ function Section({
         ))}
       </div>
     </section>
-  );
-}
-
-function PosterCard({
-  media,
-  onClick,
-}: {
-  media: AnimeSummary;
-  onClick: () => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <button type="button" onClick={onClick} className="group min-w-0 text-left">
-      <span className="relative block aspect-[2/3] overflow-hidden rounded-2xl border border-m3-outline/15 bg-m3-surface-variant/20">
-        {media.coverUrl ? (
-          <img
-            src={media.coverUrl}
-            alt=""
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-            loading="lazy"
-          />
-        ) : (
-          <span
-            className="block h-full"
-            style={{ backgroundColor: media.accentColor }}
-          />
-        )}
-        <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent px-2 pb-2 pt-7 text-[10px] font-black text-white">
-          {episodeLabel(media, t)}
-        </span>
-      </span>
-      <strong className="mt-2 block truncate text-xs group-hover:text-m3-primary">
-        {media.title}
-      </strong>
-      <span className="mt-0.5 block truncate text-[10px] text-m3-on-surface-variant">
-        {media.format ?? t("home.animeFallback")}
-        {media.averageScore ? ` · ★ ${media.averageScore}%` : ""}
-      </span>
-    </button>
   );
 }
 
@@ -344,9 +260,9 @@ function DashboardShelf({
   const selected =
     availableTabs.find((tab) => tab.id === activeTab) ?? availableTabs[0];
   return (
-    <section className="m3-card dashboard-shelf p-4 min-w-0">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="flex items-center gap-2 font-black">
+    <section className="dashboard-shelf p-4 min-w-0">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <h3 className="flex items-center gap-2 font-semibold text-sm text-[var(--text)]">
           {icon}
           {title}
         </h3>
@@ -362,16 +278,16 @@ function DashboardShelf({
               role="tab"
               aria-selected={selected.id === tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold ${selected.id === tab.id ? "bg-m3-primary text-m3-on-primary" : "text-m3-on-surface-variant hover:bg-m3-on-surface/10"}`}
+              className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-all ${selected.id === tab.id ? "bg-[var(--accent-dim)] text-[var(--accent)]" : "text-[var(--text-secondary)] hover:bg-[var(--background-surface-hover)] hover:text-[var(--text)]"}`}
             >
               {tab.label}
             </button>
           ))}
         </div>
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {selected.items.slice(0, 6).map((item) => (
-          <PosterCard
+          <AnimePoster
             key={item.id}
             media={item}
             onClick={() => onSelect(item)}
@@ -379,44 +295,6 @@ function DashboardShelf({
         ))}
       </div>
     </section>
-  );
-}
-
-function CollectionTabs({
-  tabs,
-  active,
-  onChange,
-  label,
-}: {
-  tabs: Array<{ id: string; label: string; count: number }>;
-  active: string;
-  onChange: (id: string) => void;
-  label: string;
-}) {
-  return (
-    <div
-      className="flex max-w-full gap-1 overflow-x-auto rounded-[22px] border border-m3-outline/15 bg-m3-surface-container/45 p-1.5"
-      role="tablist"
-      aria-label={label}
-    >
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          role="tab"
-          aria-selected={active === tab.id}
-          onClick={() => onChange(tab.id)}
-          className={`flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition-colors ${active === tab.id ? "bg-m3-primary text-m3-on-primary shadow-[0_8px_18px_rgba(208,188,255,0.25)]" : "text-m3-on-surface-variant hover:bg-m3-on-surface/10 hover:text-m3-on-surface"}`}
-        >
-          <span>{tab.label}</span>
-          <span
-            className={`rounded-full px-1.5 py-0.5 text-[10px] ${active === tab.id ? "bg-m3-on-primary/15" : "bg-m3-on-surface/8"}`}
-          >
-            {tab.count}
-          </span>
-        </button>
-      ))}
-    </div>
   );
 }
 
@@ -436,9 +314,9 @@ function CollectionGrid({
       </div>
     );
   return (
-    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+    <div className="anime-grid anime-grid-cols-4">
       {items.map((item) => (
-        <MediaCard key={item.id} media={item} onClick={() => onSelect(item)} />
+        <AnimeCardNew key={item.id} media={item} onClick={() => onSelect(item)} />
       ))}
     </div>
   );
@@ -455,14 +333,16 @@ function RelationsSection({
 }) {
   if (!items.length) return null;
   return (
-    <section className="space-y-3">
-      <div className="flex items-center gap-2 text-m3-on-surface">
-        <ListPlus size={18} className="text-m3-primary" />
-        <h3 className="text-lg font-black">{t("home.relations")}</h3>
+    <section className="section">
+      <div className="section-header">
+        <div className="flex items-center gap-2">
+          <ListPlus size={18} className="text-[var(--accent)]" />
+          <h3 className="section-title">{t("home.relations")}</h3>
+        </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+      <div className="anime-grid anime-grid-cols-4">
         {items.map((item) => (
-          <MediaCard
+          <AnimeCardNew
             key={`${item.relationType}:${item.media.id}`}
             media={item.media}
             label={t(`home.relationTypes.${item.relationType.toLowerCase()}`)}
@@ -1341,22 +1221,22 @@ export function HomePage({
         ? t("anilistWorkspace.libraryDescription")
         : t("home.discovery");
   return (
-    <div className="home-dashboard flex-1 flex flex-col gap-4">
-      <section className="relative overflow-hidden rounded-3xl border border-m3-outline/20 bg-m3-surface-container/70 p-4 shadow-2xl backdrop-blur-xl md:p-5">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-cyan-400/0 via-m3-primary to-fuchsia-500/0" />
+    <div className="page">
+      {/* Workspace Header */}
+      <section className="mb-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="section-label">
-              <Flame size={14} /> {workspaceDescription}
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)]">
+              <Flame size={14} className="inline mr-1" /> {workspaceDescription}
             </p>
-            <h2 className="mt-2 text-2xl md:text-3xl font-black tracking-tight">
+            <h2 className="page-title mt-2">
               {workspaceTitle}
             </h2>
           </div>
           {dashboard?.session.authenticated ? (
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <p className="text-xs text-m3-on-surface-variant">
+                <p className="text-xs text-[var(--text-secondary)]">
                   {t("home.signedInAs")}
                 </p>
                 <p className="font-bold">{dashboard.session.user?.name}</p>
@@ -1364,11 +1244,11 @@ export function HomePage({
               {dashboard.session.user?.avatar ? (
                 <img
                   src={dashboard.session.user.avatar}
-                  className="size-10 rounded-full ring-2 ring-m3-primary/30"
+                  className="size-10 rounded-full ring-2 ring-[var(--accent-dim)]"
                   alt=""
                 />
               ) : (
-                <div className="flex size-10 items-center justify-center rounded-full bg-m3-primary/12 text-m3-primary">
+                <div className="flex size-10 items-center justify-center rounded-full bg-[var(--accent-dim)] text-[var(--accent)]">
                   <UserRound size={18} />
                 </div>
               )}
@@ -1401,19 +1281,21 @@ export function HomePage({
           )}
         </div>
       </section>
+
       {dashboard?.stale ? (
-        <p className="rounded-xl bg-amber-500/10 px-4 py-2 text-xs text-amber-200">
+        <p className="rounded-xl bg-amber-500/10 px-4 py-2 text-xs text-amber-200 mb-4">
           {t("home.stale")}
         </p>
       ) : null}
       {error ? (
         <p
           role="alert"
-          className="rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-300"
+          className="rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-300 mb-4"
         >
           {error}
         </p>
       ) : null}
+
       {view === "discover" && !loading && dashboard ? (
         <>
           <form
@@ -1421,15 +1303,15 @@ export function HomePage({
               event.preventDefault();
               void searchAniList();
             }}
-            className="m3-card flex flex-col gap-2 p-3 sm:flex-row"
+            className="flex flex-col gap-2 p-3 sm:flex-row border border-[var(--border)] bg-[var(--background-surface)] rounded-lg mb-4"
           >
-            <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-m3-outline/20 bg-m3-surface/45 px-3">
-              <Search size={17} className="shrink-0 text-m3-outline" />
+            <label className="flex min-w-0 flex-1 items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--background-surface-hover)] px-3">
+              <Search size={17} className="shrink-0 text-[var(--text-dim)]" />
               <input
                 value={aniListQuery}
                 onChange={(event) => setAniListQuery(event.target.value)}
                 placeholder={t("anilistWorkspace.searchPlaceholder")}
-                className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none"
+                className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none text-[var(--text)]"
               />
             </label>
             <button
@@ -1448,16 +1330,15 @@ export function HomePage({
           {searchError ? (
             <p
               role="alert"
-              className="rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-300"
+              className="rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-300 mb-4"
             >
               {searchError}
             </p>
           ) : null}
-          <CollectionTabs
-            label={t("anilistWorkspace.discover")}
-            active={discoverTab}
-            onChange={setDiscoverTab}
-            tabs={[
+
+          {/* Discover Tabs */}
+          <div className="flex gap-1 mb-5 overflow-x-auto pb-2">
+            {[
               {
                 id: "trending",
                 label: t("home.trending"),
@@ -1487,8 +1368,22 @@ export function HomePage({
                     },
                   ]
                 : []),
-            ]}
-          />
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setDiscoverTab(tab.id)}
+                className={`px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap transition-all ${
+                  discoverTab === tab.id
+                    ? "bg-[var(--accent-dim)] text-[var(--accent)]"
+                    : "text-[var(--text-secondary)] hover:bg-[var(--background-surface-hover)] hover:text-[var(--text)]"
+                }`}
+              >
+                {tab.label} ({tab.count})
+              </button>
+            ))}
+          </div>
+
           <CollectionGrid
             items={
               discoverCollections[
@@ -1512,9 +1407,9 @@ export function HomePage({
       {view === "library" && !loading && dashboard ? (
         <>
           {history.length ? (
-            <section>
-              <h3 className="mb-2 flex items-center gap-2 font-black">
-                <Play size={18} className="text-m3-primary" />{" "}
+            <section className="mb-8">
+              <h3 className="section-title mb-4 flex items-center gap-2">
+                <Play size={18} className="text-[var(--accent)]" />
                 {t("home.continueWatching")}
               </h3>
               <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
@@ -1522,7 +1417,7 @@ export function HomePage({
                   <button
                     key={`${item.animeId}:${item.episode}`}
                     onClick={() => onResume(item)}
-                    className="m3-card flex items-center gap-3 p-3 text-left hover:border-m3-primary/40"
+                    className="flex items-center gap-3 p-3 border border-[var(--border)] bg-[var(--background-surface)] rounded-lg text-left hover:border-[var(--accent-dim)] transition-colors"
                   >
                     {item.coverUrl ? (
                       <img
@@ -1532,10 +1427,10 @@ export function HomePage({
                       />
                     ) : null}
                     <span className="min-w-0">
-                      <strong className="block truncate text-sm">
+                      <strong className="block truncate text-sm text-[var(--text)]">
                         {item.animeName}
                       </strong>
-                      <span className="mt-1 block text-xs text-m3-on-surface-variant">
+                      <span className="mt-1 block text-xs text-[var(--text-secondary)]">
                         {t("downloads.episode", { episode: item.episode })}
                       </span>
                     </span>
@@ -1545,36 +1440,45 @@ export function HomePage({
             </section>
           ) : null}
           {!dashboard.session.authenticated ? (
-            <div className="m3-card p-6 text-center">
-              <ListPlus className="mx-auto text-m3-primary" size={30} />
-              <h3 className="mt-3 text-xl font-black">
+            <div className="text-center p-8 border border-[var(--border)] bg-[var(--background-surface)] rounded-lg">
+              <ListPlus className="mx-auto text-[var(--accent)]" size={30} />
+              <h3 className="mt-3 text-xl font-bold text-[var(--text)]">
                 {t("anilistWorkspace.librarySignInTitle")}
               </h3>
-              <p className="mx-auto mt-2 max-w-lg text-sm text-m3-on-surface-variant">
+              <p className="mx-auto mt-2 max-w-lg text-sm text-[var(--text-secondary)]">
                 {t("anilistWorkspace.librarySignInDescription")}
               </p>
             </div>
           ) : (
             <>
-              <label className="m3-card flex items-center gap-2 px-4">
-                <Search size={17} className="text-m3-outline" />
+              <label className="flex items-center gap-2 px-4 py-3 border border-[var(--border)] bg-[var(--background-surface)] rounded-lg mb-4">
+                <Search size={17} className="text-[var(--text-dim)]" />
                 <input
                   value={libraryQuery}
                   onChange={(event) => setLibraryQuery(event.target.value)}
                   placeholder={t("anilistWorkspace.filterLibrary")}
-                  className="min-w-0 flex-1 bg-transparent py-3.5 text-sm outline-none"
+                  className="min-w-0 flex-1 bg-transparent py-3.5 text-sm outline-none text-[var(--text)]"
                 />
               </label>
-              <CollectionTabs
-                label={t("anilistWorkspace.library")}
-                active={libraryTab}
-                onChange={setLibraryTab}
-                tabs={LIST_STATUSES.map((status) => ({
-                  id: status.toLowerCase(),
-                  label: t(`home.statuses.${status.toLowerCase()}`),
-                  count: libraryCollections[status.toLowerCase()].length,
-                }))}
-              />
+
+              {/* Library Tabs */}
+              <div className="flex gap-1 mb-5 overflow-x-auto pb-2">
+                {LIST_STATUSES.map((status) => (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={() => setLibraryTab(status.toLowerCase())}
+                    className={`px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap transition-all ${
+                      libraryTab === status.toLowerCase()
+                        ? "bg-[var(--accent-dim)] text-[var(--accent)]"
+                        : "text-[var(--text-secondary)] hover:bg-[var(--background-surface-hover)] hover:text-[var(--text)]"
+                    }`}
+                  >
+                    {t(`home.statuses.${status.toLowerCase()}`)} ({libraryCollections[status.toLowerCase()].length})
+                  </button>
+                ))}
+              </div>
+
               <CollectionGrid
                 items={activeLibraryItems}
                 onSelect={(item) =>
@@ -1591,8 +1495,8 @@ export function HomePage({
         </>
       ) : null}
       {loading ? (
-        <div className="m3-card min-h-72 flex items-center justify-center">
-          <Loader2 className="animate-spin text-m3-primary" />
+        <div className="flex min-h-72 items-center justify-center">
+          <Loader2 className="animate-spin text-[var(--accent)]" />
         </div>
       ) : dashboard && view === "dashboard" ? (
         <>
@@ -1601,7 +1505,7 @@ export function HomePage({
               <button
                 type="button"
                 onClick={() => openMedia(featured)}
-                className="m3-card home-feature relative min-h-[300px] overflow-hidden text-left"
+                className="home-feature relative min-h-[300px] overflow-hidden text-left rounded-lg border border-[var(--border)]"
               >
                 <span
                   className="absolute inset-0 bg-cover bg-center"
@@ -1609,15 +1513,15 @@ export function HomePage({
                     backgroundImage: `url(${featured.bannerUrl || featured.coverUrl})`,
                   }}
                 />
-                <span className="absolute inset-0 bg-gradient-to-r from-m3-surface via-m3-surface/75 to-transparent" />
+                <span className="absolute inset-0 bg-gradient-to-r from-[var(--background)] via-[var(--background)]/75 to-transparent" />
                 <span className="relative flex min-h-[300px] max-w-xl flex-col justify-end p-6">
-                  <span className="section-label w-fit">
-                    <TrendingUp size={13} /> {t("home.trending")}
+                  <span className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)] w-fit">
+                    <TrendingUp size={13} className="inline mr-1" /> {t("home.trending")}
                   </span>
-                  <strong className="mt-3 text-3xl font-black md:text-4xl">
+                  <strong className="mt-3 text-3xl font-bold md:text-4xl text-[var(--text)]">
                     {featured.title}
                   </strong>
-                  <span className="mt-2 text-sm text-m3-on-surface-variant">
+                  <span className="mt-2 text-sm text-[var(--text-secondary)]">
                     {episodeLabel(featured, t)}
                     {featured.averageScore
                       ? ` · ★ ${featured.averageScore}%`
@@ -1629,9 +1533,9 @@ export function HomePage({
                 </span>
               </button>
             ) : null}
-            <aside className="m3-card min-w-0 overflow-hidden p-4">
-              <h3 className="flex items-center gap-2 font-black">
-                <CalendarClock size={18} className="shrink-0 text-m3-primary" />{" "}
+            <aside className="min-w-0 overflow-hidden p-4 border border-[var(--border)] bg-[var(--background-surface)] rounded-lg">
+              <h3 className="flex items-center gap-2 font-bold text-[var(--text)]">
+                <CalendarClock size={18} className="shrink-0 text-[var(--accent)]" />
                 {t("home.airingSoon")}
               </h3>
               <div className="mt-3 grid min-w-0 gap-1.5">
@@ -1640,7 +1544,7 @@ export function HomePage({
                     type="button"
                     key={`${item.media.id}:${item.episode}`}
                     onClick={() => openMedia(item.media)}
-                    className="flex w-full min-w-0 items-center gap-3 overflow-hidden rounded-xl p-2 text-left hover:bg-m3-on-surface/8"
+                    className="flex w-full min-w-0 items-center gap-3 overflow-hidden rounded-lg p-2 text-left hover:bg-[var(--background-surface-hover)] transition-colors"
                   >
                     {item.media.coverUrl ? (
                       <img
@@ -1650,10 +1554,10 @@ export function HomePage({
                       />
                     ) : null}
                     <span className="min-w-0 flex-1 overflow-hidden">
-                      <strong className="block max-w-full truncate text-xs">
+                      <strong className="block max-w-full truncate text-xs text-[var(--text)]">
                         {item.media.title}
                       </strong>
-                      <span className="mt-0.5 block max-w-full truncate text-[10px] text-m3-on-surface-variant">
+                      <span className="mt-0.5 block max-w-full truncate text-[10px] text-[var(--text-secondary)]">
                         {t("home.airingLabel", {
                           episode: item.episode,
                           time: timeUntil(item.airingAt, t),
@@ -1666,9 +1570,9 @@ export function HomePage({
             </aside>
           </div>
           {history.length ? (
-            <section>
-              <h3 className="mb-2 flex items-center gap-2 font-black">
-                <Play size={18} className="text-m3-primary" />{" "}
+            <section className="mb-8">
+              <h3 className="section-title mb-4 flex items-center gap-2">
+                <Play size={18} className="text-[var(--accent)]" />
                 {t("home.continueWatching")}
               </h3>
               <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
@@ -1676,7 +1580,7 @@ export function HomePage({
                   <button
                     key={`${item.animeId}:${item.episode}`}
                     onClick={() => onResume(item)}
-                    className="m3-card flex items-center gap-3 p-3 text-left hover:border-m3-primary/40"
+                    className="flex items-center gap-3 p-3 border border-[var(--border)] bg-[var(--background-surface)] rounded-lg text-left hover:border-[var(--accent-dim)] transition-colors"
                   >
                     {item.coverUrl ? (
                       <img
@@ -1686,10 +1590,10 @@ export function HomePage({
                       />
                     ) : null}
                     <span className="min-w-0">
-                      <strong className="block truncate text-sm">
+                      <strong className="block truncate text-sm text-[var(--text)]">
                         {item.animeName}
                       </strong>
-                      <span className="mt-1 block text-xs text-m3-on-surface-variant">
+                      <span className="mt-1 block text-xs text-[var(--text-secondary)]">
                         {t("downloads.episode", { episode: item.episode })}
                       </span>
                     </span>
@@ -1701,7 +1605,7 @@ export function HomePage({
           <div className="grid items-start gap-4 xl:grid-cols-2">
             <DashboardShelf
               title={t("home.discover")}
-              icon={<Sparkles size={18} className="text-m3-primary" />}
+              icon={<Sparkles size={18} className="text-[var(--accent)]" />}
               tabs={[
                 {
                   id: "trending",

@@ -4,11 +4,13 @@ import './i18n'
 import './index.css'
 import App from './App.tsx'
 import { initializeTheme } from './lib/theme'
+import { initializeAppearance } from './lib/appearance'
 import { WatchTogetherProvider } from './contexts/WatchTogetherContext'
 
 const rootEl = document.getElementById('root')
 
 initializeTheme()
+initializeAppearance()
 
 window.addEventListener('error', (e) => {
   if (!rootEl) return

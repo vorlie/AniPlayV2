@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Download, Gauge, HardDrive, Loader2, Magnet, Play, ShieldAlert, Users, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import type { TorrentFileInfo, TorrentRelease, TorrentSessionState, TorrentSettings } from '../torrent-types'
+import type { TorrentFileInfo, TorrentRelease, TorrentSessionState, TorrentSettings } from '../../../torrent-types'
 
 interface TorrentStream {
   url: string

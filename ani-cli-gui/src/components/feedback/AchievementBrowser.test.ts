@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { createAchievements } from '../lib/profile-achievements'
-import type { AniListProfile } from '../anilist-types'
-import { EMPTY_VIEWING_SUMMARY } from '../viewing-types'
+import { createAchievements } from '../../lib/profile-achievements'
+import type { AniListProfile } from '../../anilist-types'
+import { EMPTY_VIEWING_SUMMARY } from '../../viewing-types'
 
 function stats(overrides: Partial<AniListProfile['stats']> = {}): AniListProfile['stats'] {
   return { count: 0, episodesWatched: 0, minutesWatched: 0, meanScore: 0, statuses: [], genres: [], ...overrides }
