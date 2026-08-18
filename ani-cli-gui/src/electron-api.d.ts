@@ -149,6 +149,12 @@ interface AniPlayApi {
     chooseCacheDirectory(): Promise<TorrentSettings>
     onChanged(callback: (state: TorrentSessionState) => void): () => void
   }
+  onOpenAnime(callback: (mediaId: number) => void): () => void
+  windowControls?: {
+    minimize(): void
+    maximize(): void
+    close(): void
+  }
 }
 
 declare global {

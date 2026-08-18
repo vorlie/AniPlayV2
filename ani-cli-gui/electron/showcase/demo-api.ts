@@ -154,6 +154,12 @@ export function createShowcaseApi(mediaUrl = process.env.ANIPLAY_SHOWCASE_VIDEO_
       chooseCacheDirectory: async () => clone(torrentSettings),
       onChanged: () => () => undefined,
     },
+    onOpenAnime: () => () => undefined,
+    windowControls: {
+      minimize: () => undefined,
+      maximize: () => undefined,
+      close: () => undefined,
+    },
   }
   return api
 }

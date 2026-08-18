@@ -337,3 +337,34 @@
     opacity: 0.5;
   }
 }
+
+.watch-together-trigger-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 34px; /* Matches your header close button height */
+    padding: 0 14px;
+    border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+    border-radius: var(--radius-md, 6px);
+    color: var(--accent);
+    background: var(--accent-dimmer, rgba(var(--accent-rgb), 0.08));
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition:
+        background 140ms ease,
+        border-color 140ms ease,
+        color 140ms ease;
+}
+
+.watch-together-trigger-btn:hover {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--text, #ffffff);
+}
+
+.watch-together-trigger-btn svg {
+    flex-shrink: 0;
+}

@@ -79,12 +79,25 @@ function App() {
     if (shouldPlayNotificationSound(sound)) playNotificationSound()
   }, [])
 
+  const handleOpenAniListMedia = useCallback((id: number) => {
+    setAniListOpenRequest({ id, nonce: Date.now() })
+    setActiveTab('anilist')
+  }, [])
+
   useEffect(() => {
     const aniPlay = window.aniPlay
     if (!aniPlay) return
     void aniPlay.downloads.getState().then(setDownloadState)
     return aniPlay.downloads.onChanged(setDownloadState)
   }, [])
+
+  useEffect(() => {
+    const aniPlay = window.aniPlay
+    if (!aniPlay) return
+    return aniPlay.onOpenAnime((mediaId: number) => {
+      handleOpenAniListMedia(mediaId)
+    })
+  }, [handleOpenAniListMedia])
 
   useEffect(() => {
     const room = watchTogetherState
@@ -166,7 +179,12 @@ function App() {
     { id: 'downloads', label: t('app.downloads'), icon: Download, badge: activeDownloadCount || undefined },
     { id: 'settings', label: t('app.settings'), icon: Settings },
   ]
-  const nativeControls = (window.aniPlay as any)?.windowControls;
+
+  // Add player to sidebar when active anime exists
+  if (activeAnime) {
+    sidebarItems.push({ id: 'player', label: t('app.player'), icon: Sparkles })
+  }
+  const nativeControls = window.aniPlay?.windowControls;
   // Window controls
   const windowControls = nativeControls ? [
     { icon: Minus, label: 'Minimize', onClick: () => nativeControls.minimize() },
@@ -246,11 +264,6 @@ function App() {
     setActiveTab('player')
   }
 
-  const handleOpenAniListMedia = (id: number) => {
-    setAniListOpenRequest({ id, nonce: Date.now() })
-    setActiveTab('anilist')
-  }
-
   const handleEpisodeStarted = useCallback((animeId: string, episode: string) => {
     const key = `${animeId}:${episode}`
     if (watchedEpisodesRef.current.has(key)) return
@@ -278,9 +291,7 @@ function App() {
             setActiveTab('player')
           } else {
             setActiveTab(id)
-            if (id !== 'player') {
-              setActiveAnime(null)
-            }
+            // Don't clear activeAnime - let the player persist in background
           }
         },
       }}
@@ -295,7 +306,7 @@ function App() {
           <button
             type="button"
             onClick={openGlobalWatchTogether}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-[var(--accent-dim)] text-[var(--accent)] text-sm font-medium hover:bg-[var(--accent-dimmer)] transition-colors"
+            className="watch-together-trigger-btn"
           >
             <Sparkles size={14} />
             <span>{t('watchTogether.title')}</span>

@@ -846,6 +846,19 @@ function extractWatchTogetherInvite(value: string): string | null {
   }
 }
 
+function extractAnimeId(value: string): number | null {
+  try {
+    const parsed = new URL(value)
+    if (parsed.protocol !== 'aniplay:') return null
+    const [type, id] = parsed.pathname.split('/').filter(Boolean)
+    if (type !== 'anime' || !id) return null
+    const mediaId = Number(id)
+    return Number.isInteger(mediaId) && mediaId > 0 ? mediaId : null
+  } catch {
+    return null
+  }
+}
+
 function deliverWatchTogetherInvite(value: string): void {
   const code = extractWatchTogetherInvite(value)
   if (!code) return
@@ -858,9 +871,22 @@ function deliverWatchTogetherInvite(value: string): void {
   pendingWatchTogetherInvite = null
 }
 
+function deliverAnimeId(value: string): void {
+  const mediaId = extractAnimeId(value)
+  if (!mediaId) return
+  if (!win || win.isDestroyed() || win.webContents.isLoadingMainFrame()) return
+  if (win.isMinimized()) win.restore()
+  win.focus()
+  win.webContents.send('open-anime', mediaId)
+}
+
 function handleOpenUrl(event: { preventDefault?: () => void }, url: string): void {
   event.preventDefault?.()
-  deliverWatchTogetherInvite(url)
+  if (extractWatchTogetherInvite(url)) {
+    deliverWatchTogetherInvite(url)
+  } else if (extractAnimeId(url)) {
+    deliverAnimeId(url)
+  }
 }
 
 app.on('open-url', handleOpenUrl)
@@ -868,6 +894,8 @@ app.on('open-url', handleOpenUrl)
 app.on('second-instance', (_event, argv) => {
   const invite = argv.find((item) => extractWatchTogetherInvite(item))
   if (invite) deliverWatchTogetherInvite(invite)
+  const animeUrl = argv.find((item) => extractAnimeId(item))
+  if (animeUrl) deliverAnimeId(animeUrl)
 })
 
 app.on('window-all-closed', () => {
@@ -946,6 +974,8 @@ if (hasSingleInstanceLock) void app.whenReady().then(async () => {
   configureMediaRequestHeaders()
   createWindow()
   const coldStartInvite = process.argv.find((item) => extractWatchTogetherInvite(item))
+  const coldStartAnime = process.argv.find((item) => extractAnimeId(item))
   if (coldStartInvite) deliverWatchTogetherInvite(coldStartInvite)
+  else if (coldStartAnime) deliverAnimeId(coldStartAnime)
   else if (pendingWatchTogetherInvite) deliverWatchTogetherInvite(`aniplay://watch/${pendingWatchTogetherInvite}`)
 })

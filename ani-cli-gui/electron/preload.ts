@@ -143,6 +143,11 @@ const productionApi = {
     maximize: () => ipcRenderer.send('window:maximize'),
     close: () => ipcRenderer.send('window:close'),
   },
+  onOpenAnime: (callback: (mediaId: number) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, mediaId: number) => callback(mediaId)
+    ipcRenderer.on('open-anime', listener)
+    return () => ipcRenderer.removeListener('open-anime', listener)
+  },
 }
 
 const api = process.argv.includes(SHOWCASE_PRELOAD_SWITCH) ? createShowcaseApi() : productionApi

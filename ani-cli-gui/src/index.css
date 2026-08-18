@@ -22,6 +22,10 @@
 @import "./styles/animepage.css";
 @import "./styles/homepage.css";
 
+*, ::before, ::after {
+    box-sizing: border-box;
+}
+
 .app-background,
 .app-background-overlay {
   position: fixed;

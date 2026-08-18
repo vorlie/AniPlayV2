@@ -7,7 +7,7 @@
     "url": "https://github.com/vorlie/AniPlayV2.git"
   },
   "private": true,
-  "version": "1.19.2",
+  "version": "1.19.3-test",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
