@@ -1,4 +1,16 @@
 # AniPlay
+> ⚠️ Archived
+
+AniPlay is a legacy anime media player project that is no longer
+actively developed.
+
+Development has moved to [Kioku](https://github.com/vorlie/kioku),
+which provides AniList management and integrates playback directly
+through the ani-cli-rs playback pipeline.
+
+This repository is preserved for historical and reference purposes.
+
+---
 
 AniPlay is a Material You-inspired desktop anime browser and player built with Electron, React, TypeScript, and Vite. It combines third-party playback catalogs with AniList discovery, list management, profile statistics, achievements, local watch history, and downloads.
 

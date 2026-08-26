@@ -1,9 +1,5 @@
 /*
  * Application CSS entry point.
- *
- * The former Tailwind utility output is checked in as ordinary CSS so the
- * renderer has no Tailwind build-time dependency. New page and component
- * styles belong in `styles/pages` and `styles/components` respectively.
  */
 @import "https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700";
 @import "./styles/variables.css";
